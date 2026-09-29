@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-26.04, macos-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
@@ -56,7 +56,7 @@ jobs:
       # gate is deterministic across OSes, one run is sufficient and keeps the
       # macOS leg fast.
       - name: Coverage gate
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-26.04'
         working-directory: apps/api
         env:
           MIN_LINE: "80"
@@ -64,7 +64,7 @@ jobs:
         run: bash ../../scripts/ci/coverage-gate.sh
 
       - name: Upload coverage
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-26.04'
         uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ github.run_id }}
@@ -74,7 +74,7 @@ jobs:
 
   security:
     name: security scans
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -102,7 +102,7 @@ jobs:
   dependency-review:
     name: dependency review (PR only)
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions:
       contents: read
@@ -117,7 +117,7 @@ jobs:
 
   codeql:
     name: codeql (javascript-typescript)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -134,7 +134,7 @@ jobs:
 
   docker:
     name: docker build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 25
     permissions:
       contents: read
@@ -175,7 +175,7 @@ jobs:
 
   e2e:
     name: e2e (dex + api)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7

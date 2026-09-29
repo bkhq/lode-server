@@ -44,7 +44,7 @@ env:
 jobs:
   smoke-local:
     name: workerd smoke
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -82,7 +82,7 @@ jobs:
 
   deploy:
     name: deploy to cloudflare
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     needs: smoke-local
     # Manual only. A push must never publish: this repository is a template,
