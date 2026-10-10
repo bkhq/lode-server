@@ -109,6 +109,7 @@ CREATE TABLE `users` (
 	`avatar` text,
 	`role` text DEFAULT 'user' NOT NULL,
 	`status` text DEFAULT 'active' NOT NULL,
+	`password_hash` text,
 	`last_login_at` text,
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL

@@ -5,5 +5,6 @@
   "username": "Username",
   "password": "Password",
   "invalidCredentials": "Invalid username or password.",
-  "rateLimited": "Too many attempts. Please try again later."
+  "rateLimited": "Too many attempts. Please try again later.",
+  "or": "or"
 }

@@ -11,6 +11,7 @@ import { secureHeaders } from "hono/secure-headers";
 import { loadConfig } from "./config";
 import { logDefaultAdmins } from "./modules/account/auth/auth.service";
 import { passwordHashUnsupportedReason } from "./modules/account/auth/password";
+import { seedBootstrapAdmin } from "./modules/account/users/local-users.service";
 import { startAuditRetentionSweep } from "./modules/audit";
 import { assertCronSchedulerSupported, initCronActions, startCron } from "./modules/cron";
 import { docsCspRelax, mountDocs } from "./modules/docs";
@@ -69,7 +70,7 @@ export async function bootstrap(): Promise<BootstrapResult> {
   // Refuse a credential this runtime cannot check, at boot. Left to the
   // login route it would surface as an endless "invalid credentials", with
   // the real reason buried in a log line.
-  if (config.SINGLE_USER_MODE && config.SINGLE_USER_PASSWORD_HASH) {
+  if ((config.SINGLE_USER_MODE || config.LOCAL_LOGIN) && config.SINGLE_USER_PASSWORD_HASH) {
     const reason = passwordHashUnsupportedReason(config.SINGLE_USER_PASSWORD_HASH);
     if (reason)
       throw new Error(`[config] ${reason}`);
@@ -174,6 +175,7 @@ export async function buildFullApp({ config, db, logger, encryption }: AppDeps) 
   installCommonMiddleware(api, { config, logger, db, encryption });
 
   await seedSettingsFromEnv(db, config);
+  await seedBootstrapAdmin(db, config, logger);
   startAuditRetentionSweep(db, config, logger);
   await initFileModule(config, logger);
   startFileGcSweep(db, config, logger);

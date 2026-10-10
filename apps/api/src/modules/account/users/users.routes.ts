@@ -5,11 +5,13 @@ import { z } from "zod";
 import { sessions } from "@/modules/account/auth/schema";
 import { userPreferences, users } from "@/modules/account/users/schema";
 import { audit } from "@/modules/audit/audit.service";
+import { isLocalLogin } from "@/shared/lib/app-config";
 import { getClientIp } from "@/shared/lib/client-ip";
 import { AppError, NotFoundError, UnauthorizedError } from "@/shared/lib/errors";
 import { describeRoute, errors, jsonCreated, jsonOk, jsonPaged, SECURITY, TAGS, validator } from "@/shared/lib/openapi";
 import { adminRequired, authRequired } from "@/shared/middleware/auth";
 import { rateLimit } from "@/shared/middleware/rate-limit";
+import { createLocalUser, MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, setUserPassword } from "./local-users.service";
 import {
   confirmTotpDevice,
   createTotpDevice,
@@ -29,6 +31,16 @@ const listQuerySchema = z.object({
   group_id: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+const passwordSchema = z.string().min(MIN_PASSWORD_LENGTH).max(MAX_PASSWORD_LENGTH);
+
+const createUserSchema = z.object({
+  username: z.string().trim().regex(/^[a-z0-9][\w.-]{1,63}$/i, "Letters, digits, dot, dash and underscore; 2 to 64 characters"),
+  name: z.string().trim().min(1).max(100),
+  email: z.email().max(254),
+  role: z.enum(["admin", "user"]).default("user"),
+  password: passwordSchema,
 });
 
 const updateBodySchema = z.object({
@@ -439,6 +451,83 @@ export function userRoutes() {
           totalPages: result.totalPages,
         },
       });
+    },
+  );
+
+  // POST /users — create an account that signs in with a password
+  router.post(
+    "/account/users",
+    describeRoute({
+      tags: [TAGS.Account],
+      summary: "Create user",
+      description: "Admin only; needs LOCAL_LOGIN. Creates an account that signs in with a username and password, so a deployment does not depend on an identity provider. If the person later signs in through the IdP with a verified email matching this account's, the two are linked.",
+      security: SECURITY.session,
+      responses: {
+        ...jsonCreated(userSchema, "User created"),
+        ...errors(401, 403, 409, 422),
+      },
+    }),
+    adminRequired,
+    validator("json", createUserSchema),
+    async (c) => {
+      if (!isLocalLogin(c.get("config")))
+        throw new AppError("Password accounts are disabled; set LOCAL_LOGIN=true", 409, "LOCAL_LOGIN_DISABLED");
+      const db = c.get("db");
+      const actor = c.get("user")!;
+      const created = await createLocalUser(db, c.req.valid("json"));
+      await audit(db, c.get("logger"), {
+        actorId: actor.id,
+        actorName: actor.name,
+        action: "user.created",
+        resourceType: "user",
+        resourceId: created.id,
+        resourceName: created.username,
+        detail: { role: created.role },
+        ip: getClientIp(c),
+        userAgent: c.req.header("user-agent") ?? "unknown",
+        result: "success",
+      });
+      return c.json({ success: true, data: created }, 201);
+    },
+  );
+
+  // POST /users/:id/password — set or reset a password
+  router.post(
+    "/account/users/:id/password",
+    describeRoute({
+      tags: [TAGS.Account],
+      summary: "Set a user's password",
+      description: "Admin only; needs LOCAL_LOGIN. Replaces the password and ends the user's sessions. On an account that signed in only through the IdP it adds password sign-in.",
+      security: SECURITY.session,
+      responses: {
+        ...jsonOk(z.null(), "Password set"),
+        ...errors(401, 403, 404, 409, 422),
+      },
+    }),
+    adminRequired,
+    validator("param", z.object({ id: z.string() })),
+    validator("json", z.object({ password: passwordSchema })),
+    async (c) => {
+      if (!isLocalLogin(c.get("config")))
+        throw new AppError("Password accounts are disabled; set LOCAL_LOGIN=true", 409, "LOCAL_LOGIN_DISABLED");
+      const db = c.get("db");
+      const actor = c.get("user")!;
+      const { id } = c.req.valid("param");
+      const target = await getUserById(db, id);
+      if (!target || !(await setUserPassword(db, id, c.req.valid("json").password)))
+        throw new NotFoundError("User", id);
+      await audit(db, c.get("logger"), {
+        actorId: actor.id,
+        actorName: actor.name,
+        action: "user.password_set",
+        resourceType: "user",
+        resourceId: id,
+        resourceName: target.username,
+        ip: getClientIp(c),
+        userAgent: c.req.header("user-agent") ?? "unknown",
+        result: "success",
+      });
+      return c.json({ success: true, data: null });
     },
   );
 

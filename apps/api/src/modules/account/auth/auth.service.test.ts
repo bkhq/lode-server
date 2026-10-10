@@ -370,3 +370,57 @@ describe("upsertUser DEFAULT_ADMIN bootstrap", () => {
     expect(attackerRow).toBeUndefined();
   });
 });
+
+describe("upsertUser and accounts that sign in with a password", () => {
+  async function localAdmin(): Promise<string> {
+    const now = new Date().toISOString();
+    await db.insert(users).values({
+      id: "loc",
+      oauthSub: "local:loc",
+      username: "admin",
+      name: "Admin",
+      email: "admin@corp.test",
+      role: "admin",
+      status: "active",
+      passwordHash: "pbkdf2-sha256$1$AAAA$AAAA",
+      createdAt: now,
+      updatedAt: now,
+    }).run();
+    return "loc";
+  }
+
+  test("an IdP user who merely picks the same username cannot take the account over", async () => {
+    // Usernames are self-chosen at many IdPs: registering "admin" there must
+    // not hand over the local admin.
+    await localAdmin();
+    await expect(
+      upsertUser(db, { sub: "attacker", preferred_username: "admin", email: "evil@x.io", email_verified: true }, authConfig([]), logger),
+    ).rejects.toMatchObject({ code: "ACCOUNT_CONFLICT" });
+    const row = (await db.select().from(users).where(eq(users.id, "loc")).get())!;
+    expect(row.oauthSub).toBe("local:loc");
+  });
+
+  test("nor with an unverified email that happens to match", async () => {
+    await localAdmin();
+    await expect(
+      upsertUser(db, { sub: "attacker", preferred_username: "someone", email: "admin@corp.test", email_verified: false }, authConfig([]), logger),
+    ).rejects.toMatchObject({ code: "ACCOUNT_CONFLICT" });
+  });
+
+  test("a verified email the IdP vouches for links the account, which keeps its password", async () => {
+    await localAdmin();
+    const user = await upsertUser(db, { sub: "real", preferred_username: "admin", email: "admin@corp.test", email_verified: true }, authConfig([]), logger);
+    expect(user.id).toBe("loc");
+    const row = (await db.select().from(users).where(eq(users.id, "loc")).get())!;
+    expect(row.oauthSub).toBe("real");
+    expect(row.passwordHash).not.toBeNull();
+    expect(row.role).toBe("admin");
+  });
+
+  test("an account without a password is still rebound by username, as before", async () => {
+    const now = new Date().toISOString();
+    await db.insert(users).values({ id: "old", oauthSub: "single-user", username: "owner", name: "o", email: "o@x.io", role: "user", status: "active", createdAt: now, updatedAt: now }).run();
+    const user = await upsertUser(db, { sub: "idp", preferred_username: "owner" }, authConfig([]), logger);
+    expect(user.id).toBe("old");
+  });
+});

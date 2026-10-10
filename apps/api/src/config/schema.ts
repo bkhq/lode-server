@@ -193,6 +193,11 @@ export const configSchema = z.object({
   // against the SINGLE_USER_USERNAME / SINGLE_USER_PASSWORD_HASH pair set
   // here. Registration and password change are not exposed. Generate the
   // hash with `bun run hash-password`.
+  // Password sign-in for accounts in the database (created by an admin), next
+  // to OIDC. Unlike SINGLE_USER_MODE it hides nothing: both can be offered at
+  // once. SINGLE_USER_USERNAME / SINGLE_USER_PASSWORD_HASH(_FILE) then name a
+  // bootstrap admin that is created at boot. Ignored in single-user mode.
+  LOCAL_LOGIN: z.enum(["true", "false"]).default("false").transform(v => v === "true"),
   SINGLE_USER_MODE: z.enum(["true", "false"]).default("false").transform(v => v === "true"),
   SINGLE_USER_USERNAME: z.string().min(1).optional(),
   // Inline hash. Bun dotenv expands `$VAR` (even in single quotes), so the

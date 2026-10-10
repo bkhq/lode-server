@@ -62,6 +62,18 @@ export function isSingleUserMode(config: Config): boolean {
   );
 }
 
+/** Password sign-in for database accounts is on, and single-user mode is not taking its place. */
+export function isLocalLogin(config: Config): boolean {
+  return config.LOCAL_LOGIN && !isSingleUserMode(config);
+}
+
+/** The admin named by SINGLE_USER_* under LOCAL_LOGIN, created at boot; undefined when not configured. */
+export function getBootstrapAdmin(config: Config): SingleUserConfig | undefined {
+  if (!isLocalLogin(config) || !config.SINGLE_USER_USERNAME || !config.SINGLE_USER_PASSWORD_HASH)
+    return undefined;
+  return getSingleUserConfig(config);
+}
+
 export function getSingleUserConfig(config: Config): SingleUserConfig {
   if (!config.SINGLE_USER_USERNAME || !config.SINGLE_USER_PASSWORD_HASH) {
     throw new Error("Single-user mode not configured (set SINGLE_USER_USERNAME and SINGLE_USER_PASSWORD_HASH)");

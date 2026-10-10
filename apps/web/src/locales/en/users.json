@@ -33,5 +33,15 @@
   "tabs": {
     "users": "Users",
     "groups": "Groups"
-  }
+  },
+  "addUser": "Add user",
+  "addUserTitle": "Add user",
+  "addUserDescription": "Create an account that signs in with a username and password.",
+  "password": "Password",
+  "passwordHint": "At least {{min}} characters.",
+  "makeAdmin": "Make this user an admin",
+  "conflict": "That username or email is already in use.",
+  "setPassword": "Set password",
+  "setPasswordTitle": "Set password",
+  "setPasswordDescription": "Set a new password for \"{{name}}\". Their current sessions will end."
 }

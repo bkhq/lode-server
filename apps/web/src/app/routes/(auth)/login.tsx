@@ -17,6 +17,8 @@ interface LoginSearchParams {
 interface AuthMode {
   mode: "single-user" | "oauth";
   oauthConfigured: boolean;
+  /** Password sign-in for accounts in the database, offered next to OAuth. */
+  localLogin?: boolean;
 }
 
 export const Route = createFileRoute("/(auth)/login")({
@@ -45,7 +47,7 @@ function LoginPage() {
   useEffect(() => {
     void http<{ success: boolean; data: AuthMode }>("/account/auth/mode")
       .then(res => setMode(res.data))
-      .catch(() => setMode({ mode: "oauth", oauthConfigured: false }));
+      .catch(() => setMode({ mode: "oauth", oauthConfigured: false, localLogin: false }));
   }, []);
 
   return (
@@ -59,22 +61,40 @@ function LoginPage() {
           {t("login:description")}
         </p>
 
-        {mode === null
-          ? null
-          : mode.mode === "single-user"
-            ? <SingleUserForm redirectTarget={target} />
-            : <OAuthButton redirectTarget={target} />}
+        {mode === null ? null : <LoginMethods mode={mode} redirectTarget={target} />}
       </div>
     </div>
   );
 }
 
-function OAuthButton({ redirectTarget }: { redirectTarget: string }) {
+function LoginMethods({ mode, redirectTarget }: { mode: AuthMode; redirectTarget: string }) {
+  const { t } = useTranslation("login");
+  const form = mode.mode === "single-user" || mode.localLogin === true;
+  // A misconfigured OAuth must not leave a dead button next to a working form.
+  const oauth = mode.mode === "oauth" && (mode.oauthConfigured || !form);
+  return (
+    <>
+      {form ? <SingleUserForm redirectTarget={redirectTarget} /> : null}
+      {form && oauth
+        ? (
+            <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              {t("or")}
+              <span className="h-px flex-1 bg-border" />
+            </div>
+          )
+        : null}
+      {oauth ? <OAuthButton redirectTarget={redirectTarget} spaced={!form} /> : null}
+    </>
+  );
+}
+
+function OAuthButton({ redirectTarget, spaced }: { redirectTarget: string; spaced: boolean }) {
   const { t } = useTranslation(["common", "login"]);
   const loginUrl = `${BASE_PATH}/api/account/auth/login?redirect=${encodeURIComponent(redirectTarget)}`;
   return (
-    <a href={loginUrl} className="mt-6 block">
-      <Button className="w-full">
+    <a href={loginUrl} className={spaced ? "mt-6 block" : "block"}>
+      <Button className="w-full" variant={spaced ? "default" : "outline"}>
         <LogIn className="mr-2 size-4" />
         {t("login:button")}
       </Button>
@@ -96,11 +116,12 @@ function SingleUserForm({ redirectTarget }: { redirectTarget: string }) {
     setSubmitting(true);
     setError(null);
     try {
-      await http("/account/auth/login-local", {
+      const res = await http<{ data?: { totpRequired?: boolean } }>("/account/auth/login-local", {
         method: "POST",
         body: JSON.stringify({ username, password }),
       });
-      window.location.href = redirectTarget;
+      // Two-step verification: the session is created once the code is in.
+      window.location.href = res.data?.totpRequired ? `${BASE_PATH}/totp-verify` : redirectTarget;
     }
     catch (err) {
       if (err instanceof HttpError && err.status === 429) {

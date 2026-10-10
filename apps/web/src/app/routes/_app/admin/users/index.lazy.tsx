@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createLazyFileRoute } from "@tanstack/react-router";
-import { Search } from "lucide-react";
+import { Search, UserPlus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/shared/components/ui/badge";
@@ -34,6 +34,7 @@ import { useDebounce } from "@/shared/hooks/use-debounce";
 import { formatDateTime } from "@/shared/lib/format";
 import { http } from "@/shared/lib/http";
 import { useAuthStore } from "@/shared/stores/auth";
+import { AddUserDialog, SetPasswordDialog } from "./-password-dialogs";
 
 export const Route = createLazyFileRoute("/_app/admin/users/")({
   component: UsersTab,
@@ -77,6 +78,16 @@ function UsersTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [roleConfirm, setRoleConfirm] = useState<User | null>(null);
+  // Accounts with passwords exist only when the deployment allows them.
+  const [localLogin, setLocalLogin] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [passwordFor, setPasswordFor] = useState<User | null>(null);
+
+  useEffect(() => {
+    void http<{ data: { localLogin?: boolean } }>("/account/auth/mode")
+      .then(res => setLocalLogin(res.data.localLogin === true))
+      .catch(() => setLocalLogin(false));
+  }, []);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -217,6 +228,13 @@ function UsersTab() {
         <span className="text-sm text-muted-foreground">
           {t("totalCount", { count: meta.total })}
         </span>
+
+        {localLogin && (
+          <Button size="sm" className="ml-auto" onClick={() => setAddOpen(true)}>
+            <UserPlus className="mr-1 size-4" />
+            {t("addUser")}
+          </Button>
+        )}
       </div>
 
       <div className="rounded-md border">
@@ -298,6 +316,11 @@ function UsersTab() {
                           >
                             {user.status === "active" ? t("disable") : t("enable")}
                           </Button>
+                          {localLogin && (
+                            <Button variant="ghost" size="sm" onClick={() => setPasswordFor(user)}>
+                              {t("setPassword")}
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -331,6 +354,9 @@ function UsersTab() {
           </Button>
         </div>
       )}
+
+      <AddUserDialog open={addOpen} onOpenChange={setAddOpen} onCreated={() => void fetchUsers()} />
+      <SetPasswordDialog user={passwordFor} onClose={() => setPasswordFor(null)} />
 
       <Dialog
         open={roleConfirm !== null}

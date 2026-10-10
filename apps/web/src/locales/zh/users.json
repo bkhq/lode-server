@@ -33,5 +33,15 @@
   "tabs": {
     "users": "用户列表",
     "groups": "用户组"
-  }
+  },
+  "addUser": "添加用户",
+  "addUserTitle": "添加用户",
+  "addUserDescription": "创建一个使用用户名和密码登录的账号。",
+  "password": "密码",
+  "passwordHint": "至少 {{min}} 个字符。",
+  "makeAdmin": "设为管理员",
+  "conflict": "该用户名或邮箱已被使用。",
+  "setPassword": "设置密码",
+  "setPasswordTitle": "设置密码",
+  "setPasswordDescription": "为“{{name}}”设置新密码，其当前登录会话将被结束。"
 }

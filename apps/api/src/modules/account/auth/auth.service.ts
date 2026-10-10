@@ -13,6 +13,7 @@ import { pkceChallenges, sessions } from "@/modules/account/auth/schema";
 import { clearSessionCookie, readSessionId } from "@/modules/account/auth/session-cookie";
 import { users } from "@/modules/account/users/schema";
 import { getOAuthConfig } from "@/shared/lib/app-config";
+import { AppError, isUniqueViolation } from "@/shared/lib/errors";
 
 const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
@@ -210,6 +211,17 @@ export async function upsertUser(
       ? await tx.select().from(users).where(or(eq(users.username, username), eq(users.email, email))).get()
       : await tx.select().from(users).where(eq(users.username, username)).get();
     if (conflict) {
+      // An account with a password is not claimed by a username: usernames
+      // are often self-chosen at the IdP, so anyone able to register as
+      // "admin" there would otherwise be handed the local admin. Only a
+      // verified email the IdP vouches for links the two.
+      if (conflict.passwordHash !== null && !(emailTrusted && conflict.email === email)) {
+        throw new AppError(
+          "This username belongs to an account that signs in with a password",
+          409,
+          "ACCOUNT_CONFLICT",
+        );
+      }
       logger.info(
         { id: conflict.id, prevSub: conflict.oauthSub, newSub: userInfo.sub },
         "rebinding existing user to new oauth_sub (identity migration)",
@@ -248,13 +260,23 @@ export async function upsertUser(
       name: userInfo.name ?? username,
       email: userInfo.email ?? "",
       avatar: userInfo.picture ?? null,
+      passwordHash: null,
       role: roleFor("user"),
       status: "active" as const,
       lastLoginAt: now,
       createdAt: now,
       updatedAt: now,
     };
-    await tx.insert(users).values(newUser).run();
+    try {
+      await tx.insert(users).values(newUser).run();
+    }
+    catch (err) {
+      // The username or email is held by another account that was not
+      // matched above (an unverified email, say). Say so instead of 500.
+      if (isUniqueViolation(err))
+        throw new AppError("This username or email belongs to another account", 409, "ACCOUNT_CONFLICT");
+      throw err;
+    }
     return newUser;
   });
 }
@@ -328,6 +350,7 @@ export async function upsertSingleUser(
     name: input.name,
     email: input.email,
     avatar: null,
+    passwordHash: null,
     role: "admin" as const,
     status: "active" as const,
     lastLoginAt: now,

@@ -107,6 +107,8 @@ describe("discoverCreationRoutes", () => {
       "token",
       "totp",
       "tuple",
+      // Adding a password account is throttled like any other create.
+      "user",
     ]);
   });
 });

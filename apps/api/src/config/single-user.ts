@@ -47,7 +47,11 @@ export function resolveSingleUserConfig(
   data: Config,
   resolvePath: (p: string) => string,
 ): void {
-  if (!data.SINGLE_USER_MODE)
+  // Under LOCAL_LOGIN the same fields are optional: they name a bootstrap
+  // admin, validated only when any of them is set.
+  const bootstrapAdmin = data.LOCAL_LOGIN
+    && Boolean(data.SINGLE_USER_USERNAME || data.SINGLE_USER_PASSWORD_HASH || data.SINGLE_USER_PASSWORD_HASH_FILE);
+  if (!data.SINGLE_USER_MODE && !bootstrapAdmin)
     return;
 
   if (!data.SINGLE_USER_PASSWORD_HASH && data.SINGLE_USER_PASSWORD_HASH_FILE) {
@@ -63,7 +67,7 @@ export function resolveSingleUserConfig(
   }
   if (!data.SINGLE_USER_USERNAME || !data.SINGLE_USER_PASSWORD_HASH) {
     throw new ConfigError(
-      "SINGLE_USER_MODE=true requires SINGLE_USER_USERNAME and SINGLE_USER_PASSWORD_HASH (or SINGLE_USER_PASSWORD_HASH_FILE).",
+      "SINGLE_USER_MODE=true (or a bootstrap admin under LOCAL_LOGIN) requires SINGLE_USER_USERNAME and SINGLE_USER_PASSWORD_HASH (or SINGLE_USER_PASSWORD_HASH_FILE).",
       {
         field: "SINGLE_USER_USERNAME",
         hint: "Examples: `htpasswd -B -n admin > .secret/hash` or `bun run hash-password`.",

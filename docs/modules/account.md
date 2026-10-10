@@ -111,6 +111,34 @@ can be deleted (a later login recreates them). Many IdPs only send the claim
 when a scope asks for it — add it with `OAUTH_SCOPES`, for example
 `openid profile email groups`.
 
+## Password Accounts
+
+`LOCAL_LOGIN=true` lets users sign in with a username and password next to
+OIDC, so a deployment does not depend on an identity provider. Both are
+offered on the login page when OIDC is configured. Single-user mode is a
+different, exclusive mode and takes precedence if it is on.
+
+| Method | Path | Access | Description |
+|---|---|---|---|
+| POST | `/api/account/users` | Admin | Creates an account (`username`, `name`, `email`, `role`, `password`). |
+| POST | `/api/account/users/:id/password` | Admin | Sets or resets a password and ends that user's sessions. On an IdP-only account it adds password sign-in. |
+| POST | `/api/account/auth/login-local` | Public | Signs in. Answers `{ totpRequired: true }` when two-step verification is on; the code then goes to `/account/auth/totp/verify`. |
+
+Passwords are 12–128 characters, stored only as PBKDF2 hashes (`users.password_hash`,
+never returned by any route; it is part of a backup of the users module, which
+is as sensitive as the database). Failures answer the same whether the
+username exists, and ten failures lock the username for 15 minutes.
+
+**First admin.** With `LOCAL_LOGIN`, `SINGLE_USER_USERNAME` and
+`SINGLE_USER_PASSWORD_HASH` (or `_FILE`) name a bootstrap admin that is
+created at every boot as an active admin with that password — the environment
+is authoritative, so a lost password is recovered by changing the hash.
+
+**IdP and password accounts.** A username is self-chosen at many IdPs, so an
+OIDC login never takes over a password account by username: it fails with an
+account-conflict message. Only a verified email the IdP vouches for links the
+two, after which the account keeps its password and gains the IdP identity.
+
 ## Personal API Tokens
 
 A signed-in user can mint tokens for scripts and other services under

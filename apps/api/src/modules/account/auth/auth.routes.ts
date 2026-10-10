@@ -14,7 +14,7 @@ import {
   verifyTotpCode,
 } from "@/modules/account/users/totp.service";
 import { audit } from "@/modules/audit/audit.service";
-import { deriveOrigin, getAuthConfig, getOAuthConfig, getOidcLogoutUrl, getSingleUserConfig, isOAuthConfigured, isSingleUserMode } from "@/shared/lib/app-config";
+import { deriveOrigin, getAuthConfig, getOAuthConfig, getOidcLogoutUrl, getSingleUserConfig, isLocalLogin, isOAuthConfigured, isSingleUserMode } from "@/shared/lib/app-config";
 import { getClientIp } from "@/shared/lib/client-ip";
 import { AppError } from "@/shared/lib/errors";
 import { describeRoute, errors, jsonOk, TAGS } from "@/shared/lib/openapi";
@@ -31,6 +31,7 @@ import {
   upsertSingleUser,
   upsertUser,
 } from "./auth.service";
+import { loginLocalUser } from "./local-login";
 import { clearAllLockouts, clearFailures, isLocked, recordFailure } from "./lockout.service";
 import { buildAuthorizeUrl, exchangeCodeForTokens, fetchUserInfo, revokeToken } from "./oidc";
 import { verifyPassword } from "./password";
@@ -164,6 +165,78 @@ async function clearSingleUserFailures(db: AppDatabase, username: string): Promi
 /** Test hook — drop every persisted lockout row between specs. */
 export async function __resetSingleUserLockoutForTests(db: AppDatabase): Promise<void> {
   await clearAllLockouts(db);
+}
+
+/**
+ * Password sign-in for a database account (LOCAL_LOGIN). Failures answer the
+ * same whether the username exists or not. With two-step verification on, the
+ * session waits for the code, exactly as after an OIDC login: the pending
+ * challenge rides in a cookie and `/account/auth/totp/verify` finishes it.
+ */
+async function signInLocalAccount(c: Context<AppEnv>, usernameRaw: string, password: string): Promise<Response> {
+  const db = c.get("db");
+  const config = c.get("config");
+  const result = await loginLocalUser(db, usernameRaw, password);
+
+  if (result.status === "locked") {
+    c.header("Retry-After", String(result.retryAfterSeconds));
+    return c.json({ success: false, error: { code: "ACCOUNT_LOCKED", message: "Account temporarily locked. Try again later." } }, 429);
+  }
+  if (result.status === "invalid") {
+    await audit(db, c.get("logger"), {
+      actorId: "system",
+      actorName: "system",
+      action: "auth.login_failed",
+      resourceType: "auth",
+      resourceId: "",
+      resourceName: "local",
+      detail: { username: usernameRaw.slice(0, 64) },
+      ip: getClientIp(c),
+      userAgent: c.req.header("user-agent") ?? "unknown",
+      result: "failure",
+    });
+    return c.json({ success: false, error: { code: "INVALID_CREDENTIALS", message: "Invalid credentials" } }, 401);
+  }
+
+  const { user } = result;
+  const authCfg = await getAuthConfig(db, config);
+
+  if (await hasVerifiedTotp(db, user.id)) {
+    const challengeId = await createTotpChallenge(
+      db,
+      user.id,
+      SINGLE_USER_ACCESS_TOKEN,
+      undefined,
+      authCfg.sessionMaxAge,
+      `${config.BASE_PATH}/overview`,
+    );
+    setCookie(c, totpPendingCookieName(config.NODE_ENV), challengeId, {
+      httpOnly: true,
+      secure: config.NODE_ENV === "production",
+      sameSite: "Lax",
+      path: cookiePath(config.BASE_PATH),
+      maxAge: 300,
+    });
+    return c.json({ success: true, data: { totpRequired: true } });
+  }
+
+  // The sentinel marks a session with no OAuth tokens behind it, so logout
+  // skips the IdP revoke and expiry does not try to refresh.
+  const sessionId = await createSession(db, user.id, SINGLE_USER_ACCESS_TOKEN, undefined, authCfg.sessionMaxAge);
+  writeSessionCookie(c, config.NODE_ENV, config.BASE_PATH, sessionId, authCfg.sessionMaxAge);
+  await audit(db, c.get("logger"), {
+    actorId: user.id,
+    actorName: user.name,
+    action: "auth.login",
+    resourceType: "user",
+    resourceId: user.id,
+    resourceName: user.username,
+    detail: { mode: "local" },
+    ip: getClientIp(c),
+    userAgent: c.req.header("user-agent") ?? "unknown",
+    result: "success",
+  });
+  return c.json({ success: true, data: { id: user.id, username: user.username, name: user.name } });
 }
 
 // Collapse `/` and `\` runs that browsers may treat as protocol prefixes
@@ -422,7 +495,17 @@ export function authRoutes() {
         logger.error({ err: err instanceof Error ? err.message : String(err) }, "OAuth userinfo fetch failed");
         return c.redirect(buildLoginErrorUrl(base, "oidc_error", "Userinfo fetch failed"), 302);
       }
-      const user = await upsertUser(db, userInfo, authCfg, logger);
+      let user;
+      try {
+        user = await upsertUser(db, userInfo, authCfg, logger);
+      }
+      catch (err) {
+        if (err instanceof AppError && err.code === "ACCOUNT_CONFLICT") {
+          logger.warn({ username: userInfo.preferred_username }, "OIDC login refused: account conflict");
+          return c.redirect(buildLoginErrorUrl(base, "oidc_error", "This account is already registered another way"), 302);
+        }
+        throw err;
+      }
 
       if (user.status === "disabled") {
         logger.warn({ username: user.username }, "login denied: user is disabled");
@@ -585,7 +668,7 @@ export function authRoutes() {
       summary: "Login mode",
       description: "Public. Tells the SPA which login UI to render (OAuth vs. single-user) and whether OAuth is configured.",
       responses: {
-        ...jsonOk(z.object({ mode: z.enum(["single-user", "oauth"]), oauthConfigured: z.boolean() }), "Login mode"),
+        ...jsonOk(z.object({ mode: z.enum(["single-user", "oauth"]), oauthConfigured: z.boolean(), localLogin: z.boolean() }), "Login mode"),
       },
     }),
     (c) => {
@@ -595,6 +678,8 @@ export function authRoutes() {
         data: {
           mode: isSingleUserMode(config) ? "single-user" : "oauth",
           oauthConfigured: isOAuthConfigured(config),
+          // Password sign-in for database accounts, offered next to OAuth.
+          localLogin: isLocalLogin(config),
         },
       });
     },
@@ -606,9 +691,9 @@ export function authRoutes() {
     describeRoute({
       tags: [TAGS.Account],
       summary: "Single-user login",
-      description: "Public. Username/password login for single-user mode. Uses timing-safe verification and a per-username lockout.",
+      description: "Public. Username/password login: the configured account in single-user mode, or any account with a password under LOCAL_LOGIN. Uses timing-safe verification and a per-username lockout. When the account has two-step verification the response is `{ totpRequired: true }` and the code is sent to /account/auth/totp/verify.",
       responses: {
-        ...jsonOk(z.object({ id: z.string(), username: z.string(), name: z.string() }), "Logged in"),
+        ...jsonOk(z.object({ id: z.string(), username: z.string(), name: z.string() }).or(z.object({ totpRequired: z.literal(true) })), "Logged in, or two-step verification required"),
         ...errors(400, 401, 404, 429),
       },
     }),
@@ -625,8 +710,9 @@ export function authRoutes() {
       const config = c.get("config");
       const logger = c.get("logger");
 
-      if (!isSingleUserMode(config)) {
-        return c.json({ success: false, error: { code: "SINGLE_USER_DISABLED", message: "Single-user mode is not enabled" } }, 404);
+      const singleUser = isSingleUserMode(config);
+      if (!singleUser && !isLocalLogin(config)) {
+        return c.json({ success: false, error: { code: "SINGLE_USER_DISABLED", message: "Password login is not enabled" } }, 404);
       }
 
       let body: { username?: unknown; password?: unknown };
@@ -642,6 +728,9 @@ export function authRoutes() {
       if (!usernameRaw || !password) {
         return c.json({ success: false, error: { code: "INVALID_CREDENTIALS", message: "Invalid credentials" } }, 400);
       }
+
+      if (!singleUser)
+        return await signInLocalAccount(c, usernameRaw, password);
 
       const single = getSingleUserConfig(config);
 

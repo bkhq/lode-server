@@ -9,6 +9,10 @@ export const users = sqliteTable("users", {
   avatar: text("avatar"),
   role: text("role", { enum: ["admin", "user"] }).notNull().default("user"),
   status: text("status", { enum: ["active", "disabled"] }).notNull().default("active"),
+  // Set for accounts that sign in with a password (LOCAL_LOGIN): created by an
+  // admin or seeded from the environment. Null for accounts that only sign in
+  // through the identity provider. Never leaves the server.
+  passwordHash: text("password_hash"),
   lastLoginAt: text("last_login_at"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()).$onUpdateFn(() => new Date().toISOString()),

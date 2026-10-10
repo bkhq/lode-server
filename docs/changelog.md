@@ -13,6 +13,19 @@ each upstream tag; your fork's `Unreleased` block sits at the top.
 
 ### Added
 
+- Password accounts next to OIDC (`LOCAL_LOGIN=true`). Admins add users in the
+  admin UI or at `POST /api/account/users` and reset passwords at
+  `/api/account/users/:id/password`; those users sign in with a username and
+  password while OIDC keeps working, and the login page offers both. Two-step
+  verification, per-username lockout and identical failure answers apply.
+  `SINGLE_USER_*` under `LOCAL_LOGIN` names a bootstrap admin created at
+  every boot. An OIDC login can no longer take over a password account by
+  username — only a verified email links them — and a username or email held
+  by another account now answers with an account-conflict message instead of
+  a 500. **Schema:** `users.password_hash`, added to the regenerated
+  `0000_init` migration; a deployed database needs
+  `ALTER TABLE users ADD password_hash text`.
+
 - `HOME_PAGE` (`off` | `base` | `root`, default `off`) gives the SPA a home
   page at `/`. `base` puts it at `${BASE_PATH}/`, following the base path;
   `root` puts it at the origin's `/`, outside `BASE_PATH`, so a landing page
