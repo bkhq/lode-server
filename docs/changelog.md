@@ -408,6 +408,16 @@ each upstream tag; your fork's `Unreleased` block sits at the top.
 
 ### Security
 
+- Dependency scan (osv-scanner) was failing on 17 advisories in 7 packages.
+  Raised `wrangler` to 4.149.0 (brings `miniflare` with `undici` 7.29.1 and
+  `sharp` 0.35.5), `shadcn` to 4.21.4, and the `dompurify` override to
+  ^3.4.16 — the only one of these that ships in the SPA bundle — and added
+  `source-map-js` and `@modelcontextprotocol/sdk` overrides for fixed
+  releases. `shadcn` is a CLI and a CSS import used at build time, so it moved
+  from `dependencies` to `devDependencies`. Two advisories with no usable fix
+  (`braces`, no fixed release; `katex` 0.16, pinned by the eslint markdown
+  plugin) are accepted in `osv-scanner.toml` with a reason and a review date.
+
 - Transitive dependencies re-resolved within their existing ranges to clear
   30 OSV advisories (19 High) across 14 packages flagged by the CI
   `osv-scanner` step — among them `brace-expansion`, `browserslist`,
