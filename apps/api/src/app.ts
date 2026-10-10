@@ -1,3 +1,4 @@
+import type { Handler } from "hono";
 import type { Config } from "./config";
 import type { AppDatabase } from "./db";
 import type { EncryptionState } from "./modules/encryption/state";
@@ -306,7 +307,14 @@ export function buildRawApp(
   return raw;
 }
 
-export function buildOuterApp(api: Hono<AppEnv>, config: Config, raw?: Hono<AppEnv>) {
+/**
+ * Path of the SPA's home page. It is served at the origin root whatever
+ * BASE_PATH is, so a temporary landing page can live there while the app
+ * itself stays under its prefix. The SPA router recognises it too.
+ */
+export const HOME_PATH = "/home";
+
+export function buildOuterApp(api: Hono<AppEnv>, config: Config, raw?: Hono<AppEnv>, spa?: Handler) {
   const app = new Hono<AppEnv>();
   const base = config.BASE_PATH;
   const rawPrefix = `${base}${RAW_API_PREFIX}`;
@@ -378,8 +386,15 @@ export function buildOuterApp(api: Hono<AppEnv>, config: Config, raw?: Hono<AppE
     app.route(rawPrefix, raw);
   }
   app.route(`${base}/api`, api);
-  if (hasStaticAssets()) {
-    app.get(`${base}/*`, serveStaticAssets(base));
+  const serveSpa = spa ?? (hasStaticAssets() ? serveStaticAssets(base) : undefined);
+  if (serveSpa !== undefined) {
+    // With a BASE_PATH the wildcard below does not reach `/home`. Without
+    // one it already does, and registering it again would be redundant.
+    if (base !== "") {
+      app.get(HOME_PATH, serveSpa);
+      app.get(`${HOME_PATH}/`, serveSpa);
+    }
+    app.get(`${base}/*`, serveSpa);
   }
 
   return app;

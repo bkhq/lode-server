@@ -287,6 +287,18 @@ service token in a header. Routes described with `describeRoute` appear in the
 OpenAPI spec at `/api/openapi.json` under `/raw/...`, tagged `Raw`, and in
 `docs/reference/api-routes.md`.
 
+## Home Page
+
+`/home` is an SPA route served at the origin root whatever `BASE_PATH` is, for
+a temporary landing page in front of an app mounted under a prefix. It is
+public and makes no authenticated call. With a `BASE_PATH` the API serves the
+SPA shell at `/home` and `/home/` explicitly (the base-path wildcard does not
+reach it), and `main.tsx` builds the router without the base prefix when the
+page is `/home`; `__root.tsx` skips the setup, unlock and login redirects
+there. Edit `apps/web/src/app/routes/home.tsx` for the content; its "Enter"
+link goes to `${BASE_PATH}/`. Only `/home` is outside the prefix, so the
+page's own links to the app must carry it.
+
 ## Encryption Lifecycle
 
 The app can start in a locked mode. Setup and unlock routes are available before the full protected app is mounted. After unlock, protected routes are mounted and guarded by `requireUnlocked`.

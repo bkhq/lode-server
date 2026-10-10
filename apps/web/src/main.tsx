@@ -6,9 +6,12 @@ import { i18nReady } from "./app/i18n";
 import { Providers } from "./app/providers";
 import { routeTree } from "./app/routeTree.gen";
 import { NotFoundPage } from "./shared/components/not-found";
+import { isHomePage } from "./shared/lib/home";
 import "./index.css";
 
-const basepath = import.meta.env.BASE_URL.replace(/\/+$/, "") || "/";
+// The home page is served at the origin root, outside BASE_PATH, so the
+// router drops the prefix there; every other page keeps it.
+const basepath = isHomePage() ? "/" : import.meta.env.BASE_URL.replace(/\/+$/, "") || "/";
 const router = createRouter({
   routeTree,
   basepath,

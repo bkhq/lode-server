@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
+import { Route as HomeRouteImport } from './routes/home'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as authTotpVerifyRouteImport } from './routes/(auth)/totp-verify'
 import { Route as encryptionSetupRouteImport } from './routes/(encryption)/setup'
@@ -33,6 +34,11 @@ import { Route as AppAdminUsersGroupsRouteImport } from './routes/_app/admin/use
 
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HomeRoute = HomeRouteImport.update({
+  id: '/home',
+  path: '/home',
   getParentRoute: () => rootRouteImport,
 } as any)
 const authLoginRoute = authLoginRouteImport.update({
@@ -158,6 +164,7 @@ const AppAdminUsersGroupsRoute = AppAdminUsersGroupsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/home': typeof HomeRoute
   '/admin': typeof AppAdminRouteRouteWithChildren
   '/documents': typeof AppDocumentsRouteRoute
   '/issues': typeof AppIssuesRouteRouteWithChildren
@@ -179,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/admin/users/': typeof AppAdminUsersIndexRoute
 }
 export interface FileRoutesByTo {
+  '/home': typeof HomeRoute
   '/admin': typeof AppAdminRouteRouteWithChildren
   '/documents': typeof AppDocumentsRouteRoute
   '/overview': typeof AppOverviewRouteRoute
@@ -201,6 +209,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteRouteWithChildren
+  '/home': typeof HomeRoute
   '/_app/admin': typeof AppAdminRouteRouteWithChildren
   '/_app/documents': typeof AppDocumentsRouteRoute
   '/_app/issues': typeof AppIssuesRouteRouteWithChildren
@@ -226,6 +235,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/home'
     | '/admin'
     | '/documents'
     | '/issues'
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/admin/users/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/home'
     | '/admin'
     | '/documents'
     | '/overview'
@@ -268,6 +279,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_app'
+    | '/home'
     | '/_app/admin'
     | '/_app/documents'
     | '/_app/issues'
@@ -292,6 +304,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRouteRoute: typeof AppRouteRouteWithChildren
+  HomeRoute: typeof HomeRoute
   authLoginRoute: typeof authLoginRoute
   authTotpVerifyRoute: typeof authTotpVerifyRoute
   encryptionSetupRoute: typeof encryptionSetupRoute
@@ -307,6 +320,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/home': {
+      id: '/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof HomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(auth)/login': {
@@ -522,6 +542,7 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   AppRouteRoute: AppRouteRouteWithChildren,
+  HomeRoute: HomeRoute,
   authLoginRoute: authLoginRoute,
   authTotpVerifyRoute: authTotpVerifyRoute,
   encryptionSetupRoute: encryptionSetupRoute,

@@ -13,6 +13,10 @@ each upstream tag; your fork's `Unreleased` block sits at the top.
 
 ### Added
 
+- A `/home` SPA route, served at the origin root regardless of `BASE_PATH`,
+  for a temporary landing page. It is public, outside the setup/unlock/login
+  redirects, and links into the app under its prefix.
+
 - Personal API tokens. Users create them under Settings → API tokens or at
   `/api/account/me/tokens`; the secret is shown once and only its SHA-256 is
   stored. A token (`Authorization: Bearer pat_…`) acts as its user but only
