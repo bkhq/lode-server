@@ -1,7 +1,8 @@
 import type { Config } from "@/config";
 import type { AppDatabase } from "@/db";
 import type { Logger } from "@/shared/lib/logger";
-import { eq, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+import { SINGLE_USER_OAUTH_SUB } from "@/modules/account/auth/auth.service";
 import { hashPassword } from "@/modules/account/auth/password";
 import { sessions } from "@/modules/account/auth/schema";
 import { users } from "@/modules/account/users/schema";
@@ -92,16 +93,28 @@ export async function setUserPassword(db: AppDatabase, userId: string, password:
  * Create or refresh the admin named by SINGLE_USER_* under LOCAL_LOGIN. The
  * environment is authoritative, as DEFAULT_ADMIN is: at every boot the
  * account is an active admin with the configured password, so a lost
- * password is recovered by changing the variable. An existing account is
- * matched by username, then by email, and keeps its IdP identity.
+ * password is recovered by changing the variable.
+ *
+ * Only an account that has no identity at the IdP is adopted. A username or
+ * email is often self-chosen there, so an IdP account that happens to match
+ * must not be promoted to admin by it — it would keep its IdP sign-in and
+ * come out an admin. In that case nothing is seeded and the clash is logged;
+ * pick another username, or grant that person admin with DEFAULT_ADMIN.
  */
 export async function seedBootstrapAdmin(db: AppDatabase, config: Config, logger: Logger): Promise<void> {
   const admin = getBootstrapAdmin(config);
   if (admin === undefined)
     return;
   const now = new Date().toISOString();
-  const existing = await db.select().from(users).where(or(eq(users.username, admin.username), eq(users.email, admin.email))).get();
+  const existing = await db.select().from(users).where(eq(users.username, admin.username)).get();
   if (existing) {
+    if (!existing.oauthSub.startsWith(LOCAL_SUB_PREFIX) && existing.oauthSub !== SINGLE_USER_OAUTH_SUB) {
+      logger.error(
+        { username: existing.username },
+        "bootstrap admin not seeded: that username belongs to an account that signs in through the IdP; choose another SINGLE_USER_USERNAME",
+      );
+      return;
+    }
     await db.update(users)
       .set({ passwordHash: admin.passwordHash, role: "admin", status: "active", updatedAt: now })
       .where(eq(users.id, existing.id))
@@ -110,17 +123,25 @@ export async function seedBootstrapAdmin(db: AppDatabase, config: Config, logger
     return;
   }
   const id = nanoid();
-  await db.insert(users).values({
-    id,
-    oauthSub: `${LOCAL_SUB_PREFIX}${id}`,
-    username: admin.username,
-    name: admin.name,
-    email: admin.email,
-    role: "admin",
-    status: "active",
-    passwordHash: admin.passwordHash,
-    createdAt: now,
-    updatedAt: now,
-  }).run();
+  try {
+    await db.insert(users).values({
+      id,
+      oauthSub: `${LOCAL_SUB_PREFIX}${id}`,
+      username: admin.username,
+      name: admin.name,
+      email: admin.email,
+      role: "admin",
+      status: "active",
+      passwordHash: admin.passwordHash,
+      createdAt: now,
+      updatedAt: now,
+    }).run();
+  }
+  catch (err) {
+    if (!isUniqueViolation(err))
+      throw err;
+    logger.error({ username: admin.username }, "bootstrap admin not seeded: its email belongs to another account; set SINGLE_USER_EMAIL");
+    return;
+  }
   logger.info({ username: admin.username }, "bootstrap admin created from the environment");
 }

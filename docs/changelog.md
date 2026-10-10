@@ -25,6 +25,8 @@ each upstream tag; your fork's `Unreleased` block sits at the top.
   a 500. **Schema:** `users.password_hash`, added to the regenerated
   `0000_init` migration; a deployed database needs
   `ALTER TABLE users ADD password_hash text`.
+  The bootstrap admin never adopts an account that signs in through the IdP
+  (matched by self-chosen username or email); it logs an error instead.
 
 - `HOME_PAGE` (`off` | `base` | `root`, default `off`) gives the SPA a home
   page at `/`. `base` puts it at `${BASE_PATH}/`, following the base path;

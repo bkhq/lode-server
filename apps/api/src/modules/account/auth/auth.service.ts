@@ -283,7 +283,7 @@ export async function upsertUser(
 
 // --- Single-user upsert ---
 
-const SINGLE_USER_OAUTH_SUB = "single-user";
+export const SINGLE_USER_OAUTH_SUB = "single-user";
 
 /**
  * Sentinel value persisted into `sessions.access_token` for sessions

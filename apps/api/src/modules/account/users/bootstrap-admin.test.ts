@@ -62,12 +62,29 @@ describe("seedBootstrapAdmin", () => {
     expect(await db.select().from(users).all()).toEqual([]);
   });
 
-  test("keeps the IdP identity of an existing account with the same username", async () => {
+  test("does not adopt an account that signs in through the IdP, nor promote it", async () => {
+    // A username or email is often self-chosen at the IdP: matching one must
+    // not hand that person admin by way of the seed.
     const now = new Date().toISOString();
     await db.insert(users).values({ id: "x", oauthSub: "idp-sub", username: "root", name: "R", email: "r@corp.test", role: "user", status: "active", createdAt: now, updatedAt: now }).run();
     await seedBootstrapAdmin(db, await config(), logger);
     const row = (await db.select().from(users).where(eq(users.id, "x")).get())!;
-    expect(row).toMatchObject({ oauthSub: "idp-sub", role: "admin" });
-    expect(row.passwordHash).not.toBeNull();
+    expect(row).toMatchObject({ oauthSub: "idp-sub", role: "user", passwordHash: null });
+    expect((await loginLocalUser(db, "root", "first passphrase here")).status).toBe("invalid");
+  });
+
+  test("does not take over an IdP account through a shared email either", async () => {
+    const now = new Date().toISOString();
+    await db.insert(users).values({ id: "x", oauthSub: "idp-sub", username: "someone", name: "S", email: "root@local", role: "user", status: "active", createdAt: now, updatedAt: now }).run();
+    await seedBootstrapAdmin(db, await config(), logger);
+    expect(await db.select().from(users).where(eq(users.username, "root")).get()).toBeUndefined();
+    expect((await db.select().from(users).where(eq(users.id, "x")).get())!.role).toBe("user");
+  });
+
+  test("still refreshes an account that has only a password, or is left from single-user mode", async () => {
+    const now = new Date().toISOString();
+    await db.insert(users).values({ id: "x", oauthSub: "single-user", username: "root", name: "R", email: "r@corp.test", role: "user", status: "disabled", createdAt: now, updatedAt: now }).run();
+    await seedBootstrapAdmin(db, await config(), logger);
+    expect((await loginLocalUser(db, "root", "first passphrase here")).status).toBe("ok");
   });
 });

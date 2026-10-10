@@ -133,6 +133,11 @@ username exists, and ten failures lock the username for 15 minutes.
 `SINGLE_USER_PASSWORD_HASH` (or `_FILE`) name a bootstrap admin that is
 created at every boot as an active admin with that password — the environment
 is authoritative, so a lost password is recovered by changing the hash.
+Only an account with no IdP identity is adopted: if the username (or email)
+belongs to an account that signs in through the IdP, nothing is seeded and an
+error is logged, because usernames are self-chosen at many IdPs and the seed
+would otherwise promote that person to admin. Choose another username, or grant
+admin with `DEFAULT_ADMIN`.
 
 **IdP and password accounts.** A username is self-chosen at many IdPs, so an
 OIDC login never takes over a password account by username: it fails with an
