@@ -289,15 +289,27 @@ OpenAPI spec at `/api/openapi.json` under `/raw/...`, tagged `Raw`, and in
 
 ## Home Page
 
-`/home` is an SPA route served at the origin root whatever `BASE_PATH` is, for
-a temporary landing page in front of an app mounted under a prefix. It is
-public and makes no authenticated call. With a `BASE_PATH` the API serves the
-SPA shell at `/home` and `/home/` explicitly (the base-path wildcard does not
-reach it), and `main.tsx` builds the router without the base prefix when the
-page is `/home`; `__root.tsx` skips the setup, unlock and login redirects
-there. Edit `apps/web/src/app/routes/home.tsx` for the content; its "Enter"
-link goes to `${BASE_PATH}/`. Only `/home` is outside the prefix, so the
-page's own links to the app must carry it.
+`HOME_PAGE` decides whether the SPA has a home page at `/` and where:
+
+| Value | Home page | `/` and `${BASE_PATH}/` |
+|---|---|---|
+| `off` (default) | none | `${BASE_PATH}/` goes to `/overview`; the origin's `/` redirects there |
+| `base` | at `${BASE_PATH}/` | the origin's `/` redirects to it |
+| `root` | at the origin's `/`, outside `BASE_PATH` | `${BASE_PATH}/` goes to `/overview` |
+
+Without a `BASE_PATH`, `base` and `root` are the same. The page is public and
+makes no authenticated call; its content is
+`apps/web/src/app/routes/-home.tsx`, and its "Enter" link goes to
+`${BASE_PATH}/overview`.
+
+The SPA learns the mode from `homePage` in the anonymous `/encryption/status`
+response, which the root layout fetches before rendering anything, so it needs
+no rebuild and works wherever the SPA is served (the Worker's asset pipeline
+included). For `root` the API serves the SPA shell at `/` (the base-path
+wildcard does not reach it), `main.tsx` builds the router without the prefix
+on that page, and `__root.tsx` skips the setup and unlock redirects there.
+Only the home page is outside the prefix, so its links into the app must carry
+`BASE_PATH`.
 
 ## Encryption Lifecycle
 

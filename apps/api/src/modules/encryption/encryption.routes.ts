@@ -180,6 +180,7 @@ export function encryptionStatusRoute() {
           status: z.string(),
           dbError: z.string().nullable(),
           unhealthy: z.boolean(),
+          homePage: z.enum(["off", "base", "root"]),
         }), "Boot status"),
         ...errors(429),
       },
@@ -210,6 +211,9 @@ export function encryptionStatusRoute() {
           status,
           dbError,
           unhealthy: dbError !== null,
+          // Rides on the first request the SPA makes, which is how it learns
+          // what to render at "/" (see HOME_PAGE).
+          homePage: c.get("config").HOME_PAGE,
         },
       });
     },

@@ -153,3 +153,21 @@ describe("useSystemStore polling", () => {
     }
   });
 });
+
+describe("useSystemStore homePage", () => {
+  const status = (extra: Record<string, unknown>) => jsonResponse({
+    success: true,
+    data: { initialized: true, locked: false, status: "unlocked", ...extra },
+  });
+
+  it("is read from the status response and falls back to off", async () => {
+    useSystemStore.setState({ homePage: "off" });
+    fetchMock.mockResolvedValueOnce(status({ homePage: "root" }));
+    await useSystemStore.getState().fetchStatus();
+    expect(useSystemStore.getState().homePage).toBe("root");
+
+    fetchMock.mockResolvedValueOnce(status({}));
+    await useSystemStore.getState().fetchStatus();
+    expect(useSystemStore.getState().homePage).toBe("off");
+  });
+});

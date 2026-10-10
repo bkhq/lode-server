@@ -9,15 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
-import { Route as HomeRouteImport } from './routes/home'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as authTotpVerifyRouteImport } from './routes/(auth)/totp-verify'
 import { Route as encryptionSetupRouteImport } from './routes/(encryption)/setup'
 import { Route as encryptionUnlockRouteImport } from './routes/(encryption)/unlock'
 import { Route as errorDeniedRouteImport } from './routes/(error)/denied'
 import { Route as errorErrorRouteImport } from './routes/(error)/error'
-import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAdminRouteRouteImport } from './routes/_app/admin/route'
 import { Route as AppDocumentsRouteRouteImport } from './routes/_app/documents/route'
 import { Route as AppIssuesRouteRouteImport } from './routes/_app/issues/route'
@@ -32,13 +31,13 @@ import { Route as AppIssuesIssueIdRouteImport } from './routes/_app/issues/$issu
 import { Route as AppAdminUsersIndexRouteImport } from './routes/_app/admin/users/index'
 import { Route as AppAdminUsersGroupsRouteImport } from './routes/_app/admin/users/groups'
 
-const AppRouteRoute = AppRouteRouteImport.update({
-  id: '/_app',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const HomeRoute = HomeRouteImport.update({
-  id: '/home',
-  path: '/home',
+const AppRouteRoute = AppRouteRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const authLoginRoute = authLoginRouteImport.update({
@@ -70,11 +69,6 @@ const errorErrorRoute = errorErrorRouteImport.update({
   id: '/(error)/error',
   path: '/error',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AppIndexRoute = AppIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppRouteRoute,
 } as any)
 const AppAdminRouteRoute = AppAdminRouteRouteImport.update({
   id: '/admin',
@@ -163,8 +157,7 @@ const AppAdminUsersGroupsRoute = AppAdminUsersGroupsRouteImport.update({
 )
 
 export interface FileRoutesByFullPath {
-  '/': typeof AppIndexRoute
-  '/home': typeof HomeRoute
+  '/': typeof IndexRoute
   '/admin': typeof AppAdminRouteRouteWithChildren
   '/documents': typeof AppDocumentsRouteRoute
   '/issues': typeof AppIssuesRouteRouteWithChildren
@@ -186,7 +179,7 @@ export interface FileRoutesByFullPath {
   '/admin/users/': typeof AppAdminUsersIndexRoute
 }
 export interface FileRoutesByTo {
-  '/home': typeof HomeRoute
+  '/': typeof IndexRoute
   '/admin': typeof AppAdminRouteRouteWithChildren
   '/documents': typeof AppDocumentsRouteRoute
   '/overview': typeof AppOverviewRouteRoute
@@ -196,7 +189,6 @@ export interface FileRoutesByTo {
   '/unlock': typeof encryptionUnlockRoute
   '/denied': typeof errorDeniedRoute
   '/error': typeof errorErrorRoute
-  '/': typeof AppIndexRoute
   '/admin/audit': typeof AppAdminAuditRoute
   '/admin/cron': typeof AppAdminCronRoute
   '/admin/policies': typeof AppAdminPoliciesRoute
@@ -208,8 +200,8 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/_app': typeof AppRouteRouteWithChildren
-  '/home': typeof HomeRoute
   '/_app/admin': typeof AppAdminRouteRouteWithChildren
   '/_app/documents': typeof AppDocumentsRouteRoute
   '/_app/issues': typeof AppIssuesRouteRouteWithChildren
@@ -220,7 +212,6 @@ export interface FileRoutesById {
   '/(encryption)/unlock': typeof encryptionUnlockRoute
   '/(error)/denied': typeof errorDeniedRoute
   '/(error)/error': typeof errorErrorRoute
-  '/_app/': typeof AppIndexRoute
   '/_app/admin/audit': typeof AppAdminAuditRoute
   '/_app/admin/cron': typeof AppAdminCronRoute
   '/_app/admin/policies': typeof AppAdminPoliciesRoute
@@ -235,7 +226,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/home'
     | '/admin'
     | '/documents'
     | '/issues'
@@ -257,7 +247,7 @@ export interface FileRouteTypes {
     | '/admin/users/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/home'
+    | '/'
     | '/admin'
     | '/documents'
     | '/overview'
@@ -267,7 +257,6 @@ export interface FileRouteTypes {
     | '/unlock'
     | '/denied'
     | '/error'
-    | '/'
     | '/admin/audit'
     | '/admin/cron'
     | '/admin/policies'
@@ -278,8 +267,8 @@ export interface FileRouteTypes {
     | '/admin/users'
   id:
     | '__root__'
+    | '/'
     | '/_app'
-    | '/home'
     | '/_app/admin'
     | '/_app/documents'
     | '/_app/issues'
@@ -290,7 +279,6 @@ export interface FileRouteTypes {
     | '/(encryption)/unlock'
     | '/(error)/denied'
     | '/(error)/error'
-    | '/_app/'
     | '/_app/admin/audit'
     | '/_app/admin/cron'
     | '/_app/admin/policies'
@@ -303,8 +291,8 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   AppRouteRoute: typeof AppRouteRouteWithChildren
-  HomeRoute: typeof HomeRoute
   authLoginRoute: typeof authLoginRoute
   authTotpVerifyRoute: typeof authTotpVerifyRoute
   encryptionSetupRoute: typeof encryptionSetupRoute
@@ -315,18 +303,18 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app': {
       id: '/_app'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/home': {
-      id: '/home'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof HomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(auth)/login': {
@@ -370,13 +358,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/error'
       preLoaderRoute: typeof errorErrorRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_app/': {
-      id: '/_app/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRouteRoute
     }
     '/_app/admin': {
       id: '/_app/admin'
@@ -525,7 +506,6 @@ interface AppRouteRouteChildren {
   AppDocumentsRouteRoute: typeof AppDocumentsRouteRoute
   AppIssuesRouteRoute: typeof AppIssuesRouteRouteWithChildren
   AppOverviewRouteRoute: typeof AppOverviewRouteRoute
-  AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
@@ -533,7 +513,6 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppDocumentsRouteRoute: AppDocumentsRouteRoute,
   AppIssuesRouteRoute: AppIssuesRouteRouteWithChildren,
   AppOverviewRouteRoute: AppOverviewRouteRoute,
-  AppIndexRoute: AppIndexRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
@@ -541,8 +520,8 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   AppRouteRoute: AppRouteRouteWithChildren,
-  HomeRoute: HomeRoute,
   authLoginRoute: authLoginRoute,
   authTotpVerifyRoute: authTotpVerifyRoute,
   encryptionSetupRoute: encryptionSetupRoute,

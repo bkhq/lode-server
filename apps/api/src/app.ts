@@ -307,13 +307,6 @@ export function buildRawApp(
   return raw;
 }
 
-/**
- * Path of the SPA's home page. It is served at the origin root whatever
- * BASE_PATH is, so a temporary landing page can live there while the app
- * itself stays under its prefix. The SPA router recognises it too.
- */
-export const HOME_PATH = "/home";
-
 export function buildOuterApp(api: Hono<AppEnv>, config: Config, raw?: Hono<AppEnv>, spa?: Handler) {
   const app = new Hono<AppEnv>();
   const base = config.BASE_PATH;
@@ -372,7 +365,10 @@ export function buildOuterApp(api: Hono<AppEnv>, config: Config, raw?: Hono<AppE
   // When BASE_PATH is set, redirect bare "/" to "${base}/" so a request to the
   // origin lands on the SPA. With no base the SPA already owns "/" — skip the
   // redirect to avoid a self-loop.
-  if (base !== "") {
+  // With HOME_PAGE=root the SPA owns "/" instead, and its home page is
+  // served there outside the prefix (the client decides what to render).
+  const homeAtRoot = config.HOME_PAGE === "root";
+  if (base !== "" && !homeAtRoot) {
     app.get("/", (c) => {
       return c.html(`<meta http-equiv="refresh" content="0;url=${base}/">`);
     });
@@ -388,12 +384,10 @@ export function buildOuterApp(api: Hono<AppEnv>, config: Config, raw?: Hono<AppE
   app.route(`${base}/api`, api);
   const serveSpa = spa ?? (hasStaticAssets() ? serveStaticAssets(base) : undefined);
   if (serveSpa !== undefined) {
-    // With a BASE_PATH the wildcard below does not reach `/home`. Without
-    // one it already does, and registering it again would be redundant.
-    if (base !== "") {
-      app.get(HOME_PATH, serveSpa);
-      app.get(`${HOME_PATH}/`, serveSpa);
-    }
+    // With a BASE_PATH the wildcard below does not reach "/"; without one
+    // it already does.
+    if (base !== "" && homeAtRoot)
+      app.get("/", serveSpa);
     app.get(`${base}/*`, serveSpa);
   }
 

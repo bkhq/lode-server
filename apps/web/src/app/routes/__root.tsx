@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { FullPageLoader } from "@/shared/components/full-page-loader";
 import { NotFoundPage } from "@/shared/components/not-found";
 import { useDocumentTitle } from "@/shared/hooks/use-page-title";
-import { isHomePage } from "@/shared/lib/home";
+import { isOriginRootPage } from "@/shared/lib/home";
 import { BASE_PATH, onHttpEvent } from "@/shared/lib/http";
 import { useSystemStore } from "@/shared/stores/system";
 
@@ -20,7 +20,7 @@ function redirectToLogin() {
   // Carry the query string too so deep-link context (filters, ids,
   // tabs) survives the session-expiry bounce — matches the redirect
   // value `_app.tsx` builds for its own guard.
-  if (isHomePage())
+  if (isOriginRootPage())
     return;
   const current = window.location.pathname + window.location.search;
   if (BYPASS_SUFFIXES.some(s => current.startsWith(`${BASE_PATH}${s}`)))
@@ -56,9 +56,9 @@ function RootLayout() {
     if (status === "loading" || status === "error" || status === "db-error")
       return;
 
-    // Public and outside BASE_PATH: setup and unlock redirects would land
-    // on paths the server does not serve from here.
-    if (isHomePage())
+    // The home page at the origin root is outside BASE_PATH: the setup and
+    // unlock redirects would land on paths the server does not serve there.
+    if (isOriginRootPage())
       return;
 
     const path = window.location.pathname;

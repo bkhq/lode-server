@@ -1,30 +1,26 @@
-import { createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { describe, expect, it } from "vitest";
-import { routeTree } from "@/app/routeTree.gen";
-import { isHomePage } from "./home";
+import { showsHome } from "./home";
 
-describe("isHomePage", () => {
-  it("matches /home with or without a trailing slash", () => {
-    expect(isHomePage("/home")).toBe(true);
-    expect(isHomePage("/home/")).toBe(true);
+describe("showsHome", () => {
+  it("is never shown when off", () => {
+    for (const root of [true, false]) {
+      for (const base of ["", "/app"])
+        expect(showsHome("off", root, base)).toBe(false);
+    }
   });
 
-  it("does not match the app's own pages or look-alikes", () => {
-    for (const path of ["/", "/app/home", "/homepage", "/home/x", "/overview"])
-      expect(isHomePage(path)).toBe(false);
-  });
-});
-
-describe("the home route", () => {
-  it("resolves at the origin root when the router has no base prefix", async () => {
-    const router = createRouter({ routeTree, basepath: "/", history: createMemoryHistory({ initialEntries: ["/home"] }) });
-    await router.load();
-    expect(router.state.matches.map(m => m.routeId)).toContain("/home");
+  it("base mode shows it under the prefix and not at the origin root", () => {
+    expect(showsHome("base", false, "/app")).toBe(true);
+    expect(showsHome("base", true, "/app")).toBe(false);
   });
 
-  it("does not resolve at the origin root under a base prefix, which is why main.tsx drops it", async () => {
-    const router = createRouter({ routeTree, basepath: "/app", history: createMemoryHistory({ initialEntries: ["/home"] }) });
-    await router.load();
-    expect(router.state.matches.map(m => m.routeId)).not.toContain("/home");
+  it("root mode shows it at the origin root and not under the prefix", () => {
+    expect(showsHome("root", true, "/app")).toBe(true);
+    expect(showsHome("root", false, "/app")).toBe(false);
+  });
+
+  it("without a BASE_PATH both modes show it at /", () => {
+    expect(showsHome("base", false, "")).toBe(true);
+    expect(showsHome("root", false, "")).toBe(true);
   });
 });

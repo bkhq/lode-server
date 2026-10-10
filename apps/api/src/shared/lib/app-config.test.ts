@@ -36,6 +36,7 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
     OAUTH_USERINFO_URL: "https://idp.example.com/userinfo",
     OAUTH_PKCE: true,
     OAUTH_SCOPES: "openid profile email",
+    HOME_PAGE: "off",
     SESSION_MAX_AGE: 1234,
     AUDIT_RETENTION_DAYS: 0,
     MAX_UPLOAD_BYTES: 10 * 1024 * 1024,

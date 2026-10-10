@@ -13,9 +13,12 @@ each upstream tag; your fork's `Unreleased` block sits at the top.
 
 ### Added
 
-- A `/home` SPA route, served at the origin root regardless of `BASE_PATH`,
-  for a temporary landing page. It is public, outside the setup/unlock/login
-  redirects, and links into the app under its prefix.
+- `HOME_PAGE` (`off` | `base` | `root`, default `off`) gives the SPA a home
+  page at `/`. `base` puts it at `${BASE_PATH}/`, following the base path;
+  `root` puts it at the origin's `/`, outside `BASE_PATH`, so a landing page
+  can stand in front of an app mounted under a prefix. The content is
+  `apps/web/src/app/routes/-home.tsx`. The SPA reads the mode from the
+  anonymous `/encryption/status` response, so it needs no rebuild.
 
 - Personal API tokens. Users create them under Settings → API tokens or at
   `/api/account/me/tokens`; the secret is shown once and only its SHA-256 is

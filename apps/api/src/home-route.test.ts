@@ -5,46 +5,51 @@ import { describe, expect, test } from "bun:test";
 import { Hono } from "hono";
 import { buildOuterApp } from "./app";
 
-function config(basePath: string): Config {
-  return { NODE_ENV: "test", TRUST_PROXY: false, BASE_PATH: basePath, APP_URL: "https://app.example.test" } as unknown as Config;
+function config(basePath: string, homePage: "off" | "base" | "root"): Config {
+  return { NODE_ENV: "test", TRUST_PROXY: false, BASE_PATH: basePath, HOME_PAGE: homePage, APP_URL: "https://app.example.test" } as unknown as Config;
 }
 
 // Stands in for the static handler so the test needs no built SPA: what
 // matters is which paths reach it.
 const spa: Handler = c => c.html("<!doctype html><title>spa</title>");
 
-function build(basePath: string) {
+function build(basePath: string, homePage: "off" | "base" | "root") {
   const api = new Hono<AppEnv>();
   api.get("/ping", c => c.json({ ok: true }));
-  return buildOuterApp(api, config(basePath), undefined, spa);
+  return buildOuterApp(api, config(basePath, homePage), undefined, spa);
 }
 
-describe("SPA home page, independent of BASE_PATH", () => {
-  test("is served at /home when BASE_PATH is set", async () => {
-    const app = build("/app");
-    for (const path of ["/home", "/home/"]) {
-      const res = await app.request(path);
-      expect(res.status).toBe(200);
-      expect(await res.text()).toContain("<title>spa</title>");
+async function isSpa(res: Response): Promise<boolean> {
+  return res.status === 200 && (await res.text()).includes("<title>spa</title>");
+}
+
+describe("the / route and BASE_PATH", () => {
+  test("with a BASE_PATH, / still sends the visitor to the app unless the home page is at the root", async () => {
+    for (const mode of ["off", "base"] as const) {
+      const res = await build("/app", mode).request("/");
+      expect(await res.text()).toContain("url=/app/");
     }
   });
 
-  test("is served at /home when BASE_PATH is empty", async () => {
-    expect((await build("").request("/home")).status).toBe(200);
+  test("with a BASE_PATH and HOME_PAGE=root, / is the SPA, outside the prefix", async () => {
+    expect(await isSpa(await build("/app", "root").request("/"))).toBe(true);
   });
 
-  test("the SPA is still served under BASE_PATH", async () => {
-    expect((await build("/app").request("/app/overview")).status).toBe(200);
+  test("the SPA stays under the prefix in every mode, and nothing else leaves it", async () => {
+    for (const mode of ["off", "base", "root"] as const) {
+      const app = build("/app", mode);
+      expect(await isSpa(await app.request("/app/"))).toBe(true);
+      expect(await isSpa(await app.request("/app/overview"))).toBe(true);
+      expect((await app.request("/overview")).status).toBe(404);
+    }
   });
 
-  test("only /home itself is outside BASE_PATH", async () => {
-    const app = build("/app");
-    expect((await app.request("/home/anything")).status).toBe(404);
-    expect((await app.request("/overview")).status).toBe(404);
+  test("without a BASE_PATH, / is the SPA", async () => {
+    for (const mode of ["off", "base", "root"] as const)
+      expect(await isSpa(await build("", mode).request("/"))).toBe(true);
   });
 
-  test("carries the browser security headers", async () => {
-    const res = await build("/app").request("/home");
-    expect(res.headers.get("content-security-policy")).toContain("default-src 'self'");
+  test("/home is not a route", async () => {
+    expect((await build("/app", "root").request("/home")).status).toBe(404);
   });
 });

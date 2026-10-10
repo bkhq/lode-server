@@ -120,6 +120,10 @@ export const configSchema = z.object({
   OAUTH_TOKEN_URL: z.string().url().optional(),
   OAUTH_USERINFO_URL: z.string().url().optional(),
   OAUTH_PKCE: z.enum(["true", "false"]).default("true").transform(v => v === "true"),
+  // Where the SPA's home page lives. `off`: none, `/` goes to the app's
+  // overview. `base`: at `${BASE_PATH}/`. `root`: at the origin's `/`,
+  // outside BASE_PATH. Without a BASE_PATH `base` and `root` are the same.
+  HOME_PAGE: z.enum(["off", "base", "root"]).default("off"),
   OAUTH_SCOPES: z.string().min(1).default("openid profile email"),
   OAUTH_GROUPS_CLAIM: z.string().min(1).optional(),
 

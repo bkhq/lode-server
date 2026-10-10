@@ -61,6 +61,7 @@ function baseConfig(): Config {
     OAUTH_USERINFO_URL: undefined,
     OAUTH_PKCE: true,
     OAUTH_SCOPES: "openid profile email",
+    HOME_PAGE: "off",
     SESSION_MAX_AGE: 86400,
     AUDIT_RETENTION_DAYS: 0,
     MAX_UPLOAD_BYTES: 10 * 1024 * 1024,

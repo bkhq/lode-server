@@ -1,3 +1,4 @@
+import type { HomePageMode } from "@/shared/lib/home";
 import { create } from "zustand";
 import { http } from "@/shared/lib/http";
 
@@ -8,6 +9,7 @@ const POLL_INTERVAL = 30_000;
 interface SystemState {
   readonly status: SystemStatus;
   readonly dbError: string | null;
+  readonly homePage: HomePageMode;
   readonly fetchStatus: () => Promise<void>;
   readonly startPolling: () => void;
   readonly stopPolling: () => void;
@@ -15,7 +17,7 @@ interface SystemState {
 
 interface StatusResponse {
   success: boolean;
-  data: { initialized: boolean; locked: boolean; status: string; dbError?: string | null };
+  data: { initialized: boolean; locked: boolean; status: string; dbError?: string | null; homePage?: HomePageMode };
 }
 
 // Reference-counted polling. React 19 StrictMode mounts → unmounts → mounts
@@ -34,6 +36,7 @@ let pollSuspended = false;
 export const useSystemStore = create<SystemState>((set, get) => ({
   status: "loading",
   dbError: null,
+  homePage: "off",
   fetchStatus: async () => {
     try {
       const json = await http<StatusResponse>("/encryption/status");
@@ -41,6 +44,8 @@ export const useSystemStore = create<SystemState>((set, get) => ({
         set({ status: "error", dbError: null });
         return;
       }
+
+      set({ homePage: json.data.homePage ?? "off" });
 
       if (json.data.dbError) {
         set({ status: "db-error", dbError: json.data.dbError });

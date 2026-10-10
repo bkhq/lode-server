@@ -1,11 +1,29 @@
-/**
- * The SPA's home page lives at the origin root, outside BASE_PATH, so a
- * temporary landing page can stand in front of an app mounted under a prefix.
- * The API serves the SPA shell at this path (see `HOME_PATH` in the API's
- * app.ts); the router has to be built without the base prefix to match it.
- */
-export const HOME_PATH = "/home";
+import { BASE_PATH } from "@/shared/lib/http";
 
-export function isHomePage(pathname: string = window.location.pathname): boolean {
-  return pathname === HOME_PATH || pathname === `${HOME_PATH}/`;
+/**
+ * `HOME_PAGE` on the server (see its entry in `.env.example`): where the
+ * home page lives. `off` — nowhere; `base` — at `${BASE_PATH}/`; `root` — at
+ * the origin's `/`, outside BASE_PATH.
+ */
+export type HomePageMode = "off" | "base" | "root";
+
+/**
+ * The page is the origin's `/` while the app is mounted under a prefix. The
+ * server only serves the SPA there in `root` mode; the router has to be
+ * built without the prefix to match it.
+ */
+export function isOriginRootPage(pathname: string = window.location.pathname): boolean {
+  return BASE_PATH !== "" && pathname === "/";
+}
+
+/**
+ * Whether the `/` route renders the home page rather than sending the
+ * visitor into the app. Without a BASE_PATH the two places coincide.
+ */
+export function showsHome(mode: HomePageMode, atOriginRoot: boolean = isOriginRootPage(), basePath: string = BASE_PATH): boolean {
+  if (mode === "off")
+    return false;
+  if (basePath === "")
+    return true;
+  return mode === "root" ? atOriginRoot : !atOriginRoot;
 }
