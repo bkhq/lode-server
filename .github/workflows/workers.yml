@@ -80,6 +80,20 @@ jobs:
       - name: Smoke test on workerd
         run: bun run test:workers
 
+      # The same Worker mounted under a base path, which the asset pipeline
+      # cannot serve by itself: the SPA is built for the prefix and the Worker
+      # maps its paths (apps/api/src/workers/spa.ts).
+      - name: Build the SPA for a base path
+        working-directory: apps/web
+        env:
+          BASE_PATH: /u
+        run: bunx vite build --outDir dist-smoke --emptyOutDir
+
+      - name: Smoke test on workerd under a base path
+        run: |
+          bun tests/workers/smoke.ts --base-path /u
+          bun tests/workers/smoke.ts --base-path /u --home-page root
+
   deploy:
     name: deploy to cloudflare
     runs-on: ubuntu-26.04
@@ -106,6 +120,12 @@ jobs:
       OAUTH_ISSUER: ${{ vars.OAUTH_ISSUER }}
       OAUTH_CLIENT_ID: ${{ vars.OAUTH_CLIENT_ID }}
       DEFAULT_ADMIN: ${{ vars.DEFAULT_ADMIN }}
+      # Optional: mount the app under a path prefix (and, with HOME_PAGE, give
+      # the SPA a home page at "/"; see .env.example). The Worker then serves
+      # the SPA's paths itself, because the asset pipeline cannot remap a
+      # prefix. Written normalised ("/u", or empty) to BP by the next step.
+      BASE_PATH_VAR: ${{ vars.BASE_PATH }}
+      HOME_PAGE: ${{ vars.HOME_PAGE }}
       # Optional: sync group memberships from an IdP claim at login.
       OAUTH_SCOPES: ${{ vars.OAUTH_SCOPES }}
       OAUTH_GROUPS_CLAIM: ${{ vars.OAUTH_GROUPS_CLAIM }}
@@ -132,7 +152,17 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Resolve the base path
+        run: |
+          bp="${BASE_PATH_VAR#/}"
+          bp="${bp%/}"
+          [ -n "$bp" ] && bp="/$bp"
+          echo "BP=$bp" >> "$GITHUB_ENV"
+
+      # The SPA bakes its base path in at build time.
       - name: Build the SPA
+        env:
+          BASE_PATH: ${{ env.BP }}
         run: bun run --filter @app/web build
 
       # The bucket named in wrangler.toml has to exist before the binding
@@ -275,8 +305,17 @@ jobs:
           # Structure only — lengths and field count carry no secret material.
           echo "hash length ${#hash}, fields $(echo "$hash" | awk -F'$' '{print NF}')"
 
+          # Under a base path the Worker has to run first for "/" and the
+          # prefix (see wrangler.toml); this line is in [assets], above [vars].
+          if [ -n "$BP" ]; then
+            sed -i "s|^run_worker_first = .*|run_worker_first = [\"/\", \"$BP/*\"]|" wrangler.toml
+            grep -q '^run_worker_first = \["/", ' wrangler.toml || { echo "::error::could not rewrite run_worker_first"; exit 1; }
+          fi
+
           # `[vars]` is the last table in the file, so appending extends it.
           {
+            [ -n "$BP" ] && echo "BASE_PATH = \"$BP\""
+            [ -n "${HOME_PAGE:-}" ] && echo "HOME_PAGE = \"$HOME_PAGE\""
             if [ -z "${OAUTH_ISSUER:-}" ]; then
               echo "SINGLE_USER_MODE = \"true\""
               echo "SINGLE_USER_USERNAME = \"$username\""
@@ -404,7 +443,7 @@ jobs:
               -H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest' \
               -H "Origin: $url" \
               --data "$(jq -n --arg u "$SMOKE_USERNAME" --arg p "$SMOKE_PASSWORD" '{username:$u,password:$p}')" \
-              "$url/api/account/auth/login-local" || true)"
+              "$url$BP/api/account/auth/login-local" || true)"
             echo "login -> $last"
             [ "$last" = "200" ] && exit 0
             sleep 4
@@ -428,11 +467,11 @@ jobs:
             # resolving yet, a handshake before the certificate exists — would
             # otherwise abort the step on the first attempt instead of
             # retrying. curl still prints 000 for it.
-            code="$(curl -s -o /dev/null -w '%{http_code}' "$url/api/health" || true)"
+            code="$(curl -s -o /dev/null -w '%{http_code}' "$url$BP/api/health" || true)"
             [ "$code" = "200" ] && { echo "serving"; exit 0; }
             sleep 8
           done
-          plain="$(curl -s -o /dev/null -w '%{http_code}' "${url/https:/http:}/api/health" || true)"
+          plain="$(curl -s -o /dev/null -w '%{http_code}' "${url/https:/http:}$BP/api/health" || true)"
           if [ "$plain" = "200" ]; then
             echo "::error::$url routes correctly but its TLS certificate is not issued yet; re-run once it is"
           else
@@ -448,9 +487,9 @@ jobs:
           SMOKE_OAUTH_CLIENT_ID: ${{ vars.OAUTH_CLIENT_ID }}
         run: |
           if [ -n "${SMOKE_OAUTH_ISSUER:-}" ]; then
-            bun tests/workers/smoke.ts --url "${{ steps.deploy.outputs.url }}" --oidc
+            bun tests/workers/smoke.ts --url "${{ steps.deploy.outputs.url }}$BP" --oidc
           else
-            bun tests/workers/smoke.ts --url "${{ steps.deploy.outputs.url }}"
+            bun tests/workers/smoke.ts --url "${{ steps.deploy.outputs.url }}$BP"
           fi
 
       - name: Summary

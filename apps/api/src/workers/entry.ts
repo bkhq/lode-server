@@ -3,6 +3,7 @@ import { bootstrap } from "@/app";
 import { setPlatform } from "@/platform";
 import { createWorkersPlatform } from "./platform";
 import { registerR2Driver } from "./r2";
+import { serveSpaRequest } from "./spa";
 
 /**
  * Cloudflare Workers entry point.
@@ -23,6 +24,8 @@ export interface WorkerEnv {
   APP: DurableObjectNamespace;
   /** Blob storage for the file module. Required when FILE_STORAGE_DRIVER=r2. */
   FILES?: R2Bucket;
+  /** The built SPA. Only consulted under a BASE_PATH, where the Worker runs first for the SPA's paths. */
+  ASSETS?: { fetch: (request: Request) => Promise<Response> };
   [key: string]: unknown;
 }
 
@@ -119,6 +122,12 @@ async function configVersion(env: Record<string, unknown>): Promise<string> {
 
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
+    // Under a BASE_PATH the asset pipeline cannot map the prefix, so the
+    // SPA's paths arrive here first; see ./spa.ts.
+    const spa = await serveSpaRequest(request, env);
+    if (spa !== undefined)
+      return spa;
+
     // One named instance: this app has a single database, so it has a
     // single object. Sharding would mean sharding the database too.
     const stub = env.APP.get(env.APP.idFromName("app"));

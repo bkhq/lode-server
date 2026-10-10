@@ -1,3 +1,5 @@
+import type { Plugin } from "vite";
+import { readFileSync } from "node:fs";
 import process from "node:process";
 import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
@@ -16,8 +18,31 @@ process.env.VITE_APP_DISPLAY_NAME = APP_DISPLAY_NAME;
 const trimmedBase = (process.env.BASE_PATH ?? "").replace(/^\/+|\/+$/g, "");
 const base = trimmedBase ? `/${trimmedBase}/` : "/";
 
+// Dev only. With a base path Vite answers "/" with a redirect to the base, so
+// a home page at the origin root (HOME_PAGE=root, which the API serves
+// in production) would never show. Serve the shell at "/" instead and let the
+// SPA decide what to render, as the API does.
+function homeAtOriginRoot(): Plugin {
+  return {
+    name: "home-at-origin-root",
+    apply: "serve",
+    configureServer(server) {
+      if (process.env.HOME_PAGE !== "root" || base === "/")
+        return;
+      server.middlewares.use(async (req, res, next) => {
+        if (req.method !== "GET" || (req.url ?? "").split("?")[0] !== "/")
+          return next();
+        const html = await server.transformIndexHtml("/", readFileSync(`${server.config.root}/index.html`, "utf-8"));
+        res.setHeader("Content-Type", "text/html");
+        res.end(html);
+      });
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
+    homeAtOriginRoot(),
     tailwindcss(),
     TanStackRouterVite({
       routesDirectory: "./src/app/routes",

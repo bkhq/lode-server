@@ -215,6 +215,19 @@ each upstream tag; your fork's `Unreleased` block sits at the top.
 
 ### Fixed
 
+- `BASE_PATH` did not work on Cloudflare Workers. The SPA's HTML referenced
+  `/u/assets/…` while the asset pipeline served files from the build root, so
+  every asset 404'd into the SPA fallback, and `run_worker_first` only listed
+  `/api/*`. The Worker now serves the SPA's paths itself under a prefix
+  (strip the prefix, ask the asset binding), forwards `${BASE_PATH}/api/*` to
+  the app, and answers `/` as the Bun server does (a redirect, or the SPA with
+  `HOME_PAGE=root`). The deploy workflow takes `BASE_PATH` and `HOME_PAGE`
+  repository variables and applies them to the build, `wrangler.toml` and
+  `vars`; the workerd smoke gained a base-path mode that CI runs both ways.
+- With a `BASE_PATH` set, the Vite dev server redirected `/` to the base, so a
+  home page at the origin root (`HOME_PAGE=root`) could not be seen in
+  development. A dev-only plugin now serves the shell at `/` in that mode.
+
 - Adding a module meant editing lists that nothing flagged when forgotten. The
   sidebar registry now collects every `-*.nav.ts` under `app/routes` by glob,
   and its test compares against the files rather than a key list; the e2e

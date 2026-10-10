@@ -33,6 +33,15 @@ bucket_name = "bun-tpl-files"
 # The SPA is served by the asset pipeline; only the API prefixes reach the
 # Worker. Any other path is answered from the assets, with the SPA's index.html
 # for anything unknown — so a prefix left out here never reaches the app.
+#
+# Under a BASE_PATH (say `/u`) the build's files still sit at the root of the
+# directory while its HTML references `/u/assets/…`, which the pipeline cannot
+# remap. Set the variables BASE_PATH (and HOME_PAGE, see .env.example),
+# build the SPA with the same BASE_PATH, and replace the line below with
+#   run_worker_first = ["/", "/u/*"]
+# The Worker then serves the SPA's paths itself (src/workers/spa.ts) and
+# forwards `/u/api/*` to the app. The deploy workflow does both from the
+# BASE_PATH repository variable.
 [assets]
 directory = "../web/dist"
 binding = "ASSETS"

@@ -25,4 +25,6 @@ data-docker/
 
 # Cloudflare Workers build output
 dist-workers/
+dist-smoke/
+apps/api/wrangler.smoke.toml
 .wrangler/

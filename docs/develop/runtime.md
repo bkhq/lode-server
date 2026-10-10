@@ -197,6 +197,28 @@ prefix left out of that list never reaches the app — it returns HTML with a
 200 — which is why every API surface, including the raw API, lives under
 `/api/*`.
 
+### BASE_PATH on Workers
+
+Without a `BASE_PATH` the setup above is complete. With one (say `/u`) the
+asset pipeline cannot help: the SPA is built with `BASE_PATH=/u` and its HTML
+references `/u/assets/…`, but the files sit at the root of `apps/web/dist`,
+and the pipeline has no way to strip a prefix. So the Worker runs first for
+the SPA's own paths and maps them itself (`src/workers/spa.ts`): it strips the
+prefix and asks the `ASSETS` binding, which still applies the single-page
+fallback, and it forwards `/u/api/*` to the app. Three things have to agree:
+
+- the SPA built with the same `BASE_PATH`;
+- `BASE_PATH` (and `HOME_PAGE`, see `.env.example`) in `vars`;
+- `run_worker_first = ["/", "/u/*"]` in `wrangler.toml`, replacing
+  `["/api/*"]`.
+
+The deploy workflow does all three from the `BASE_PATH` and `HOME_PAGE`
+repository variables, and its smoke run goes through the prefix. At `/` the
+Worker answers what the Bun server does: a redirect to the app, or the SPA
+shell when `HOME_PAGE=root`. `bun tests/workers/smoke.ts --base-path /u
+[--home-page root]` runs this under workerd against a prefix-aware build in
+`apps/web/dist-smoke`.
+
 Attaching a custom domain needs the zone on the same account; state it with
 `zone_name` rather than relying on inference. Adding any route disables the
 workers.dev URL unless `workers_dev = true` is explicit, and a newly attached

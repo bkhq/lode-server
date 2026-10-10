@@ -20,13 +20,19 @@
  * OAuth-configured mode, and starting a login redirects to the issuer
  * carrying a PKCE challenge.
  *
+ * With `--base-path /u` (and optionally `--home-page root`) it runs the
+ * Worker mounted under that prefix, serving a SPA built for it from
+ * apps/web/dist-smoke, and checks the paths the Worker has to serve itself
+ * there: the shell and its assets under the prefix, and "/" — a redirect to
+ * the app, or the home page when it lives at the origin root.
+ *
  * Usage:
  *   bun tests/workers/smoke.ts                 # spawns `wrangler dev`
  *   bun tests/workers/smoke.ts --url https://… # runs against a deployment
  *   bun tests/workers/smoke.ts --url … --oidc  # OIDC deployment
  */
 import type { Subprocess } from "bun";
-import { rmSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import process from "node:process";
 import { setTimeout as sleep } from "node:timers/promises";
 
@@ -56,7 +62,7 @@ async function call(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   // csrfGuard wants both an `X-Requested-With` header and a matching Origin
   // on state-changing requests; the SPA client sets the same pair.
-  headers.set("Origin", baseUrl);
+  headers.set("Origin", new URL(baseUrl).origin);
   headers.set("X-Requested-With", "XMLHttpRequest");
   if (cookie)
     headers.set("Cookie", cookie);
@@ -327,6 +333,67 @@ const oidcCases: Case[] = [
   },
 ];
 
+function argValue(name: string): string | undefined {
+  const i = process.argv.indexOf(name);
+  return i === -1 ? undefined : process.argv[i + 1];
+}
+
+// Cases for a deployment mounted under a base path. `baseUrl` already ends
+// with the prefix, so `origin` is what the browser would call "/".
+const homePage = argValue("--home-page") ?? "off";
+const baseCases: Case[] = [
+  {
+    name: "the API answers under the prefix",
+    async run() {
+      const res = await fetch(`${baseUrl}/api/health`);
+      assert(res.status === 200, `health under the prefix returned ${res.status}`);
+      await res.text();
+    },
+  },
+  {
+    name: "the SPA shell is served under the prefix, with prefixed asset URLs",
+    async run() {
+      const prefix = new URL(baseUrl).pathname;
+      const res = await fetch(`${baseUrl}/`);
+      const html = await res.text();
+      assert(res.status === 200 && html.includes("id=\"root\""), `the shell under the prefix returned ${res.status}`);
+      assert(html.includes(`${prefix}/assets/`), `the shell does not reference ${prefix}/assets/`);
+    },
+  },
+  {
+    name: "a prefixed asset is served from the build root",
+    async run() {
+      const html = await (await fetch(`${baseUrl}/`)).text();
+      const src = /src="([^"]+\.js)"/.exec(html)?.[1];
+      assert(src, "no script tag in the shell");
+      const res = await fetch(new URL(src, new URL(baseUrl).origin));
+      assert(res.status === 200, `${src} returned ${res.status}`);
+      assert((res.headers.get("content-type") ?? "").includes("javascript"), `${src} was served as ${res.headers.get("content-type")}`);
+      await res.arrayBuffer();
+    },
+  },
+  {
+    name: "a client route under the prefix gets the SPA shell",
+    async run() {
+      const res = await fetch(`${baseUrl}/overview`);
+      assert(res.status === 200 && (await res.text()).includes("id=\"root\""), "a client route did not return the shell");
+    },
+  },
+  {
+    name: homePage === "root" ? "the origin root is the SPA's home page" : "the origin root sends the visitor to the app",
+    async run() {
+      const origin = new URL(baseUrl).origin;
+      const prefix = new URL(baseUrl).pathname;
+      const res = await fetch(`${origin}/`, { redirect: "manual" });
+      const body = await res.text();
+      if (homePage === "root")
+        assert(res.status === 200 && body.includes("id=\"root\""), "the origin root did not return the SPA shell");
+      else
+        assert(body.includes(`url=${prefix}/`), `the origin root does not point at ${prefix}/: ${body.slice(0, 120)}`);
+    },
+  },
+];
+
 async function waitForBoot(timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -347,12 +414,16 @@ async function main(): Promise<void> {
   const urlArg = process.argv.indexOf("--url");
   let dev: Subprocess | undefined;
 
+  const basePath = argValue("--base-path")?.replace(/\/+$/, "");
+  const apiDir = new URL("../../apps/api/", import.meta.url).pathname;
+  const smokeConfig = `${apiDir}wrangler.smoke.toml`;
+
   if (urlArg !== -1) {
     baseUrl = process.argv[urlArg + 1]?.replace(/\/+$/, "") ?? "";
     assert(baseUrl !== "", "--url needs a value");
   }
   else {
-    baseUrl = `http://127.0.0.1:${PORT}`;
+    baseUrl = `http://127.0.0.1:${PORT}${basePath ?? ""}`;
     // wrangler keeps the Durable Object's SQLite between runs. Start clean so
     // the run is deterministic: a regenerated baseline migration would
     // collide with the old schema, and the rate-limit case needs a fresh
@@ -361,8 +432,20 @@ async function main(): Promise<void> {
       recursive: true,
       force: true,
     });
+    const args = ["dev", "--port", String(PORT), "--ip", "127.0.0.1"];
+    if (basePath) {
+      // The deploy workflow rewrites these two lines the same way: assets
+      // from the prefix-aware build, and the Worker first for "/" and the
+      // prefix.
+      const toml = readFileSync(`${apiDir}wrangler.toml`, "utf-8")
+        .replace("directory = \"../web/dist\"", "directory = \"../web/dist-smoke\"")
+        .replace(/^run_worker_first = .*$/m, `run_worker_first = ["/", "${basePath}/*"]`);
+      assert(toml.includes("dist-smoke") && toml.includes(`"${basePath}/*"`), "could not derive the base-path wrangler config");
+      writeFileSync(smokeConfig, toml);
+      args.push("-c", "wrangler.smoke.toml", "--var", `BASE_PATH:${basePath}`, "--var", `HOME_PAGE:${homePage}`);
+    }
     dev = Bun.spawn(
-      ["./node_modules/.bin/wrangler", "dev", "--port", String(PORT), "--ip", "127.0.0.1"],
+      ["./node_modules/.bin/wrangler", ...args],
       {
         cwd: new URL("../../apps/api", import.meta.url).pathname,
         env: {
@@ -376,7 +459,7 @@ async function main(): Promise<void> {
     );
   }
 
-  const suite = process.argv.includes("--oidc") ? oidcCases : cases;
+  const suite = process.argv.includes("--oidc") ? oidcCases : basePath ? baseCases : cases;
 
   let failures = 0;
   try {
@@ -395,6 +478,7 @@ async function main(): Promise<void> {
   }
   finally {
     dev?.kill();
+    rmSync(smokeConfig, { force: true });
   }
 
   console.log(`\n${suite.length - failures}/${suite.length} passed`);
