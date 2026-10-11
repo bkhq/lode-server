@@ -217,7 +217,6 @@ export function createLogger(config: LoggerConfig) {
       if (destState.failed)
         return;
       try {
-        // eslint-disable-next-line react/dom-no-flush-sync
         (dest as Partial<ReturnType<typeof pino.destination>>).flushSync?.();
       }
       catch {
@@ -234,7 +233,6 @@ export function createLogger(config: LoggerConfig) {
       if (config.LOG_TO_STDOUT || destState.failed)
         return;
       try {
-        // eslint-disable-next-line react/dom-no-flush-sync
         (dest as Partial<ReturnType<typeof pino.destination>>).flushSync?.();
       }
       catch {}

@@ -31,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -85,7 +85,7 @@ jobs:
           fetch-depth: 0  # trufflehog walks history for past commits
 
       - name: trufflehog (secrets)
-        uses: trufflesecurity/trufflehog@v3.95.6
+        uses: trufflesecurity/trufflehog@v3.99.2
         with:
           # Scan the working tree (filesystem mode) so the action stays
           # agnostic to PR vs push events; --only-verified caps the
@@ -94,7 +94,7 @@ jobs:
           extra_args: --results=verified,unknown
 
       - name: osv-scanner (dependency CVEs)
-        uses: google/osv-scanner-action/osv-scanner-action@v2.3.8
+        uses: google/osv-scanner-action/osv-scanner-action@v2.6.0
         with:
           scan-args: |-
             --lockfile=bun.lock
@@ -185,7 +185,7 @@ jobs:
           output: trivy-image.sarif
 
       - name: Upload Trivy results
-        if: always()
+        if: always() && hashFiles('trivy-image.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-image.sarif
@@ -197,7 +197,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 

@@ -13,6 +13,17 @@ This repository is a fork: the dated entries directly below are Lode
 Server's own, and everything from `Unreleased` down is the upstream
 template's history, kept unchanged.
 
+## 2026-10-11 21:34 [ci] [deps] [docs]
+
+CI repair and dependency updates (task
+`20261011-2134-ci-and-dependency-updates`). `Upload Trivy results` runs only
+when the scan wrote `trivy-image.sarif`, so a failed image build no longer
+fails that step too. Actions: `actions/setup-node` v7,
+`trufflesecurity/trufflehog` v3.99.2, `google/osv-scanner-action` v2.6.0.
+Dependencies: the patch and minor updates of the runtime and tooling groups,
+and `vitest` 5.0.3. The `docker build` and `e2e` jobs failed on the first
+run only because `docker.io/bkhq/lode:v0.0.1` was not published yet.
+
 ## 2026-10-11 14:45 [api] [scripts] [ci] [docs]
 
 **Breaking:** asset signatures are lode's `lode.artifact.v2` (task
