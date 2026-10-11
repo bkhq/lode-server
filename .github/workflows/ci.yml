@@ -85,7 +85,7 @@ jobs:
           fetch-depth: 0  # trufflehog walks history for past commits
 
       - name: trufflehog (secrets)
-        uses: trufflesecurity/trufflehog@v3.95.6
+        uses: trufflesecurity/trufflehog@v3.99.2
         with:
           # Scan the working tree (filesystem mode) so the action stays
           # agnostic to PR vs push events; --only-verified caps the
