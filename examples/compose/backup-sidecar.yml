@@ -1,0 +1,70 @@
+# Backup-sidecar overlay for examples/compose/compose.yml.
+#
+# Usage:
+#   docker compose -f compose.yml -f backup-sidecar.yml up -d
+#
+# Drops a tiny shell loop next to the main app that calls
+# `POST /api/backup/export` daily, writes `<APP_NAME>-backup-YYYY-MM-DD.json`
+# under `/backups`, and prunes anything older than $RETENTION_DAYS.
+#
+# Required env in `.env` (or your secret store):
+#   SERVICE_TOKEN_BACKUP    bearer (≥32 chars) gating
+#                           POST /api/backup/export-via-token. Set the
+#                           SAME value on the API service.
+#   BACKUP_RETENTION_DAYS   (optional, default 30)
+#   BACKUP_INTERVAL_SECONDS (optional, default 86400 = 24h)
+#
+# An offsite copy is encouraged: pipe the JSON to a presigned S3 URL,
+# rclone, restic, or whatever your platform mandates. The sidecar
+# deliberately does NOT do that itself — keep the local rotation simple
+# and let your provider-specific tooling drive offsite movement.
+
+services:
+  backup:
+    image: alpine:3
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_started
+    environment:
+      APP_NAME: ${APP_NAME:-app}
+      BASE_PATH: ${BASE_PATH:-}
+      SERVICE_TOKEN: ${SERVICE_TOKEN_BACKUP}
+      RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+    volumes:
+      - app-backups:/backups
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        apk add --no-cache curl >/dev/null
+        mkdir -p /backups
+        echo "[backup] starting; interval=${INTERVAL_SECONDS}s retention=${RETENTION_DAYS}d"
+        while true; do
+          ts="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
+          out="/backups/${APP_NAME}-${ts}.json"
+          tmp="${out}.partial"
+          # The export endpoint streams the JSON body — write to .partial,
+          # rename on success so a half-finished file never lands at the
+          # final path.
+          if curl -fsS \
+                -H "Authorization: Bearer ${SERVICE_TOKEN}" \
+                -X POST \
+                -o "$tmp" \
+                "http://app:3000${BASE_PATH}/api/backup/export-via-token"; then
+            mv "$tmp" "$out"
+            echo "[backup] wrote $out"
+          else
+            rc=$?
+            rm -f "$tmp"
+            echo "[backup] export failed rc=$rc"
+          fi
+          # Prune older than RETENTION_DAYS (best-effort; ignore errors).
+          find /backups -maxdepth 1 -type f -name "${APP_NAME}-*.json" -mtime +${RETENTION_DAYS} -delete 2>/dev/null || true
+          sleep "${INTERVAL_SECONDS}"
+        done
+
+volumes:
+  app-backups:

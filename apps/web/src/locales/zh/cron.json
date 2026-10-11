@@ -1,0 +1,133 @@
+{
+  "page": {
+    "title": "定时任务",
+    "description": "调度后台任务:HTTP 探测、Shell 命令和自定义动作。"
+  },
+  "createJob": "新建任务",
+  "noJobs": "暂无定时任务,点击 \"新建任务\" 添加第一条。",
+  "totalCount": "{{count}} 个任务",
+  "refresh": "刷新",
+  "schedulerDisabled": {
+    "title": "调度器未启用",
+    "body": "定时任务由 CRON_ENABLED 开关控制。此处仍可创建、编辑、删除任务——一旦运维将 CRON_ENABLED 设为 true 并重启 API,这些任务会自动开始按计划运行;手动触发不受影响。详见 docs/modules/cron.md。"
+  },
+  "filter": {
+    "label": "状态",
+    "active": "全部",
+    "failed": "失败的",
+    "success": "成功的",
+    "deleted": "已删除的"
+  },
+  "typeFilter": {
+    "label": "分类",
+    "all": "全部分类",
+    "cat": {
+      "maintenance": "维护",
+      "network": "网络",
+      "system": "系统",
+      "custom": "自定义"
+    }
+  },
+  "drawer": {
+    "subtitle": "新建一个定时任务。选择动作后，配置表单会根据动作注册的字段自动生成。",
+    "section": {
+      "meta": "基础信息",
+      "action": "动作",
+      "config": "配置"
+    }
+  },
+  "meta": {
+    "dangerous": "危险"
+  },
+  "status": {
+    "running": "运行中",
+    "stopped": "已停止",
+    "paused": "已暂停",
+    "error": "错误",
+    "disabled": "已禁用",
+    "not_loaded": "未加载"
+  },
+  "col": {
+    "name": "名称",
+    "action": "动作",
+    "schedule": "调度表达式",
+    "next": "下一次执行",
+    "lastRun": "上一次执行",
+    "status": "状态",
+    "actions": "操作"
+  },
+  "form": {
+    "name": "名称",
+    "namePlaceholder": "例如 ping-prometheus",
+    "nameHint": "支持字母/数字/下划线/连字符,作为审计资源 ID 和唯一键。",
+    "scheduleMode": "调度方式",
+    "scheduleModePreset": "预设",
+    "scheduleModeCustom": "自定义",
+    "schedulePreset": "选择一个预设...",
+    "scheduleCustomPlaceholder": "例如 0 0 3 * * * 或 @every_15m",
+    "scheduleCustomHelp": "支持 5 段、6 段格式,@hourly/@daily/@weekly/@monthly/@yearly 以及 @every_N(s|m|h|d),详见 cron-format.ts。",
+    "action": "动作",
+    "actionPlaceholder": "选择一个动作...",
+    "actionRequiredFields": "必填字段:{{fields}}",
+    "retry": "重试策略",
+    "retryMax": "最大连续失败次数",
+    "retryMaxHint": "连续失败达到该次数后,任务会自动暂停(下一次调度前不会再触发),需要手动恢复。默认 3 次。填 0 表示永不自动暂停——只有在任务必须持续重试时才设置。",
+    "submit": "创建",
+    "submitting": "创建中...",
+    "cancel": "取消"
+  },
+  "presets": {
+    "every_1m": "每分钟",
+    "every_5m": "每 5 分钟",
+    "every_15m": "每 15 分钟",
+    "every_30m": "每 30 分钟",
+    "hourly": "每小时(整点)",
+    "every_1h": "每小时(滚动)",
+    "every_6h": "每 6 小时",
+    "every_12h": "每 12 小时",
+    "daily": "每日 00:00",
+    "weekly": "每周日 00:00",
+    "monthly": "每月 1 日 00:00",
+    "yearly": "每年 1 月 1 日 00:00"
+  },
+  "actionGroup": {
+    "maintenance": "维护",
+    "network": "网络",
+    "system": "系统",
+    "custom": "自定义"
+  },
+  "actions": {
+    "trigger": "立即执行",
+    "pause": "暂停",
+    "resume": "恢复",
+    "delete": "删除",
+    "viewLogs": "查看日志"
+  },
+  "logs": {
+    "title": "执行历史 — {{name}}",
+    "filter": "状态过滤",
+    "filterAll": "全部",
+    "filterRunning": "运行中",
+    "filterSuccess": "成功",
+    "filterFailed": "失败",
+    "empty": "该任务暂无执行记录。",
+    "col": {
+      "startedAt": "开始时间",
+      "duration": "耗时",
+      "status": "状态",
+      "result": "结果"
+    }
+  },
+  "confirm": {
+    "deleteTitle": "软删除该任务?",
+    "deleteBody": "{{name}} 将停止运行,历史记录保留在 logs 表中(`?deleted=only` 可查)。只能通过重新创建恢复。",
+    "deleteConfirm": "确认删除"
+  },
+  "toast": {
+    "created": "已创建任务 \"{{name}}\"。",
+    "deleted": "已删除任务 \"{{name}}\"。",
+    "paused": "已暂停任务 \"{{name}}\"。",
+    "resumed": "已恢复任务 \"{{name}}\"。",
+    "triggered": "已触发 \"{{name}}\" — 日志状态 {{logStatus}}。"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "page": {
+    "description": "用于验证此软件包发布签名的公钥。"
+  },
+  "intro": {
+    "optional": "签名是可选的。发布者在本地用 `lode-cli sign` 对发布文件签名。",
+    "publicOnly": "请在此注册公钥。服务器从不保存私钥，只在文件上传时验证签名。",
+    "algorithm": "仅支持 ed25519 密钥。",
+    "ci": "流水线可以自行登记密钥：对此软件包有写入权限的令牌可以添加密钥，但不能吊销。"
+  },
+  "col": {
+    "name": "名称",
+    "keyId": "密钥 ID",
+    "algorithm": "算法",
+    "created": "创建时间",
+    "status": "状态",
+    "actions": "操作"
+  },
+  "status": {
+    "active": "有效",
+    "revoked": "已吊销"
+  },
+  "empty": "此软件包还没有签名密钥。登记公钥后，带签名的上传才会被验证。",
+  "copyKeyId": "复制密钥 ID",
+  "copyTrustedKey": "复制 trusted_keys 条目",
+  "copyFailed": "无法复制到剪贴板。",
+  "register": {
+    "open": "注册密钥",
+    "title": "注册签名密钥",
+    "description": "粘贴 ed25519 密钥对中的公钥。切勿粘贴私钥。",
+    "name": "名称",
+    "namePlaceholder": "例如：2026 发布密钥",
+    "publicKey": "公钥",
+    "forms": "可接受：裸的 base64 或 base64url 密钥，或 lode 输出的以下形式之一：",
+    "submit": "注册",
+    "error": {
+      "empty": "请输入公钥。",
+      "whitespace": "密钥中不能包含空格或换行，请粘贴为单行。",
+      "privateKey": "这看起来是私钥或 PEM 块。请只粘贴 base64 公钥，私钥请自行妥善保管。"
+    }
+  },
+  "revoke": {
+    "action": "吊销",
+    "title": "吊销“{{name}}”？",
+    "description": "吊销不可撤回。该密钥无法再次注册，新的上传将不再用它验证。已发布的签名仍保留在清单中。",
+    "confirm": "吊销密钥"
+  },
+  "toast": {
+    "registered": "密钥“{{name}}”已注册",
+    "revoked": "密钥“{{name}}”已吊销"
+  }
+}

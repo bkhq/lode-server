@@ -1,0 +1,46 @@
+# lode operator config — how the supervisor fetches and runs this app.
+#
+# Mounted at /srv/lode/lode.toml (see docker-compose.yml). This is the
+# operator's file; the app never writes it. App runtime env (APP_URL, OAUTH_*,
+# DB_PATH, …) is supplied via the container env (.env.docker), which lode
+# passes through to the launched app — keep app config there, not here.
+#
+# Precedence: CLI > env (LODE_*) > lode.toml > defaults.
+
+[global]
+app       = "lode-server"  # must match the release manifest "name"
+dir       = "/srv/lode"  # base dir: lode.toml + versions/ + state.json (override via LODE_DIR)
+log_level = "info"
+
+[update]
+github         = "bkhq/lode-server"             # repo that publishes the release assets
+asset          = "lode-server-linux-x64.tar.gz"  # the asset filename for this host
+channel         = "stable"               # github: stable = /releases/latest
+policy          = "check"                # off | check | auto
+check_interval  = 300                    # seconds between update checks
+keep_versions   = 3                      # retained versions for rollback
+
+[trust]
+# off | auto | enforce. "auto" verifies a signature when present and otherwise
+# allows the asset; switch to "enforce" once you publish signed assets
+# (run `lode-cli keygen`, set LODE_SIGNING_KEY in CI, and list trusted_keys).
+require_signature = "auto"
+# Strongly recommended for any deployment that polls updates: without a key
+# here, "auto" installs assets UNVERIFIED (checksum only). The release
+# workflow signs automatically once the LODE_SIGNING_KEY secret is set —
+# paste the trusted_keys entry `lode-cli keygen` printed:
+# trusted_keys = ["<key_id>:<base64-pubkey>"]
+
+[command]
+# Matches the manifest asset run/exec produced by scripts/package.ts. cwd is
+# the version directory, where index.js + dist/ + drizzle/ + node_modules/ live.
+run  = "bun index.js"
+exec = "bun run"
+
+[runtime]
+# Fetch the bun runtime if it is not already on PATH (cached, version-pinned).
+# The download is not signature-verified; `sha256` pins its bytes.
+runtime  = "bun"
+download = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.2/bun-linux-x64.zip"
+version  = "1.4.2"
+sha256   = "36368faef7527875d5ffa52e53cd48021741f2a83eb6208a8dd64068d422a913"

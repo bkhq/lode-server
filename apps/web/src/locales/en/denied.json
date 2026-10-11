@@ -1,0 +1,20 @@
+{
+  "requestId": "Request ID",
+  "backToPortal": "Back to Portal",
+  "switchAccount": "Switch Account",
+  "signInDifferent": "Sign in with a different account",
+  "signOut": "Sign Out",
+  "requestAccess": "Request access",
+  "no_viewer_relation": {
+    "title": "Access Denied",
+    "description": "You do not have permission to access this resource. Please contact your administrator to request access."
+  },
+  "user_not_registered": {
+    "title": "User Not Registered",
+    "description": "Your account is not registered in the system. Please contact your administrator to get an invitation."
+  },
+  "user_disabled": {
+    "title": "Account Disabled",
+    "description": "Your account has been disabled. Please contact your administrator for assistance."
+  }
+}

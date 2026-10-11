@@ -1,0 +1,319 @@
+# Lode Server
+
+> Lode Server (https://lode.bk.io) is a hosted, multi-user release registry for lode, a small loader that verifies, starts and updates an application on a host. A publisher uploads versions of their software here; hosts running lode fetch the current version of a channel, check it, and switch over on their own.
+
+Use this file to help someone publish a release to the registry, configure a host to run a package from it, or use lode itself. The linked documents have the full detail.
+
+## Things to know first
+
+- Three addresses, which are not interchangeable:
+  - Console (for people): `https://lode.bk.io/u/`
+  - Registry base, what `lode-cli publish --registry` takes and its default: `https://lode.bk.io/u`. The management API is under `https://lode.bk.io/u/api/registry`.
+  - Read feed, what a host's `lode.toml` takes: `https://lode.bk.io/r/<namespace>/<slug>/manifest.json`. It is at the origin root, not under `/u`.
+- A **namespace** is assigned to each account by the system: 8 lowercase letters and digits. It cannot be chosen or changed.
+- A **package** is addressed as `<namespace>/<slug>`. The slug is lowercase letters, digits and `-`. A package is public or private.
+- A **version** is created as a draft, receives its assets, and is then published in one step. A published version cannot be changed.
+- A **channel** (`stable` by default) is a named pointer at one published version. Hosts follow a channel.
+- An **asset** is one file of a version, stored under its file name. A host selects the file it installs by that exact name, so name files after the platform, for example `myapp-linux-x64.tar.gz`.
+- Creating a package and creating a token require a person signed in to the console. A token can never create or delete a package, delete a published version, revoke a signing key, or manage tokens.
+- A **token** (`pat_…`) carries grants per package: `read` (fetch a private package), `write` (release to it), `admin` (also change its settings, yank and restore versions). Each level includes the ones before it.
+
+## Publish a release
+
+A person does this once, in the console: create the package, then create a token with a `write` grant on that package only.
+
+After that a release is one command. `lode-cli` is the `lode` binary under another name.
+
+```bash
+LODE_REGISTRY_TOKEN=pat_... lode-cli publish \
+  --package <namespace>/<slug> --version 1.4.2 \
+  dist/myapp-linux-x64.tar.gz dist/myapp-linux-arm64.tar.gz
+```
+
+- The token is read from the environment variable `LODE_REGISTRY_TOKEN` only. Never put it on the command line or in a file that is committed.
+- `--registry` defaults to `https://lode.bk.io/u`; `--channel` defaults to `stable`; `--notes "<text>"` stores release notes.
+- To sign: generate a key once with `lode-cli keygen`, keep the seed as a secret, and add `--key-env LODE_SIGNING_KEY` (or `--key <file>`). The command registers the public key for the package itself. Setting the environment variable without the flag does not sign.
+- Files up to 95 MiB are sent in one request, larger ones in parts; the limit is 500 MiB per file.
+- If a run fails, run it again with the same version: it continues into the draft. Publishing a version that is already published fails; use a new version number.
+- A package with "require signature" turned on refuses an unsigned release.
+
+In GitHub Actions, store the token as the secret `LODE_REGISTRY_TOKEN` and run the same command. A complete workflow: https://github.com/bkhq/lode-server/blob/main/examples/publish/publish.yml
+
+## Run a package on a host
+
+Write a `lode.toml` and start lode with it.
+
+```toml
+[global]
+app = "myapp"                 # the package slug
+
+[update]
+manifest = "https://lode.bk.io/r/<namespace>/myapp/manifest.json"
+asset    = "myapp-linux-x64.tar.gz"   # the exact file this host installs
+channel  = "stable"
+policy   = "auto"             # off | check | auto
+
+[command]
+run = "./myapp"
+```
+
+- For a signed package, ask the publisher for their `trusted_keys` line and pin it. The host then installs only what that key signed, whatever the registry serves:
+
+  ```toml
+  [trust]
+  require_signature = "enforce"
+  trusted_keys = ["<key_id>:<public-key>"]
+  ```
+
+- For a private package, add a token with a `read` grant, passed through the environment:
+
+  ```toml
+  [http]
+  headers = ["Authorization: Bearer ${LODE_REGISTRY_TOKEN}"]
+  ```
+
+- lode does not follow a channel back to an older version by itself. A deliberate downgrade is `lode-cli rollback` or a pinned version.
+- The manifest address for a package is shown on its Install tab in the console.
+
+## Get lode
+
+- Latest release, static binaries for Linux and macOS: https://github.com/bkhq/lode/releases/latest
+- Install on Linux x86-64:
+
+  ```bash
+  curl -fsSL https://github.com/bkhq/lode/releases/latest/download/lode-linux-x64.tar.gz \
+    | sudo tar -xz -C /usr/local/bin lode lode-cli
+  ```
+
+  Other archives: `lode-linux-arm64.tar.gz`, `lode-darwin-arm64.tar.gz`, `lode-darwin-x64.tar.gz`.
+- Container image, holding only the binary at `/usr/bin/lode`: `docker.io/bkhq/lode`
+
+## Using lode
+
+lode is one small static binary that fetches a packaged app, verifies it, starts it, keeps it running and moves it to newer versions. It runs on Linux and macOS. It is not specific to this registry: its update source is a native manifest (what this registry serves) or a GitHub Releases repository.
+
+### One binary, two names
+
+| Invocation | What it does |
+|---|---|
+| `lode` | Starts and supervises the app with `[command].run`, updating it according to the policy. There are no subcommands |
+| `lode <args…>` | Passthrough: runs `[command].exec` with the arguments, once, for the installed version (for example `lode migrate`). Use `lode -- <args…>` when an argument looks like one of lode's own flags |
+| `lode-cli status` | Shows the running instance: current version, last good version, available version, status |
+| `lode-cli update [--version <v>]` | Installs and switches to the channel's latest version, or to a named one |
+| `lode-cli rollback` | Goes back to the last good version |
+| `lode-cli restart` | Restarts the current version |
+| `lode-cli versions` | Lists the installed versions |
+| `lode-cli seed <file> --version <v>` | Installs a local binary or archive as a version, offline, for development |
+| `lode-cli self-update` | Replaces the lode binary with the newest lode release, verified against the key built into it |
+| `lode-cli keygen`, `sign`, `verify`, `publish` | Publisher tools: make a key pair, sign a file, check a signature, release to a registry |
+| `lode-cli init` | Writes a starter `lode.toml` |
+
+`lode-cli` is the same file as `lode` under another name (a symlink).
+
+### Running it
+
+```bash
+# in a container
+docker run --rm -v "$PWD/lode.toml:/srv/lode/lode.toml:ro" docker.io/bkhq/lode:latest
+
+# as a binary; LODE_DIR holds lode.toml, the installed versions and state.json
+LODE_DIR=/srv/lode lode
+```
+
+- lode reads `$LODE_DIR/lode.toml`; `LODE_DIR` defaults to `/srv/lode`. Give that directory a persistent volume: the installed versions and `state.json` live there.
+- With no `lode.toml` on the first run, lode writes a starter file and says what to fill in.
+- Settings come from, in order of precedence: command-line flags, `LODE_*` environment variables, `lode.toml`, defaults.
+- To put lode in your own image, copy the binary in and make it the entry point:
+
+  ```dockerfile
+  COPY --from=docker.io/bkhq/lode:latest /usr/bin/lode /usr/bin/lode
+  ENTRYPOINT ["/usr/bin/lode"]
+  ```
+
+- lode only contacts the update source when it needs to. A version that is already installed starts without any network.
+
+### lode.toml
+
+```toml
+[global]
+app = "myapp"                  # must equal the manifest's name; for this registry, the package slug
+dir = "/srv/lode"              # same as LODE_DIR
+
+[update]
+manifest = "https://lode.bk.io/r/<namespace>/myapp/manifest.json"   # or: github = "owner/repo"
+asset    = "myapp-linux-x64.tar.gz"   # the exact file name this host installs
+channel  = "stable"
+policy   = "auto"              # off: never update | check: report only | auto: install and switch
+# pin    = "1.4.2"             # stay on one version
+
+[trust]
+require_signature = "enforce"  # off | auto | enforce
+trusted_keys = ["<key_id>:<public-key>"]
+
+[http]
+headers = ["Authorization: Bearer ${LODE_REGISTRY_TOKEN}"]   # private sources; ${NAME} reads the environment
+
+[command]
+run  = "./myapp serve"         # how the service starts; the working directory is the version's directory
+exec = "./myapp"               # what `lode <args>` runs
+
+[supervise]
+restart      = "on-failure"    # on-failure | always | off
+health_grace = 15              # seconds a new version must survive, or it is rolled back
+stop_timeout = 10              # seconds between SIGTERM and SIGKILL
+readiness    = "state"         # none | state: wait for the app to report ready before committing a version
+```
+
+- The archive format follows the file name: `.tar.gz` / `.tgz`, `.zip`, `.gz`, anything else is a single raw file.
+- `require_signature` defaults to `auto`, which enforces only when `trusted_keys` is set. Use `enforce` in production.
+- An app that needs an interpreter (Bun, Node, Deno) can have lode fetch it with a `[runtime]` table; `[env]` sets default environment variables for the app.
+- Every option, with comments: https://github.com/bkhq/lode/blob/main/docs/lode.example.toml
+
+### What lode does on its own
+
+- **Update.** With `policy = "auto"` it checks the channel on an interval, downloads the new version, verifies the SHA-256 and the signature, and switches over.
+- **Rollback.** A new version that exits within `health_grace`, or never reports ready, is replaced by the last good one.
+- **Keep alive.** With `restart = "on-failure"` a failing app is restarted a limited number of times and then paused; lode itself stays up instead of crash-looping the container.
+- **No silent downgrade.** It will not follow a channel back to an older version than it has run. A deliberate downgrade is `lode-cli rollback`, `lode-cli update --version <v>` or `pin`.
+- **Stop.** It sends the app `SIGTERM` and waits `stop_timeout` before `SIGKILL`.
+
+### Making an app work well under lode
+
+The only requirement is to exit cleanly on `SIGTERM` within `stop_timeout`. The rest is optional and goes through one file, `$LODE_DIR/state.json`:
+
+- lode sets these for the app: `LODE_ACTIVE_VERSION`, `LODE_DIR`, `LODE_WORKDIR`, `LODE_CONFIG`, `LODE_INSTANCE`, `LODE_READINESS`. Other environment variables pass through.
+- lode writes `current`, `last_good`, `available`, `status`, `pid`, `last_error`. The app may read them at any time.
+- The app may write: `ready` (set to the value of `LODE_INSTANCE` once it can serve, when `readiness = "state"`), `target` (a version or `"latest"` to ask for an update), `restart_nonce` (increase it to ask for a restart), `hold` (`true` to keep lode from starting the app during maintenance).
+- Write `state.json` atomically (temporary file, then rename) while holding an exclusive lock on `state.json.lock`, and keep the fields lode wrote.
+- SDKs for TypeScript, Go and Rust do all of this: https://github.com/bkhq/lode/tree/main/sdks
+
+More: [lode README](https://github.com/bkhq/lode/blob/main/README.md), [integration guide](https://github.com/bkhq/lode/blob/main/docs/integration.md), [operations](https://github.com/bkhq/lode/blob/main/docs/operations.md), [running a local build offline](https://github.com/bkhq/lode/blob/main/docs/dev-local-testing.md).
+
+## API reference
+
+Prefer `lode-cli publish` for releasing; it does everything below. Use the API directly when the command cannot be installed, or for the operations it does not cover (moving a channel, yanking, reading state).
+
+### Conventions
+
+- Management base: `https://lode.bk.io/u/api/registry`. Paths below are relative to it. The read feed is separate, at `https://lode.bk.io/r`.
+- Authentication: `Authorization: Bearer pat_…` on every request. A token reaches only the packages it has a grant on, at the level of the grant.
+- JSON requests carry `Content-Type: application/json`. Field names are snake_case, except the multipart start request and response, which are camelCase as shown.
+- Every response is `{"success": true, "data": …}` or `{"success": false, "error": {"code": "…", "message": "…"}}`. Report the status and the `code` as they come.
+- `<ns>` is the namespace, `<slug>` the package slug, `<ver>` a version id (letters, digits, `.`, `_`, `-`; not starting with `.` or `-`). File names follow the same rule.
+- No access: a private package the token has no grant on answers 404, a public one answers 403. A route that is not open to tokens answers 403 whatever the grants.
+
+### Routes a token can call
+
+| Grant | Method and path | Body | Result |
+|---|---|---|---|
+| read | `GET /packages` | | The packages the token has a grant on |
+| read | `GET /packages/<ns>/<slug>` | | Package: `id`, `namespace`, `slug`, `name`, `visibility`, `description`, `require_signature` |
+| read | `GET /packages/<ns>/<slug>/versions` | | `{versions, channels}`: every version with its assets, drafts and yanked ones included |
+| read | `GET /packages/<ns>/<slug>/versions/<ver>` | | `{version, channels}`; `version.status` is `draft`, `published` or `yanked` |
+| write | `POST /packages/<ns>/<slug>/versions` | `{"version": "1.4.2", "notes": "optional"}` | 201, the draft. 409 `VERSION_EXISTS` |
+| write | `PUT /packages/<ns>/<slug>/versions/<ver>/assets/<file>?sha256=<hex>[&sig=…][&run=…][&exec=…]` | the raw file bytes | 201 new, 200 replaced. Draft versions only |
+| write | `DELETE /packages/<ns>/<slug>/versions/<ver>/assets/<file>` | | Removes an asset from a draft |
+| write | `POST /packages/<ns>/<slug>/versions/<ver>/uploads` | `{"asset", "size", "sha256", "sig"?, "run"?, "exec"?}` | 201 `{"uploadId", "partSize", "partCount"}` |
+| write | `PUT /uploads/<uploadId>/parts/<n>` | the raw bytes of part `n` | `{"part_number", "size"}` |
+| write | `POST /uploads/<uploadId>/complete` | none | The asset; 201 new, 200 replaced |
+| write | `DELETE /uploads/<uploadId>` | | Aborts the upload |
+| write | `POST /packages/<ns>/<slug>/versions/<ver>/publish` | `{"channel": "stable"}` | Publishes the draft and points the channel at it |
+| write | `PUT /packages/<ns>/<slug>/channels/<channel>` | `{"version": "1.4.1"}` | Points a channel at a published version: promote, or roll back |
+| write | `DELETE /packages/<ns>/<slug>/versions/<ver>` | | Deletes a **draft** version |
+| read | `GET /packages/<ns>/<slug>/keys` | | The package's signing keys, revoked ones included |
+| write | `POST /packages/<ns>/<slug>/keys` | `{"public_key": "<base64url>", "name": "ci"}` | 201. 409 `KEY_EXISTS` means it is registered already |
+| read | `GET /packages/<ns>/<slug>/manifest-signature` | | `{"key_id", "expires", "status", "updated_at"}` or `null`; `status` is `live`, `stale`, `expired` or `revoked` |
+| write | `PUT /packages/<ns>/<slug>/manifest-signature` | `{"key_id", "sig", "expires"?, "expires_sig"?}` | Stores the publisher's signature over the current manifest |
+| write | `DELETE /packages/<ns>/<slug>/manifest-signature` | | The manifest is served unsigned again |
+| admin | `PATCH /packages/<ns>/<slug>` | any of `name`, `visibility`, `description`, `require_signature` | The package. The slug cannot be changed |
+| admin | `POST /packages/<ns>/<slug>/versions/<ver>/yank` | | Hides a published version from hosts |
+| admin | `POST /packages/<ns>/<slug>/versions/<ver>/restore` | | Puts a yanked version back |
+
+Not open to any token, so do not attempt them with one: creating or deleting a package, deleting a published or yanked version, revoking a signing key, listing or changing tokens, reading the namespace or the quota, and everything under `/admin`. Those need a person signed in to the console.
+
+### Releasing over HTTP, step by step
+
+1. Create the draft: `POST /packages/<ns>/<slug>/versions`. On `409 VERSION_EXISTS`, `GET` the version and continue only if its status is `draft`.
+2. Upload each file. `sha256` is the lowercase hex digest of the file. `Content-Length` is required on every upload; a chunked body is refused with 411.
+   - Up to 99614720 bytes (95 MiB): one `PUT …/assets/<file>?sha256=…` with the file as the body.
+   - Larger, up to 524288000 bytes (500 MiB): start a multipart upload, then `PUT` each part, numbered from 1, each exactly `partSize` bytes except the last, then `complete`. Use the `partSize` and `partCount` the server returns; do not assume a size. A part may be sent again after a network error or a 5xx. On any other failure, `DELETE` the upload.
+3. Publish: `POST …/versions/<ver>/publish` with the channel.
+
+Uploading a file again under the same name replaces it while the version is a draft. After publishing, nothing about the version can change.
+
+### Signing
+
+- Keys are ed25519 only and belong to a package. `key_id` is the first 16 hex characters of SHA-256 over the raw 32-byte public key.
+- The signature is over these bytes, UTF-8, lines joined by `\n`, no trailing newline; `run` and `exec` are empty strings when not used:
+
+  ```
+  lode.artifact.v2
+  <package slug>
+  <file name>
+  <version>
+  <sha256 hex>
+  <run>
+  <exec>
+  ```
+
+- Send it as `sig`, base64url without padding. The registry verifies it against the package's active keys when the upload starts and refuses a signature it cannot verify with `400 INVALID_SIGNATURE`; it never stores one unverified.
+- `lode-cli sign <file> --version <ver> --key-env <VAR>` produces the same signature.
+
+### Signing the manifest
+
+Optional. It lets hosts set `[trust].require_manifest = "signed"` or `"fresh"`. The registry generates the manifest and holds no private key, so the publisher signs what it generates:
+
+1. Download `https://lode.bk.io/r/<ns>/<slug>/manifest.json`.
+2. `lode-cli manifest-sign --into manifest.json --key <key file> --expires-in 30d`. It writes `key_id`, `sig`, `expires` and `expires_sig` into the file.
+3. `PUT /packages/<ns>/<slug>/manifest-signature` with those four fields (`expires` and `expires_sig` only when an expiry was stamped). The key must be registered for the package.
+
+- The registry verifies both signatures before storing them. `409 MANIFEST_CHANGED` means the manifest is no longer the one that was signed: download it and sign again.
+- The signature is served only while the manifest is unchanged, the key is active and the expiry has not passed. Every publish, channel move, yank or restore makes it `stale`, and the manifest goes out unsigned until it is signed again. So sign after every release step, and on a schedule shorter than the expiry.
+
+### Read feed
+
+| Method and path | Access | Result |
+|---|---|---|
+| `GET https://lode.bk.io/r/<ns>/<slug>/manifest.json` | public; a private package needs a token with a `read` grant | The manifest lode reads |
+| `GET https://lode.bk.io/r/<ns>/<slug>/<ver>/<file>` | same | The file |
+
+The manifest has `schema` (`lode/v1`), `name` (the package slug), `channels` (`{"stable": {"latest": "1.4.2"}}`) and `versions`, each with `assets`: `name`, `url`, `sha256`, `size`, and `sig`, `key_id`, `alg` when signed. While the package has a live manifest signature it also has top-level `key_id`, `sig`, and `expires` (Unix seconds) with `expires_sig`. Only published versions are listed. Anything the feed will not serve — unknown, private without a grant, draft, yanked — is the same JSON 404. A package with no published version has empty `channels` and `versions`.
+
+### Error codes worth handling
+
+| Status | Code | Meaning |
+|---|---|---|
+| 409 | `VERSION_EXISTS` | The version is there already; continue if it is a draft |
+| 409 | `VERSION_RETIRED` | A version of that id was published and then deleted; use another id |
+| 409 | `VERSION_NOT_DRAFT` | The version is published or yanked and cannot be changed |
+| 409 | `VERSION_EMPTY` | Publishing a draft with no assets |
+| 409 | `VERSION_NOT_PUBLISHED` | A channel can only point at a published version |
+| 409 | `VERSION_IN_CHANNEL` | Move the channel elsewhere before yanking or deleting |
+| 409 | `VERSION_BUSY` | An upload and a publish collided; try again |
+| 409 | `KEY_EXISTS` | The signing key is registered already (or was revoked) |
+| 409 | `STORAGE_QUOTA_EXCEEDED` | The owner's storage quota would be exceeded |
+| 409 | `UPLOAD_INCOMPLETE`, `UPLOAD_EXPIRED` | A part is missing; or the upload was not completed in time, start again |
+| 409 | `MANIFEST_CHANGED` | The manifest signature does not verify over the manifest served now; download it again and re-sign |
+| 400 | `UNKNOWN_KEY`, `MANIFEST_EXPIRED` | The manifest signature names a key that is not an active key of the package; or its expiry has already passed |
+| 400 | `SIGNATURE_REQUIRED`, `INVALID_SIGNATURE` | The package requires signed assets; or the signature does not verify under the package's keys |
+| 411 | `LENGTH_REQUIRED` | The upload had no `Content-Length` |
+| 413 | `SINGLE_REQUEST_TOO_LARGE`, `ASSET_TOO_LARGE` | Use multipart above 95 MiB; nothing above 500 MiB is accepted |
+| 422 | `DIGEST_MISMATCH`, `INVALID_PART_SIZE`, `INVALID_PART_NUMBER` | The bytes do not match the declared `sha256`; or a part is the wrong size or number |
+| 403 | `NAMESPACE_SUSPENDED` | An administrator suspended the namespace |
+
+## Documentation
+
+- [Publisher guide](https://github.com/bkhq/lode-server/blob/main/docs/guides/publisher.md): packages, signing keys, tokens and grants, publishing, channels, quotas, error codes
+- [Operator guide](https://github.com/bkhq/lode-server/blob/main/docs/guides/operator.md): `lode.toml` for a package on this registry, trust, private packages
+- [API routes](https://github.com/bkhq/lode-server/blob/main/docs/reference/api-routes.md): every management route
+- [Registry module](https://github.com/bkhq/lode-server/blob/main/docs/modules/registry.md): the data model, the token model, upload and signature rules, limits
+- [lode integration guide](https://github.com/bkhq/lode/blob/main/docs/integration.md): configuring lode, what an app under lode can do, publishing
+- [lode.example.toml](https://github.com/bkhq/lode/blob/main/docs/lode.example.toml): every `lode.toml` option
+- [lode operations](https://github.com/bkhq/lode/blob/main/docs/operations.md): running lode day to day
+- [lode architecture](https://github.com/bkhq/lode/blob/main/docs/architecture.md): the authoritative description of its behaviour
+
+## Optional
+
+- [Sample package](https://github.com/bkhq/lode-server/tree/main/examples/hello): a one-file app with a build and a release script
+- [lode source adapters](https://github.com/bkhq/lode/blob/main/docs/source-adapters.md): the manifest format and the signed message, precisely
+- [lode-server source](https://github.com/bkhq/lode-server) and [lode source](https://github.com/bkhq/lode)

@@ -1,0 +1,61 @@
+{
+  "theme": {
+    "light": "亮色",
+    "dark": "暗色",
+    "system": "跟随系统"
+  },
+  "auth": {
+    "logout": "退出登录"
+  },
+  "common": {
+    "edit": "编辑",
+    "delete": "删除",
+    "save": "保存",
+    "cancel": "取消",
+    "prev": "上一页",
+    "next": "下一页",
+    "add": "添加",
+    "close": "关闭",
+    "copy": "复制",
+    "loading": "加载中...",
+    "retry": "重试",
+    "submitting": "提交中...",
+    "saving": "保存中...",
+    "stillLoading": "仍在加载...",
+    "errorDetails": "错误详情",
+    "networkError": {
+      "title": "无法连接到服务器",
+      "description": "连接服务器时出现问题，请检查网络后重试。"
+    },
+    "notFound": {
+      "title": "页面未找到",
+      "description": "找不到您要访问的页面。"
+    },
+    "error": {
+      "loadFailed": "加载数据失败",
+      "deleteFailed": "删除失败",
+      "operationFailed": "操作失败",
+      "saveFailed": "保存失败",
+      "uploadFailed": "上传失败",
+      "systemUnavailable": "系统不可用，请稍后重试。",
+      "dbError": "数据库错误",
+      "dbErrorBody": "数据库当前不可用，系统将自动重试。"
+    }
+  },
+  "nav": {
+    "overview": "概览",
+    "users": "用户",
+    "policies": "策略",
+    "audit": "审计日志",
+    "cron": "定时任务",
+    "settings": "设置",
+    "platformSettings": "系统设置",
+    "security": "安全",
+    "home": "首页",
+    "expandSidebar": "展开侧边栏",
+    "collapseSidebar": "折叠侧边栏",
+    "packages": "软件包",
+    "accessTokens": "访问令牌",
+    "registry": "注册表"
+  }
+}

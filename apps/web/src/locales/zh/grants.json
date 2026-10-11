@@ -1,0 +1,93 @@
+{
+  "page": {
+    "title": "访问令牌",
+    "description": "供 CI 与 lode 客户端访问您的软件包的令牌。"
+  },
+  "col": {
+    "name": "名称",
+    "prefix": "前缀",
+    "grants": "软件包权限",
+    "expires": "过期时间",
+    "lastUsed": "最近使用",
+    "created": "创建时间",
+    "actions": "操作"
+  },
+  "table": {
+    "empty": "还没有令牌。创建一个，让 CI 或运维主机访问您的软件包。",
+    "never": "从不",
+    "expired": "已过期",
+    "noAccess": "无软件包权限",
+    "all": "我的全部软件包：{{level}}",
+    "package": "{{package}}：{{level}}",
+    "more": "另有 {{n}} 个"
+  },
+  "level": {
+    "none": "无",
+    "read": "读取",
+    "write": "写入",
+    "admin": "管理"
+  },
+  "field": {
+    "name": "名称",
+    "namePlaceholder": "例如：CI 发布、生产主机",
+    "expiry": "有效期",
+    "grants": "软件包权限"
+  },
+  "expiry": {
+    "30d": "30 天",
+    "90d": "90 天",
+    "365d": "1 年",
+    "never": "永不过期"
+  },
+  "editor": {
+    "all": "我的全部软件包",
+    "allNote": "对您命名空间下的每个软件包使用同一级别，之后新建的软件包也包含在内。",
+    "access": "权限",
+    "accessFor": "{{package}} 的权限",
+    "package": "软件包",
+    "noPackages": "您还没有软件包。",
+    "noPackagesLink": "前往“软件包”页面创建",
+    "emptyWarning": "未选择任何软件包。仍可创建或保存令牌，但它无法访问任何软件包。"
+  },
+  "legend": {
+    "title": "权限级别",
+    "read": "拉取私有软件包的清单与资产，并读取其元数据。运维主机需要的就是这一级。",
+    "write": "发布：创建草稿、上传资产、发布版本、移动通道。还可以登记签名密钥，便于流水线添加自己的公钥。",
+    "admin": "修改软件包设置，撤回与恢复版本。",
+    "inclusive": "每一级都包含它之前的级别。"
+  },
+  "limits": {
+    "title": "任何令牌都做不到的事",
+    "body": "无论权限如何，令牌都不能创建或删除软件包、删除已发布的版本、吊销签名密钥、管理令牌、修改配额或进行平台管理。",
+    "session": "这些操作需要登录会话。"
+  },
+  "create": {
+    "button": "新建令牌",
+    "title": "新建访问令牌",
+    "description": "选择令牌可以访问哪些软件包，以及访问到什么程度。",
+    "submit": "创建令牌"
+  },
+  "secret": {
+    "title": "令牌 {{name}} 已创建",
+    "description": "请将密钥保存到您的 CI 或需要它的主机上。",
+    "warning": "请立即复制令牌。它不会再次显示，关闭此对话框后即被丢弃。",
+    "token": "令牌",
+    "header": "HTTP 请求头",
+    "copyToken": "复制令牌",
+    "copyHeader": "复制请求头",
+    "done": "完成"
+  },
+  "edit": {
+    "button": "编辑权限",
+    "title": "{{name}} 的软件包权限",
+    "description": "密钥保持不变：已在使用该令牌的客户端将按新的权限继续工作。名称与有效期无法修改。",
+    "saved": "软件包权限已更新。"
+  },
+  "revoke": {
+    "button": "吊销",
+    "title": "吊销此令牌？",
+    "description": "{{name}} 将立即对所有使用它的客户端失效，且无法撤销。",
+    "confirm": "吊销",
+    "done": "令牌已吊销。"
+  }
+}

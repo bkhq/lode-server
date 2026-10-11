@@ -1,0 +1,117 @@
+{
+  "page": {
+    "title": "Registry",
+    "description": "Namespaces, packages and tokens across all users."
+  },
+  "tabs": {
+    "namespaces": "Namespaces",
+    "packages": "Packages",
+    "tokens": "Tokens"
+  },
+  "filter": {
+    "placeholder": "Filter by owner, namespace or slug",
+    "count": "{{shown}} of {{total}}",
+    "noMatch": "Nothing matches the filter."
+  },
+  "col": {
+    "namespace": "Namespace",
+    "owner": "Owner",
+    "status": "Status",
+    "packages": "Packages",
+    "storage": "Storage",
+    "created": "Created",
+    "updated": "Updated",
+    "package": "Package",
+    "visibility": "Visibility",
+    "token": "Token",
+    "prefix": "Prefix",
+    "grants": "Grants",
+    "expires": "Expires",
+    "lastUsed": "Last used",
+    "actions": "Actions"
+  },
+  "status": {
+    "active": "Active",
+    "suspended": "Suspended"
+  },
+  "visibility": {
+    "public": "Public",
+    "private": "Private"
+  },
+  "level": {
+    "read": "read",
+    "write": "write",
+    "admin": "admin"
+  },
+  "namespaces": {
+    "empty": "No namespace has been assigned yet.",
+    "copyId": "Copy namespace id",
+    "suspend": "Suspend",
+    "restore": "Restore",
+    "quota": "Quota",
+    "quotaOther": "Quota for another user",
+    "suspendTitle": "Suspend namespace {{namespace}}?",
+    "suspendDescription": "This takes everything published by {{owner}} out of service until the namespace is restored. Nothing is deleted.",
+    "suspendEffectFeed": "The read feed answers 404 for every package of the namespace, so clients can no longer install or update them.",
+    "suspendEffectOwner": "The owner becomes read-only: no new packages, versions, uploads or settings changes.",
+    "suspendEffectTokens": "The owner's access tokens are refused.",
+    "suspended": "Namespace {{namespace}} suspended.",
+    "restoreTitle": "Restore namespace {{namespace}}?",
+    "restoreDescription": "The packages of {{owner}} are served again, and the owner and their tokens can publish again.",
+    "restored": "Namespace {{namespace}} restored."
+  },
+  "quota": {
+    "title": "Quota",
+    "description": "Usage and limits of {{owner}}.",
+    "packages": "Packages",
+    "storage": "Storage",
+    "asset": "Single asset",
+    "usedOf": "{{used}} of {{limit}} used",
+    "upTo": "up to {{limit}}",
+    "hint": "Override the limits for this user. Leave a field empty to use the platform default.",
+    "maxPackages": "Max packages",
+    "maxStorage": "Max storage",
+    "maxAsset": "Max single asset",
+    "platformDefault": "Platform default",
+    "unit": "Unit",
+    "assetHint": "At most 500 MiB.",
+    "invalid": "Enter a whole number, zero or greater, or leave the field empty.",
+    "assetInvalid": "Enter a whole number greater than zero, or leave the field empty.",
+    "assetTooLarge": "The single asset limit cannot exceed 500 MiB.",
+    "saved": "Quota saved."
+  },
+  "userPicker": {
+    "title": "Quota for another user",
+    "description": "Pick a user to view and change their quota, including one who has no namespace yet.",
+    "placeholder": "Search by name",
+    "empty": "No user found.",
+    "more": "Showing the first matches only. Refine the search to narrow the list."
+  },
+  "packages": {
+    "empty": "No package has been created yet.",
+    "hint": "To take everything of one publisher out of service at once, suspend their namespace:",
+    "hintLink": "open Namespaces",
+    "open": "Open",
+    "makePrivate": "Make private",
+    "makePrivateTitle": "Make this package private?",
+    "makePrivateDescription": "{{package}} of {{owner}} will no longer be served to anonymous clients. The owner can make it public again.",
+    "madePrivate": "{{package}} is now private.",
+    "deleteTitle": "Delete this package?",
+    "deleteDescription": "{{package}} of {{owner}} will be deleted with all its versions and assets. This cannot be undone.",
+    "deleted": "{{package}} deleted."
+  },
+  "tokens": {
+    "empty": "No access token found.",
+    "onlyOwner": "Tokens of {{owner}}",
+    "showAll": "Show the tokens of all users",
+    "grantsNone": "No packages",
+    "grantsAll": "All packages: {{level}}",
+    "noExpiry": "Never",
+    "expired": "Expired",
+    "neverUsed": "Never",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke this token?",
+    "revokeDescription": "The token \"{{name}}\" of {{owner}} stops working immediately. This cannot be undone.",
+    "revoked": "Token \"{{name}}\" revoked."
+  }
+}

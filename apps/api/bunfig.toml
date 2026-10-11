@@ -1,0 +1,31 @@
+[test]
+coverage = true
+# Coverage targets the unit-testable logic surface. HTTP route files
+# (`*.routes.ts`), the app composer (`app.ts`), entry points, build
+# artefacts and process-level helpers are excluded — they are exercised
+# by `bun run test:e2e` against a live API process, which is the
+# system-of-record for HTTP behaviour (see docs/develop/module/standards.md §5.3).
+coveragePathIgnorePatterns = [
+  "src/index.ts",
+  "src/dev.ts",
+  "src/app.ts",
+  "src/pid-lock.ts",
+  "src/lode/sdk.ts",
+  "src/shared/middleware/static.ts",
+  "**/*.routes.ts",
+  "**/*.test.ts",
+]
+# Thresholds reflect the *unit-testable surface* defined by
+# coveragePathIgnorePatterns above. Routes, the app composer, entry points
+# and process-level helpers are e2e-tested instead (see
+# docs/develop/module/standards.md §5.3). Anything inside the included surface that
+# requires elaborate fetch / libsql / fs mocks (encryption rewrap, OAuth
+# token exchange, totp lifecycle, file storage) is also covered by
+# the live e2e suite — the residual gap (~13% lines / 27% funcs) is the
+# accepted overlap point.
+coverageThreshold = { line = 0.85, function = 0.7, statement = 0.85 }
+coverageReporter = ["text", "lcov"]
+coverageSkipTestFiles = true
+
+[run]
+shell = "system"

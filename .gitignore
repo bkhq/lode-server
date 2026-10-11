@@ -1,0 +1,30 @@
+node_modules/
+dist/
+data/
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.db
+*.sqlite
+*.log
+.vite/
+.turbo/
+coverage/
+.tanstack/
+.code-review-graph/
+.claude/
+*.gen.ts
+!apps/web/src/app/routeTree.gen.ts
+.secret/
+data-docker/
+
+# scratch dirs for sibling-container work and probe worktrees
+.tmp/
+.dev.vars
+
+# Cloudflare Workers build output
+dist-workers/
+dist-smoke/
+apps/api/wrangler.smoke.toml
+.wrangler/

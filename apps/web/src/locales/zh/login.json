@@ -1,0 +1,10 @@
+{
+  "title": "登录",
+  "description": "登录以访问您的应用和服务。",
+  "button": "登录",
+  "username": "用户名",
+  "password": "密码",
+  "invalidCredentials": "用户名或密码不正确。",
+  "rateLimited": "尝试次数过多，请稍后再试。",
+  "or": "或"
+}

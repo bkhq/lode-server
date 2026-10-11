@@ -1,0 +1,20 @@
+{
+  "INVALID_PUBLIC_KEY": "This is not a valid ed25519 public key. Paste the public key printed by lode-cli keygen.",
+  "KEY_EXISTS": "This key is already registered or was revoked. A revoked key cannot be registered again; generate a new one.",
+  "PACKAGE_EXISTS": "You already have a package with this slug. Choose a different slug.",
+  "PACKAGE_QUOTA_EXCEEDED": "You have reached your package limit. Delete a package you no longer need or ask an administrator to raise the limit.",
+  "STORAGE_QUOTA_EXCEEDED": "Your storage quota is full. Delete old versions or ask an administrator to raise the quota.",
+  "ASSET_TOO_LARGE": "This file is larger than the asset size limit. Upload a smaller file or ask an administrator to raise the limit.",
+  "INVALID_GRANT": "One of the selected packages does not exist or is not yours. Review the package list and try again.",
+  "VERSION_EXISTS": "This version already exists. Use a different version number.",
+  "VERSION_RETIRED": "A version with this number was published and then deleted. Use a different version number.",
+  "VERSION_NOT_DRAFT": "This version is no longer a draft and cannot be changed. Create a new version instead.",
+  "VERSION_EMPTY": "This version has no assets. Upload at least one asset before publishing.",
+  "VERSION_NOT_PUBLISHED": "A channel can only point at a published version. Publish the version first.",
+  "VERSION_NOT_YANKED": "This version is not yanked, so there is nothing to restore. Refresh the page to see its current state.",
+  "VERSION_IN_CHANNEL": "A channel still points at this version. Move the channel first.",
+  "VERSION_BUSY": "Another operation is in progress on this version. Wait a moment and try again.",
+  "NAMESPACE_SUSPENDED": "This namespace is suspended and read-only. Contact an administrator to restore it.",
+  "SIGNATURE_REQUIRED": "This package only accepts signed assets. Sign the file with lode-cli sign and upload it with its signature.",
+  "INVALID_SIGNATURE": "The signature does not verify under any of your active signing keys. Check that the key is registered and not revoked, then sign again."
+}

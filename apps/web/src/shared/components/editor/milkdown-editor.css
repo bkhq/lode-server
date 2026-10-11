@@ -1,0 +1,589 @@
+/* Prose styles shared by the WYSIWYG editor (Milkdown / ProseMirror)
+   and the read-only preview (react-markdown). Every prose rule targets
+   `:is(.md-editor, .md-preview) .ProseMirror X` so both surfaces share
+   one source of truth — the preview wraps its rendered markdown in a
+   `.ProseMirror` element specifically for this. */
+
+/* Outer wrapper is a flex column so the (fixed-height) toolbar stays
+   pinned at the top and the editing surface (`.md-editor-shell`)
+   takes whatever vertical space remains. When the caller constrains
+   the editor's height (e.g. via a `max-h-*` className), the shell
+   becomes the scroll container and `overscroll-behavior: contain`
+   stops wheel-events from bubbling out to the surrounding page. */
+.md-editor {
+  display: flex;
+  flex-direction: column;
+  /* min-width:0 lets the editor shrink inside flex parents so long
+     content (e.g. a wide `<pre>` block) scrolls inside its own box
+     instead of pushing the page wider. */
+  min-width: 0;
+}
+
+.md-editor-shell {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Auto-hide scrollbar — paint thumb only when the surface is hovered or
+   focused, otherwise leave it fully transparent. Applies to the editor
+   shell and any read-side scroll container that opts in via
+   `md-scroll-fade`. Pure CSS, so we can't track "while scrolling" precisely
+   — hover/focus is the closest approximation on desktop. */
+.md-editor-shell,
+.md-scroll-fade {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.md-editor-shell:hover,
+.md-editor-shell:focus-within,
+.md-scroll-fade:hover,
+.md-scroll-fade:focus-within {
+  scrollbar-color: color-mix(in srgb, var(--color-foreground) 25%, transparent) transparent;
+}
+
+.md-editor-shell::-webkit-scrollbar,
+.md-scroll-fade::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.md-editor-shell::-webkit-scrollbar-track,
+.md-scroll-fade::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.md-editor-shell::-webkit-scrollbar-thumb,
+.md-scroll-fade::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 4px;
+  transition: background-color 200ms;
+}
+
+.md-editor-shell:hover::-webkit-scrollbar-thumb,
+.md-editor-shell:focus-within::-webkit-scrollbar-thumb,
+.md-scroll-fade:hover::-webkit-scrollbar-thumb,
+.md-scroll-fade:focus-within::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--color-foreground) 25%, transparent);
+}
+
+.md-editor-shell::-webkit-scrollbar-thumb:hover,
+.md-scroll-fade::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--color-foreground) 40%, transparent);
+}
+
+/* Read-only preview outer. Block layout (no flex), no internal scroll —
+   the surface grows to fit its rendered content. min-width:0 keeps it
+   shrinkable inside flex parents. */
+.md-preview {
+  min-width: 0;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror {
+  /* Same min-width:0 reason as `.md-editor`. Without this, a block
+     child wider than the viewport (a code block, a long table) makes
+     ProseMirror grow horizontally. */
+  min-width: 0;
+}
+
+.md-editor .milkdown {
+  padding: 0;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror {
+  min-height: inherit;
+  padding: 0.75rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  outline: none;
+}
+
+/* `white-space: pre-wrap` is required for ProseMirror's contenteditable
+   to render soft breaks correctly, but in the preview it would also
+   render the literal `\n` text nodes that react-markdown leaves between
+   block siblings as visible blank lines — keep it editor-only. */
+.md-editor .ProseMirror {
+  white-space: pre-wrap;
+}
+
+.md-editor-placeholder {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  pointer-events: none;
+  color: var(--color-muted-foreground);
+  font-size: 0.9375rem;
+  user-select: none;
+}
+
+/* ── Block elements ── */
+:is(.md-editor, .md-preview) .ProseMirror p {
+  margin: 0 0 0.5rem 0;
+}
+
+/* Prose heading scale — title (text-xl / 1.25rem semibold, in
+   documents.lazy.tsx) is the visual ceiling. h1 sits exactly one
+   Tailwind step below at text-lg / 1.125rem and shares the title's
+   semibold weight so the hierarchy reads from size alone.
+   h2…h6 step down progressively. */
+:is(.md-editor, .md-preview) .ProseMirror h1 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.5rem;
+  line-height: 1.3;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror h2 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.5rem;
+  line-height: 1.3;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0.625rem 0 0.375rem;
+  line-height: 1.35;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror h4,
+:is(.md-editor, .md-preview) .ProseMirror h5,
+:is(.md-editor, .md-preview) .ProseMirror h6 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin: 0.5rem 0 0.25rem;
+  line-height: 1.4;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror blockquote {
+  border-left: 3px solid var(--color-border);
+  padding: 0.25rem 0 0.25rem 0.875rem;
+  margin: 0.5rem 0;
+  color: var(--color-muted-foreground);
+}
+
+:is(.md-editor, .md-preview) .ProseMirror ul,
+:is(.md-editor, .md-preview) .ProseMirror ol {
+  padding-left: 1.5rem;
+  margin: 0.25rem 0 0.5rem;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror ul {
+  list-style-type: disc;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror ol {
+  list-style-type: decimal;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror li {
+  margin: 0.125rem 0;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror li > p {
+  margin: 0;
+}
+
+/* Task list items — `createTaskListItemNodeView` in milkdown-editor.tsx
+   renders `<li data-item-type="task" data-checked="...">` with a real
+   `<input type="checkbox">` as the first child (outside contentDOM).
+   Flex layout keeps the checkbox aligned with the first line of text
+   even when content wraps to multiple lines. */
+:is(.md-editor, .md-preview) .ProseMirror li[data-item-type="task"] {
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-left: -1.25rem;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror li[data-item-type="task"]::marker {
+  content: none;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror li[data-item-type="task"] .md-task-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin: 0.42em 0 0 0;
+  border: 1.5px solid var(--color-border);
+  border-radius: 3px;
+  background: var(--color-background);
+  cursor: pointer;
+  position: relative;
+  transition: background-color 120ms, border-color 120ms;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror li[data-item-type="task"] .md-task-checkbox:hover {
+  border-color: var(--color-muted-foreground);
+}
+
+:is(.md-editor, .md-preview) .ProseMirror li[data-item-type="task"] .md-task-checkbox:checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+:is(.md-editor, .md-preview) .ProseMirror li[data-item-type="task"] .md-task-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 0.5px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--color-primary-foreground, #fff);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+:is(.md-editor, .md-preview) .ProseMirror li[data-item-type="task"] .md-li-content {
+  flex: 1;
+  min-width: 0;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror li[data-item-type="task"] .md-li-content > p {
+  margin: 0;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror li[data-item-type="task"][data-checked="true"] .md-li-content {
+  color: var(--color-muted-foreground);
+  text-decoration: line-through;
+}
+
+/* ── Inline marks ── */
+:is(.md-editor, .md-preview) .ProseMirror strong {
+  font-weight: 700;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror em {
+  font-style: italic;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror s,
+:is(.md-editor, .md-preview) .ProseMirror del {
+  text-decoration: line-through;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror code {
+  background: var(--color-muted);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875em;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* ── Code blocks ──
+   `pre-wrap` + `overflow-wrap: anywhere` keep long lines inside the
+   column instead of bursting the layout open. */
+:is(.md-editor, .md-preview) .ProseMirror pre {
+  background: var(--color-muted);
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  max-width: 100% !important;
+  width: auto !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  overflow-x: hidden !important;
+  tab-size: 2;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+/* ── Tables ──
+   Milkdown's GFM preset uses prosemirror-tables, which needs the structural
+   rules below (table-layout, cell positioning, column-resize handle, selected
+   cell overlay). The skin on top — border, padding, header background — is
+   ours; without it cells have zero visual weight and the table looks invisible. */
+:is(.md-editor, .md-preview) .ProseMirror .tableWrapper {
+  overflow-x: auto;
+  margin: 0.75rem 0;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  overflow: hidden;
+  --default-cell-min-width: 100px;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror th,
+:is(.md-editor, .md-preview) .ProseMirror td {
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+  border: 1px solid var(--color-border);
+  padding: 0.375rem 0.625rem;
+  min-width: 100px;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror th {
+  background: var(--color-muted);
+  font-weight: 600;
+  text-align: left;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror th > p,
+:is(.md-editor, .md-preview) .ProseMirror td > p {
+  margin: 0;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  z-index: 20;
+  background-color: var(--color-primary);
+  pointer-events: none;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
+:is(.md-editor, .md-preview) .ProseMirror .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklab, var(--color-primary) 18%, transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ── Horizontal rule ── */
+:is(.md-editor, .md-preview) .ProseMirror hr {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  margin: 1rem 0;
+}
+
+/* ── Document detail page (Bear-style focused writing) ──
+   Activated by `data-doc-detail="true"` on the editor container so the
+   compact appearance survives unchanged in comments, issue notes, and any
+   other surface that mounts the same MarkdownEditor in dense layouts. */
+[data-doc-detail="true"] .md-editor {
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+}
+/* Floating tool palette — overrides the inline classes the toolbar
+   JSX ships (border-b / bg-muted/30 / flex-wrap / py-1 / px-2). The
+   palette is a card that floats just below the page's sticky header,
+   visible only when the editor has focus / hover so it does not steal
+   attention while reading. */
+[data-doc-detail="true"] .md-editor [role="toolbar"] {
+  position: sticky;
+  top: 48px;
+  z-index: 10;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 2px;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto 1rem;
+  padding: 4px 6px;
+  background: color-mix(in srgb, var(--color-popover) 92%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+  border-radius: 12px;
+  box-shadow:
+    0 4px 24px -4px rgba(0, 0, 0, 0.06),
+    0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  overflow-x: auto;
+  opacity: 0;
+  transition: opacity 150ms ease-in-out;
+  pointer-events: none;
+}
+[data-doc-detail="true"] .md-editor:focus-within [role="toolbar"],
+[data-doc-detail="true"] .md-editor:hover [role="toolbar"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+[data-doc-detail="true"] .md-editor [role="toolbar"] > * + * {
+  margin-left: 0;
+}
+/* Tighten dividers within the floating palette so they read like
+   hairline separators between groups, not heavy bars. */
+[data-doc-detail="true"] .md-editor [role="toolbar"] > div[aria-hidden="true"] {
+  margin-inline: 4px;
+  height: 18px;
+  background: color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+/* Prose scale — matches the doc-page-demo exactly. Body 16px / 1.75,
+   headings tracking-tight with 1.45rem / 1.15rem ratios. */
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror,
+[data-doc-detail="true"] .md-preview {
+  padding: 0;
+  font-size: 16px;
+  line-height: 1.75;
+  color: color-mix(in srgb, var(--color-foreground) 90%, transparent);
+}
+[data-doc-detail="true"] .md-editor-placeholder {
+  top: 0;
+  left: 0;
+  font-size: 16px;
+}
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror h1,
+[data-doc-detail="true"] .md-preview h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: var(--color-foreground);
+  margin: 2rem 0 0.75rem;
+}
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror h2,
+[data-doc-detail="true"] .md-preview h2 {
+  font-size: 1.45rem;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: var(--color-foreground);
+  margin: 2rem 0 0.75rem;
+}
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror h3,
+[data-doc-detail="true"] .md-preview h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: var(--color-foreground);
+  margin: 1.75rem 0 0.5rem;
+}
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror h4,
+[data-doc-detail="true"] .md-preview h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+  margin: 1.25rem 0 0.5rem;
+}
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror p,
+[data-doc-detail="true"] .md-preview p {
+  margin: 0 0 0.5rem 0;
+}
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror ul,
+[data-doc-detail="true"] .md-preview ul,
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror ol,
+[data-doc-detail="true"] .md-preview ol {
+  margin: 0.75rem 0;
+  padding-left: 1.25rem;
+}
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror li,
+[data-doc-detail="true"] .md-preview li {
+  margin: 0.5rem 0;
+}
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror li::marker,
+[data-doc-detail="true"] .md-preview li::marker {
+  color: color-mix(in srgb, var(--color-muted-foreground) 50%, transparent);
+}
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror blockquote,
+[data-doc-detail="true"] .md-preview blockquote {
+  margin: 1.5rem 0;
+  padding: 0 0 0 1.25rem;
+  border-left: 2px solid color-mix(in srgb, var(--color-foreground) 20%, transparent);
+  font-size: 15.5px;
+  font-style: italic;
+  line-height: 1.65;
+  color: color-mix(in srgb, var(--color-foreground) 70%, transparent);
+}
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror code,
+[data-doc-detail="true"] .md-preview code {
+  background: var(--color-muted);
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  font-size: 13.5px;
+  color: var(--color-foreground);
+}
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror pre,
+[data-doc-detail="true"] .md-preview pre {
+  margin: 1.25rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-muted) 30%, transparent);
+  font-size: 13.5px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror pre code,
+[data-doc-detail="true"] .md-preview pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+/* Tables — outlined card with uppercase header bar */
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror .tableWrapper,
+[data-doc-detail="true"] .md-preview table {
+  margin: 1.25rem 0;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+  overflow: hidden;
+}
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror th,
+[data-doc-detail="true"] .md-preview th {
+  background: color-mix(in srgb, var(--color-muted) 40%, transparent);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted-foreground);
+  padding: 0.625rem 1rem;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+  text-align: left;
+}
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror td,
+[data-doc-detail="true"] .md-preview td {
+  font-size: 14px;
+  padding: 0.625rem 1rem;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+}
+[data-doc-detail="true"] .md-editor img,
+[data-doc-detail="true"] .md-editor table {
+  max-width: 100%;
+}
+[data-doc-detail="true"] .md-preview h1,
+[data-doc-detail="true"] .md-preview h2,
+[data-doc-detail="true"] .md-preview h3,
+[data-doc-detail="true"] .md-preview h4,
+[data-doc-detail="true"] .md-preview h5,
+[data-doc-detail="true"] .md-preview h6,
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror h1,
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror h2,
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror h3,
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror h4,
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror h5,
+[data-doc-detail="true"] :is(.md-editor, .md-preview) .ProseMirror h6 {
+  scroll-margin-top: 56px;
+}

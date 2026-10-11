@@ -1,0 +1,150 @@
+{
+  "description": "Welcome.",
+  "enter": "Enter",
+  "copy": "Copy",
+  "nav": {
+    "label": "Sections",
+    "features": "What it does",
+    "how": "How it works",
+    "publish": "Publish",
+    "install": "Install",
+    "console": "Console",
+    "language": "Switch language",
+    "download": "Get lode"
+  },
+  "hero": {
+    "title": "Release once. Every host picks it up.",
+    "lead": "Lode Server keeps the releases of your software and hands them to lode, the small loader that verifies, starts and updates an app on each host. You publish a version; the hosts do the rest.",
+    "start": "Open the console",
+    "howToPublish": "See how to publish"
+  },
+  "stack": {
+    "asset": "2 files per version",
+    "signed": "signed",
+    "caption": "A package in the registry. Hosts that follow stable run 1.4.2 until you publish the next one."
+  },
+  "features": {
+    "title": "What the registry does",
+    "packages": {
+      "title": "A namespace of your own",
+      "body": "Each account gets a namespace. Put packages in it, public or private, each with its own channels — stable, beta, or whatever you name them."
+    },
+    "signed": {
+      "title": "Signatures a host can check",
+      "body": "Sign files with your key. The registry never sees a private key, and a host that pins your public key refuses anything signed by someone else."
+    },
+    "ci": {
+      "title": "One step in your pipeline",
+      "body": "A single command uploads the build output, up to 500 MiB a file, and publishes the version in one move. No host ever sees half a release."
+    },
+    "tokens": {
+      "title": "Tokens that reach one package",
+      "body": "Let a pipeline write to one package, or a host read a private one. A token that leaks opens nothing else."
+    }
+  },
+  "steps": {
+    "title": "How it works",
+    "lead": "Three things happen, and only the first one is yours to do by hand.",
+    "create": {
+      "title": "Create a package",
+      "body": "Sign in, name the package, and make a token that may write to it."
+    },
+    "publish": {
+      "title": "Publish from CI",
+      "body": "Your pipeline uploads the files and publishes the version to a channel."
+    },
+    "run": {
+      "title": "Hosts update themselves",
+      "body": "lode on each host checks the channel, verifies the download, switches over, and rolls back if the new version does not start."
+    }
+  },
+  "publish": {
+    "title": "Publish a release",
+    "lead": "Set up once; after that the pipeline does it on every release.",
+    "package": {
+      "title": "Create a package",
+      "body": "In the console, create a package and choose whether it is public or private. Its address is your namespace and its slug: <namespace>/<slug>."
+    },
+    "token": {
+      "title": "Create a token",
+      "body": "On the Access tokens page, make a token with a write grant on this package only. Save it as the pipeline secret LODE_REGISTRY_TOKEN — it is shown once."
+    },
+    "key": {
+      "title": "Optional: sign your releases",
+      "body": "Generate a key pair once. Keep the seed as the secret LODE_SIGNING_KEY and give the trusted_keys line it prints to whoever runs your software. The publish command registers the public key for you."
+    },
+    "publish": {
+      "title": "Publish",
+      "body": "The command opens a draft, uploads each file under its own name, then publishes to the channel. Hosts pick a file by name, so name files after the platform. Leave out --key-env to publish unsigned."
+    },
+    "ci": {
+      "title": "Put it in the pipeline",
+      "body": "The same command as a workflow step. A complete GitHub Actions workflow, including how to get lode-cli onto the runner, is in examples/publish of the lode-server repository."
+    },
+    "notes": {
+      "rerun": "If a run fails, start it again: it continues into the draft it left.",
+      "size": "Files up to 95 MiB go in one request, larger ones in parts. The limit is 500 MiB a file.",
+      "immutable": "A published version cannot be changed. Publish a new one, or point the channel back at an earlier one."
+    }
+  },
+  "install": {
+    "title": "Install with lode",
+    "lead": "What goes on a host to run a package from here and keep it current.",
+    "config": {
+      "title": "Point lode at the package",
+      "body": "The manifest address is on the package's Install tab. The asset is the exact file this host should install."
+    },
+    "trust": {
+      "title": "Pin the publisher's key",
+      "body": "Get the trusted_keys line from the publisher and enforce signatures. The host then installs only what that key signed, whatever the registry serves."
+    },
+    "private": {
+      "title": "For a private package",
+      "body": "Add a token with a read grant on the package. Pass it in the environment; lode sends it to the registry and nowhere else."
+    },
+    "run": {
+      "title": "Run it",
+      "body": "lode downloads the current version, verifies it, starts it, and keeps watching the channel."
+    },
+    "notes": {
+      "rollback": "lode will not follow a channel back to an older version by itself. To downgrade on purpose, use lode-cli rollback or pin a version.",
+      "unsigned": "Without trusted_keys, an unsigned package is installed on the registry's word alone. Sign anything that matters.",
+      "rate": "Requests are limited per client address. Hosts behind one address share the allowance."
+    }
+  },
+  "closing": {
+    "title": "Start with one package",
+    "body": "Create it in the console, publish a first version, and point a host at it.",
+    "cta": "Open the console"
+  },
+  "footer": {
+    "tagline": "Lode Server, a release registry for lode.",
+    "lode": "About lode"
+  },
+  "download": {
+    "title": "Get lode",
+    "lead": "One download serves both sides. Hosts run lode; publishers use lode-cli, the same binary under another name.",
+    "binary": {
+      "title": "As a binary",
+      "body": "A static build for Linux and macOS. Each archive holds lode and lode-cli; once installed, lode-cli self-update moves to a newer release."
+    },
+    "image": {
+      "title": "In a container image",
+      "body": "The image carries only the binary. Copy it into the image your app already uses."
+    },
+    "builds": {
+      "linuxX64": "Linux x86-64",
+      "linuxArm64": "Linux arm64",
+      "macArm64": "macOS Apple silicon",
+      "macX64": "macOS Intel"
+    },
+    "links": {
+      "repo": "Source and documentation",
+      "releases": "All releases",
+      "releasesLabel": "Latest release",
+      "image": "Container image",
+      "server": "This registry's source"
+    },
+    "note": "Releases are signed. The archives come with .sig files and a SHA256SUMS list on the release page."
+  }
+}

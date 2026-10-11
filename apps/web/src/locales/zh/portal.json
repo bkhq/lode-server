@@ -1,0 +1,58 @@
+{
+  "page": {
+    "title": "概览",
+    "description": "欢迎回到工作台。"
+  },
+  "welcome": "欢迎回来，{{name}}",
+  "stats": {
+    "packages": "软件包",
+    "storage": "存储",
+    "namespace": "命名空间",
+    "namespaceStatus": {
+      "active": "正常",
+      "suspended": "已停用"
+    }
+  },
+  "recent": {
+    "title": "最近版本",
+    "empty": "还没有版本。从 CI 发布后会显示在这里。",
+    "status": {
+      "draft": "草稿",
+      "published": "已发布",
+      "yanked": "已撤回"
+    }
+  },
+  "links": {
+    "packages": {
+      "title": "软件包",
+      "description": "创建软件包并管理其版本和通道。"
+    },
+    "tokens": {
+      "title": "访问令牌",
+      "description": "为 CI 流水线和 lode 客户端签发令牌。"
+    }
+  },
+  "firstRun": {
+    "title": "发布您的第一个软件包",
+    "description": "三步即可从空命名空间走到已发布的版本。",
+    "createPackage": {
+      "title": "创建软件包",
+      "description": "选定 slug 和名称。lode 客户端按 slug 安装。",
+      "link": "前往软件包"
+    },
+    "createToken": {
+      "title": "创建带写入授权的访问令牌",
+      "description": "CI 使用该令牌上传资产。请授予它对该软件包的写入权限。",
+      "link": "前往访问令牌"
+    },
+    "publish": {
+      "title": "从 CI 发布",
+      "description": "在流水线中上传资产并发布版本。如需签名，先在软件包上登记签名密钥，或让流水线自行登记。",
+      "link": "前往软件包"
+    }
+  },
+  "error": {
+    "load": "无法加载此部分。",
+    "retry": "重试"
+  }
+}

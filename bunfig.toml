@@ -1,0 +1,26 @@
+[run]
+shell = "system"
+
+# ──────────────────────────────────────────────────────────────────────────
+# Coverage ratchet (documentation of the enforced floor).
+#
+# The api suite runs from `apps/api`, and Bun uses the *nearest* bunfig
+# (`apps/api/bunfig.toml`) — it does not merge bunfig files up the tree — so a
+# `[test]` block here would never apply to that suite. Empirically, Bun 1.4.2
+# also does NOT fail a run on `coverageThreshold` (verified: `bun test
+# --coverage` exits 0 at 43% lines against a 0.85 threshold). The threshold in
+# `apps/api/bunfig.toml` is therefore a non-enforcing hint.
+#
+# Real enforcement lives in `.github/workflows/ci.yml` ("Coverage gate" step):
+# it runs the api coverage and fails the build if the text-reporter
+# "All files" row drops below the floor below.
+#
+# Measured baseline 2026-09-15 (full api suite, 598 tests, 0 fail), text
+# reporter "All files" (honours `coveragePathIgnorePatterns`):
+#   lines 88.06%, functions 81.92%.
+# Realistic ratchet floor (just below baseline, ~3pt headroom for per-run
+# variance — passes today, blocks regression, never lowered to make red pass):
+#   line >= 80, function >= 70
+[test]
+coverage = true
+coverageThreshold = { line = 0.80, function = 0.70 }

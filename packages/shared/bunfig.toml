@@ -1,0 +1,10 @@
+# Coverage gate for the @app/shared workspace. The package ships with
+# its own vitest config (vitest.config.ts) — bunfig.toml is consulted
+# only when this workspace is exercised via `bun test` directly (e.g.
+# from CI shorthand jobs). The thresholds mirror the conservative
+# floor set for apps/web so a regression in either workspace fails
+# the build identically.
+[test]
+coverage = true
+coverageThreshold = { line = 0.85, function = 0.7, statement = 0.85 }
+coverageReporter = ["text", "lcov"]

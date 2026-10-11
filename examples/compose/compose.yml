@@ -1,0 +1,108 @@
+# Reference docker-compose stack — local-development / smoke-test grade.
+#
+# This is NOT a turn-key production deployment. The bundled `dex` IdP ships
+# with hardcoded test users (see `dex.yaml`) and the proxy terminates plain
+# HTTP. Treat it as a starting point you adapt for production: swap dex for
+# your real IdP, replace the Caddyfile with your TLS-terminating config,
+# and inject real secrets via your platform's secret store.
+#
+# The `app` service runs the lode supervisor (see the repo Dockerfile). lode
+# downloads the published release named in `deploy/lode.toml` (`[update]`),
+# verifies it, runs `bun index.js`, and auto-updates. NOTE: it fetches the
+# GitHub release, NOT your local working tree — to smoke-test local changes use
+# `bun run dev:all`, or publish a release / point `[update].manifest` at a
+# locally-served manifest.
+#
+# Bring up (from this directory):
+#   docker compose up --build
+# Tear down:
+#   docker compose down -v
+#
+# Requires a `.env` next to this file with at minimum APP_NAME,
+# APP_DISPLAY_NAME, OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET. The bootstrap
+# token is auto-generated at every boot — see README and the comment in
+# .env.example.
+
+services:
+  app:
+    build:
+      # Build the lode runtime image from the repo root. Path is relative to
+      # this compose file (examples/compose/compose.yml -> ../..).
+      context: ../..
+      dockerfile: Dockerfile
+    image: ${APP_NAME:-lode-server}:local
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      APP_NAME: ${APP_NAME:-lode-server}
+      APP_DISPLAY_NAME: ${APP_DISPLAY_NAME:-Lode Server}
+      BASE_PATH: ${BASE_PATH:-}
+      # Data auto-anchors at ${LODE_DIR}/data = /srv/lode/data (the volume),
+      # not the swappable version directory. Set DATA_DIR to override.
+      LOG_TO_STDOUT: "true"
+      DB_ENCRYPTION: ${DB_ENCRYPTION:-true}
+      APP_URL: ${APP_URL:-http://localhost}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
+      OAUTH_ISSUER: ${OAUTH_ISSUER:-http://dex:5556/dex}
+      OAUTH_CLIENT_ID: ${OAUTH_CLIENT_ID}
+      OAUTH_CLIENT_SECRET: ${OAUTH_CLIENT_SECRET}
+      OAUTH_PKCE: "true"
+      DEFAULT_ADMIN: ${DEFAULT_ADMIN:-}
+      # Optional scoped service tokens — each opens a different surface so
+      # a leaked metrics credential cannot also dump the database.
+      SERVICE_TOKEN_METRICS: ${SERVICE_TOKEN_METRICS:-}
+      SERVICE_TOKEN_BACKUP: ${SERVICE_TOKEN_BACKUP:-}
+    volumes:
+      - lode-data:/srv/lode
+      # lode operator config (release source + update policy).
+      - ../../deploy/lode.toml:/srv/lode/lode.toml:ro
+    expose:
+      - "3000"
+    depends_on:
+      dex:
+        condition: service_healthy
+
+  # Bundled OIDC provider — LOCAL DEV ONLY. The static-passwords block in
+  # dex.yaml uses bcrypt of "admin"; swap for connectors / real users
+  # before exposing the stack beyond your laptop, or remove this service
+  # entirely and point OAUTH_* at your production IdP.
+  dex:
+    # Pinned to a known-good tag — `:latest` would silently break the
+    # reference stack on a future dex major bump. Bump deliberately after
+    # verifying the upstream changelog; do not revert to `:latest`.
+    image: dexidp/dex:v2.43.1
+    restart: unless-stopped
+    command: ["dex", "serve", "/etc/dex/config.yaml"]
+    volumes:
+      - ./dex.yaml:/etc/dex/config.yaml:ro
+    expose:
+      - "5556"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5556/dex/.well-known/openid-configuration"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Reverse proxy serves the app at BASE_PATH and routes /dex/* to the IdP.
+  # Plain HTTP for local use; production should terminate TLS (Caddy's
+  # automatic HTTPS, a managed LB, or whatever your platform provides).
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - app
+      - dex
+
+volumes:
+  lode-data:
+  caddy-data:
+  caddy-config:

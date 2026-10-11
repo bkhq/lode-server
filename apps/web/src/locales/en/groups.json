@@ -1,0 +1,28 @@
+{
+  "create": "Create Group",
+  "createTitle": "Create Group",
+  "createDescription": "Add a new user group.",
+  "editTitle": "Edit Group",
+  "editDescription": "Update group name and description.",
+  "deleteTitle": "Delete Group",
+  "deleteConfirm": "Are you sure you want to delete the group \"{{name}}\"? This action cannot be undone.",
+  "listTitle": "User Groups",
+  "listDescription": "Manage user groups and their members.",
+  "noResults": "No groups yet.",
+  "membersTitle": "Group Members",
+  "membersDescription": "View and manage members of the selected group.",
+  "selectGroup": "Select a group to view its members.",
+  "noMembers": "No members in this group.",
+  "addMember": "Add Member",
+  "addMemberTitle": "Add Member",
+  "addMemberDescription": "Search for a user to add to this group.",
+  "searchUserPlaceholder": "Search users...",
+  "removeMember": "Remove member",
+  "membersOf": "Members of {{name}}",
+  "field": {
+    "name": "Group Name",
+    "description": "Description"
+  },
+  "idpBadge": "IdP",
+  "idpManaged": "Members are managed by the identity provider and update at each sign-in."
+}

@@ -1,0 +1,32 @@
+{
+  "title": "Something went wrong",
+  "home": "Back to home",
+  "retry": "Try again",
+  "detailLabel": "Show technical details",
+  "codes": {
+    "oauth_not_configured": {
+      "title": "Sign-in is unavailable",
+      "description": "The server does not have OAuth configured. Ask your administrator to set OAUTH_ISSUER, OAUTH_CLIENT_ID, and OAUTH_CLIENT_SECRET."
+    },
+    "oauth_state_invalid": {
+      "title": "Your sign-in session expired",
+      "description": "The login link is no longer valid. Please start over."
+    },
+    "oidc_error": {
+      "title": "Identity provider error",
+      "description": "The identity provider rejected the sign-in request or could not be reached. Check the detail below and try again."
+    },
+    "user_disabled": {
+      "title": "Account disabled",
+      "description": "This account has been disabled. Contact your administrator if you believe this is a mistake."
+    },
+    "single_user_mode_active": {
+      "title": "OAuth sign-in is disabled",
+      "description": "The server is configured for single-user mode. Use the username and password form on the sign-in page."
+    },
+    "unknown": {
+      "title": "Unexpected error",
+      "description": "An unexpected error occurred. Please try again."
+    }
+  }
+}

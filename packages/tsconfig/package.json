@@ -1,0 +1,12 @@
+{
+  "name": "@app/tsconfig",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared typescript configuration for the workspace.",
+  "homepage": "https://github.com/bkhq/lode-server",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bkhq/lode-server.git",
+    "directory": "packages/tsconfig"
+  }
+}

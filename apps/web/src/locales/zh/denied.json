@@ -1,0 +1,20 @@
+{
+  "requestId": "请求 ID",
+  "backToPortal": "返回门户",
+  "switchAccount": "切换账号",
+  "signInDifferent": "使用其他账号登录",
+  "signOut": "退出登录",
+  "requestAccess": "申请访问",
+  "no_viewer_relation": {
+    "title": "访问被拒绝",
+    "description": "您没有权限访问该资源，请联系管理员申请访问。"
+  },
+  "user_not_registered": {
+    "title": "用户未注册",
+    "description": "您的账号尚未在系统中注册，请联系管理员邀请。"
+  },
+  "user_disabled": {
+    "title": "账号已禁用",
+    "description": "您的账号已被禁用，请联系管理员协助处理。"
+  }
+}

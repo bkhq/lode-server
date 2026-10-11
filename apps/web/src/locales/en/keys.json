@@ -1,0 +1,52 @@
+{
+  "page": {
+    "description": "Public keys this package's release signatures are verified against."
+  },
+  "intro": {
+    "optional": "Signing is optional. Publishers sign their release files locally with `lode-cli sign`.",
+    "publicOnly": "Register the PUBLIC key here. The server never holds a private key; it only verifies signatures when a file is uploaded.",
+    "algorithm": "Only ed25519 keys are supported.",
+    "ci": "A pipeline can register its key itself: a token with a write grant on this package may add keys, but never revoke one."
+  },
+  "col": {
+    "name": "Name",
+    "keyId": "Key ID",
+    "algorithm": "Algorithm",
+    "created": "Created",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  "status": {
+    "active": "Active",
+    "revoked": "Revoked"
+  },
+  "empty": "No signing keys for this package yet. Register a public key to have signed uploads verified.",
+  "copyKeyId": "Copy key ID",
+  "copyTrustedKey": "Copy trusted_keys entry",
+  "copyFailed": "Could not copy to the clipboard.",
+  "register": {
+    "open": "Register key",
+    "title": "Register a signing key",
+    "description": "Paste the public half of an ed25519 key pair. Never paste a private key.",
+    "name": "Name",
+    "namePlaceholder": "e.g. release key 2026",
+    "publicKey": "Public key",
+    "forms": "Accepted: the bare base64 or base64url key, or one of the forms lode prints:",
+    "submit": "Register",
+    "error": {
+      "empty": "Enter the public key.",
+      "whitespace": "The key must not contain spaces or line breaks. Paste it as a single line.",
+      "privateKey": "This looks like a private key or a PEM block. Paste only the base64 public key, and keep the private key to yourself."
+    }
+  },
+  "revoke": {
+    "action": "Revoke",
+    "title": "Revoke \"{{name}}\"?",
+    "description": "Revocation is final. This key cannot be registered again, and new uploads stop verifying under it. Signatures already published stay in the manifest.",
+    "confirm": "Revoke key"
+  },
+  "toast": {
+    "registered": "Key \"{{name}}\" registered",
+    "revoked": "Key \"{{name}}\" revoked"
+  }
+}

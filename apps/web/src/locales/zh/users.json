@@ -1,0 +1,47 @@
+{
+  "page": {
+    "title": "用户管理",
+    "description": "管理平台用户及其角色。"
+  },
+  "searchPlaceholder": "按名称、邮箱或用户名搜索...",
+  "allRoles": "所有角色",
+  "roleAdmin": "管理员",
+  "roleUser": "普通用户",
+  "allStatuses": "所有状态",
+  "totalCount": "{{count}} 个用户",
+  "noResults": "未找到用户。",
+  "statusActive": "已启用",
+  "statusDisabled": "已禁用",
+  "col": {
+    "username": "用户名",
+    "name": "姓名",
+    "email": "邮箱",
+    "status": "状态",
+    "lastLogin": "最后登录",
+    "groups": "所属组",
+    "actions": "操作"
+  },
+  "promote": "提升为管理员",
+  "demote": "降为普通用户",
+  "enable": "启用",
+  "disable": "禁用",
+  "promoteTitle": "提升为管理员",
+  "promoteConfirm": "确定要将「{{name}}」提升为管理员吗？该用户将获得完全管理权限。",
+  "demoteTitle": "降为普通用户",
+  "demoteConfirm": "确定要将「{{name}}」降为普通用户吗？该用户将失去管理权限。",
+  "confirm": "确认",
+  "tabs": {
+    "users": "用户列表",
+    "groups": "用户组"
+  },
+  "addUser": "添加用户",
+  "addUserTitle": "添加用户",
+  "addUserDescription": "创建一个使用用户名和密码登录的账号。",
+  "password": "密码",
+  "passwordHint": "至少 {{min}} 个字符。",
+  "makeAdmin": "设为管理员",
+  "conflict": "该用户名或邮箱已被使用。",
+  "setPassword": "设置密码",
+  "setPasswordTitle": "设置密码",
+  "setPasswordDescription": "为“{{name}}”设置新密码，其当前登录会话将被结束。"
+}

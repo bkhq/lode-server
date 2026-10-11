@@ -1,0 +1,29 @@
+{
+  "name": "@app/shared",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ECIES utilities shared between api and web.",
+  "homepage": "https://github.com/bkhq/lode-server",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bkhq/lode-server.git",
+    "directory": "packages/shared"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@noble/secp256k1": "3.2.0"
+  },
+  "devDependencies": {
+    "@app/tsconfig": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

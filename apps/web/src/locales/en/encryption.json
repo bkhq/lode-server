@@ -1,0 +1,57 @@
+{
+  "setup": {
+    "title": "System Initialization",
+    "description": "Set up database encryption to protect your data.",
+    "generating": "Deriving key and initializing...",
+    "initFailed": "Initialization failed",
+    "downloaded": "Downloaded {{filename}}",
+    "continueToLogin": "Continue to Login",
+    "step1": {
+      "title": "Set Master Password",
+      "description": "Choose a strong password to encrypt the database. This password will be required each time the system restarts.",
+      "bootstrapToken": "Bootstrap Token",
+      "bootstrapTokenPlaceholder": "Paste the token from server logs",
+      "bootstrapTokenHint": "Look up BOOTSTRAP_TOKEN in the server's stderr at startup, or read it from <data dir>/bootstrap-token.txt. It is auto-generated each boot and removed once setup completes.",
+      "password": "Master Password",
+      "passwordPlaceholder": "Enter a strong password (12+ characters)",
+      "passwordConfirm": "Confirm Password",
+      "passwordConfirmPlaceholder": "Re-enter your password",
+      "passwordTooShort": "Password must be at least 12 characters",
+      "passwordMismatch": "Passwords do not match",
+      "button": "Initialize Encryption"
+    },
+    "step2": {
+      "warning": "Save your backup key!",
+      "warningDetail": "If you forget your password, this backup key is the only way to unlock the database. Store it securely.",
+      "label": "Backup Key (for password recovery)",
+      "copied": "Copied to clipboard",
+      "confirm": "I have securely saved the backup key",
+      "finalize": "Complete Setup",
+      "exportRequired": "Download or copy the backup key before continuing.",
+      "showKey": "Show key again"
+    },
+    "step3": {
+      "title": "Initialization Complete",
+      "description": "Database encryption is active. Click below to continue."
+    }
+  },
+  "unlock": {
+    "title": "System Locked",
+    "description": "Enter your master password to unlock the system.",
+    "modePassword": "Password",
+    "modeKeyFile": "Backup Key",
+    "passwordLabel": "Master Password",
+    "passwordPlaceholder": "Enter your master password",
+    "keyLabel": "Private Key (hex)",
+    "keyPlaceholder": "Paste your hex-encoded backup key...",
+    "uploadFile": "Upload Key File",
+    "button": "Unlock",
+    "unlocking": "Unlocking...",
+    "invalidKey": "Invalid password or key. Please try again.",
+    "localNote": "Decryption is performed locally in your browser. Your password and key never leave this device.",
+    "rateLimited": "Too many unlock attempts. Please wait a few minutes and try again.",
+    "systemUnavailable": "Database is unavailable. Contact an administrator.",
+    "metaMissing": "Encryption metadata is missing on this server.",
+    "notLocked": "System is not locked."
+  }
+}

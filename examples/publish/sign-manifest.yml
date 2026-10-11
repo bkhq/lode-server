@@ -1,0 +1,99 @@
+name: sign-manifest
+
+# Signs the manifest the lode registry generates for this repository's
+# package, so operators can set `[trust].require_manifest`. Optional: copy it
+# to .github/workflows/sign-manifest.yml next to publish.yml.
+#
+# A signature covers the manifest's versions and channels as they are at that
+# moment, and the registry drops it when they change. So this runs after
+# every publish, and weekly to renew the 30-day expiry.
+#
+# The registry generates the manifest, so a change is signed only when its
+# channels are the expected ones: after a publish started by a GitHub release
+# that is `stable` at the release's version. The weekly run renews a manifest
+# that still carries this key's signature and refuses anything else. After a
+# publish started by hand, a channel move, a yank or a restore, start this
+# workflow by hand and state every channel in `expect`.
+on:
+  workflow_run:
+    workflows: [publish]
+    types: [completed]
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      expect:
+        description: "What every channel must point at, e.g. stable=1.4.2 beta=1.5.0-rc1"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sign-manifest
+  cancel-in-progress: false
+
+env:
+  # Pin to a release you have reviewed.
+  LODE_IMAGE: docker.io/bkhq/lode:v0.0.1
+
+jobs:
+  sign:
+    name: sign the registry manifest
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Install lode-cli
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lode/bin"
+          cid="$(docker create "$LODE_IMAGE")"
+          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          docker cp "$cid:/usr/bin/lode" "$RUNNER_TEMP/lode/bin/lode-cli"
+          chmod +x "$RUNNER_TEMP/lode/bin/lode-cli"
+          echo "$RUNNER_TEMP/lode/bin" >> "$GITHUB_PATH"
+
+      # The same steps as scripts/sign-manifest.sh in bkhq/lode-server:
+      # download, check, sign, send. Both secrets stay in files of a private
+      # directory; the log shows which channels were signed.
+      - name: Sign
+        env:
+          LODE_REGISTRY_TOKEN: ${{ secrets.LODE_REGISTRY_TOKEN }}
+          LODE_SIGNING_KEY: ${{ secrets.LODE_SIGNING_KEY }}
+          LODE_REGISTRY_URL: ${{ vars.LODE_REGISTRY_URL }}
+          LODE_PACKAGE: ${{ vars.LODE_PACKAGE }}
+          EXPECT_INPUT: ${{ inputs.expect }}
+          RELEASE_TAG: ${{ github.event.workflow_run.event == 'release' && github.event.workflow_run.head_branch || '' }}
+        run: |
+          set -euo pipefail
+          expect="${EXPECT_INPUT:-}"
+          [ -z "$RELEASE_TAG" ] || expect="stable=${RELEASE_TAG#v}"
+          expected="$(jq -cSn --arg pairs "$expect" '$pairs | split(" ") | map(select(. != "") | split("=") | {(.[0]): (.[1:] | join("="))}) | add // {}')"
+          registry="${LODE_REGISTRY_URL:-https://lode.bk.io/u}"
+          [[ "$registry" =~ ^https?://[^/]+ ]] && origin="${BASH_REMATCH[0]}"
+          umask 077
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          printf 'header = "Authorization: Bearer %s"\n' "$LODE_REGISTRY_TOKEN" > "$tmp/curl.conf"
+          printf '%s\n' "$LODE_SIGNING_KEY" > "$tmp/key"
+
+          curl --silent --show-error --fail --config "$tmp/curl.conf" \
+            --output "$tmp/manifest.json" "$origin/r/$LODE_PACKAGE/manifest.json"
+          channels="$(jq -cS '.channels | map_values(.latest)' "$tmp/manifest.json")"
+          echo "signing channels: $channels"
+          served="$(jq -r '"\(.key_id // "") \(.sig // "")"' "$tmp/manifest.json")"
+          lode-cli manifest-sign --into "$tmp/manifest.json" --key "$tmp/key" --expires-in 30d > /dev/null
+          # An ed25519 signature is deterministic: the same `sig` under this
+          # key means the catalog is the one signed last time.
+          if [ "$served" != "$(jq -r '"\(.key_id) \(.sig)"' "$tmp/manifest.json")" ] && [ "$channels" != "$expected" ]; then
+            echo "::error::the manifest changed and its channels are $channels, expected $expected; not signing. Check the registry, then start this workflow by hand with every channel in 'expect'."
+            exit 1
+          fi
+          jq '{key_id, sig, expires, expires_sig}' "$tmp/manifest.json" > "$tmp/signature.json"
+          # A 409 means a release happened in between: run the workflow again.
+          curl --silent --show-error --fail-with-body --config "$tmp/curl.conf" --request PUT \
+            --header 'Content-Type: application/json' --data-binary "@$tmp/signature.json" \
+            "${registry%/}/api/registry/packages/$LODE_PACKAGE/manifest-signature" \
+            | jq -c '.data | {key_id, expires, status}'

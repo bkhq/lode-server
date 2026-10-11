@@ -1,0 +1,86 @@
+name: release
+
+# Builds and uploads the lode release asset to an existing GitHub Release.
+#
+# Release publishing is the source of truth: the workflow runs when a release
+# is published (UI or `gh release create`), which attaches the assets. It is
+# intentionally not triggered by tag pushes, avoiding a tag/release mismatch.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to rebuild and upload assets for, e.g. v0.1.2"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  BUN_VERSION: "1.4.2"
+  NODE_VERSION: "24.21.0"
+  APP_NAME: lode-server
+  ASSET_SUFFIX: linux-x64
+  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+jobs:
+  asset:
+    name: build and upload lode release
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    steps:
+      # This job holds the signing key: its actions are pinned by commit.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      # Resolves TAG_NAME / RELEASE_VERSION / ASSET_NAME / ASSET_URL into
+      # $GITHUB_ENV for the steps below.
+      - name: Resolve release metadata
+        run: bash scripts/ci/release-metadata.sh
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # package.ts reads APP_NAME / RELEASE_VERSION / ASSET_NAME / ASSET_URL
+      # from the environment, so no flags are needed here.
+      - name: Package lode asset
+        run: bun run package
+
+      - name: Validate lode release assets
+        run: bun scripts/ci/validate-lode-release.ts
+
+      # Sign the asset when a key is configured. Without LODE_SIGNING_KEY the
+      # step is skipped and lode installs the asset UNVERIFIED (its `auto`
+      # trust mode) — checksum only. Generate a key with `lode-cli keygen`,
+      # store the seed as the LODE_SIGNING_KEY repository secret, and list
+      # the printed trusted_keys entry in deploy/lode.toml.
+      - name: Check for signing key
+        env:
+          LODE_SIGNING_KEY: ${{ secrets.LODE_SIGNING_KEY }}
+        run: echo "HAS_SIGNING_KEY=$([ -n "$LODE_SIGNING_KEY" ] && echo true || echo false)" >> "$GITHUB_ENV"
+
+      - name: Sign lode asset
+        if: env.HAS_SIGNING_KEY == 'true'
+        env:
+          LODE_SIGNING_KEY: ${{ secrets.LODE_SIGNING_KEY }}
+        run: bash scripts/ci/sign-release.sh
+
+      - name: Upload assets to GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/ci/upload-release.sh

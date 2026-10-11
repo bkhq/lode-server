@@ -1,0 +1,20 @@
+{
+  "bold": "粗体（Ctrl+B）",
+  "italic": "斜体（Ctrl+I）",
+  "strikethrough": "删除线",
+  "inlineCode": "行内代码",
+  "link": "链接（Ctrl+K）",
+  "linkPrompt": "输入链接地址",
+  "linkDialogTitle": "插入链接",
+  "linkDialogPlaceholder": "https://example.com",
+  "linkInvalidUrl": "请输入有效的 http、https 或 mailto 链接。",
+  "linkInsert": "插入",
+  "cancel": "取消",
+  "bulletList": "无序列表",
+  "orderedList": "有序列表",
+  "taskList": "任务列表",
+  "quote": "引用",
+  "codeBlock": "代码块",
+  "table": "表格",
+  "horizontalRule": "分隔线"
+}

@@ -1,0 +1,24 @@
+{
+  "page": {
+    "title": "Audit Log",
+    "description": "View system audit trail and activity logs."
+  },
+  "export": "Export CSV",
+  "searchActor": "Filter by actor...",
+  "allActions": "All Actions",
+  "allResults": "All Results",
+  "success": "Success",
+  "failure": "Failure",
+  "noResults": "No audit events found.",
+  "totalCount": "{{count}} events",
+  "detailTitle": "Event Details",
+  "detail": "Detail",
+  "col": {
+    "time": "Time",
+    "actor": "Actor",
+    "action": "Action",
+    "resource": "Resource",
+    "result": "Result",
+    "actions": "Actions"
+  }
+}

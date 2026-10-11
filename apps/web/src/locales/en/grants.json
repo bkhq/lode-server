@@ -1,0 +1,93 @@
+{
+  "page": {
+    "title": "Access tokens",
+    "description": "Tokens that let CI and lode clients reach your packages."
+  },
+  "col": {
+    "name": "Name",
+    "prefix": "Prefix",
+    "grants": "Package access",
+    "expires": "Expires",
+    "lastUsed": "Last used",
+    "created": "Created",
+    "actions": "Actions"
+  },
+  "table": {
+    "empty": "No tokens yet. Create one to let CI or an operator host reach your packages.",
+    "never": "Never",
+    "expired": "Expired",
+    "noAccess": "No package access",
+    "all": "All my packages: {{level}}",
+    "package": "{{package}}: {{level}}",
+    "more": "+{{n}} more"
+  },
+  "level": {
+    "none": "None",
+    "read": "Read",
+    "write": "Write",
+    "admin": "Admin"
+  },
+  "field": {
+    "name": "Name",
+    "namePlaceholder": "e.g. CI release, production host",
+    "expiry": "Expiry",
+    "grants": "Package access"
+  },
+  "expiry": {
+    "30d": "30 days",
+    "90d": "90 days",
+    "365d": "1 year",
+    "never": "No expiry"
+  },
+  "editor": {
+    "all": "All my packages",
+    "allNote": "One level for every package in your namespace. It also covers packages you create later.",
+    "access": "Access",
+    "accessFor": "Access to {{package}}",
+    "package": "Package",
+    "noPackages": "You have no packages yet.",
+    "noPackagesLink": "Create one on the Packages page",
+    "emptyWarning": "No package is selected. You can still create or save the token, but it will reach no package."
+  },
+  "legend": {
+    "title": "Access levels",
+    "read": "Fetch the manifest and assets of a private package and read its metadata. This is what an operator host needs.",
+    "write": "Release: create drafts, upload assets, publish and move channels. Also register signing keys, so a pipeline can add its own public key.",
+    "admin": "Change package settings, yank and restore versions.",
+    "inclusive": "Each level includes the ones before it."
+  },
+  "limits": {
+    "title": "What no token can do",
+    "body": "Whatever its grants, a token can never create or delete packages, delete published versions, revoke signing keys, manage tokens, change quota or administer the platform.",
+    "session": "These actions need a signed-in session."
+  },
+  "create": {
+    "button": "New token",
+    "title": "New access token",
+    "description": "Choose which packages the token may reach and how far.",
+    "submit": "Create token"
+  },
+  "secret": {
+    "title": "Token {{name}} created",
+    "description": "Store the secret in your CI or on the host that needs it.",
+    "warning": "Copy the token now. It will not be shown again, and closing this dialog discards it.",
+    "token": "Token",
+    "header": "HTTP header",
+    "copyToken": "Copy token",
+    "copyHeader": "Copy header",
+    "done": "Done"
+  },
+  "edit": {
+    "button": "Edit access",
+    "title": "Package access of {{name}}",
+    "description": "The secret stays the same: clients that already use this token keep working with the new access. Name and expiry cannot be changed.",
+    "saved": "Package access updated."
+  },
+  "revoke": {
+    "button": "Revoke",
+    "title": "Revoke this token?",
+    "description": "{{name}} stops working immediately for every client that uses it. This cannot be undone.",
+    "confirm": "Revoke",
+    "done": "Token revoked."
+  }
+}

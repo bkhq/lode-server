@@ -1,0 +1,57 @@
+{
+  "setup": {
+    "title": "系统初始化",
+    "description": "设置数据库加密以保护您的数据。",
+    "generating": "派生密钥并初始化中...",
+    "initFailed": "初始化失败",
+    "downloaded": "已下载 {{filename}}",
+    "continueToLogin": "继续前往登录",
+    "step1": {
+      "title": "设置主密码",
+      "description": "设置一个强密码来加密数据库。每次系统重启时都需要使用此密码解锁。",
+      "bootstrapToken": "Bootstrap Token",
+      "bootstrapTokenPlaceholder": "从服务器日志中粘贴 Token",
+      "bootstrapTokenHint": "请在服务器启动 stderr 中查看 BOOTSTRAP_TOKEN，或从 <data 目录>/bootstrap-token.txt 读取。Token 每次启动自动生成，初始化完成后会被自动删除。",
+      "password": "主密码",
+      "passwordPlaceholder": "请设置强密码（至少 12 个字符）",
+      "passwordConfirm": "确认密码",
+      "passwordConfirmPlaceholder": "再次输入密码",
+      "passwordTooShort": "密码至少需要 12 个字符",
+      "passwordMismatch": "两次输入的密码不一致",
+      "button": "初始化加密"
+    },
+    "step2": {
+      "warning": "请妥善保管备份密钥！",
+      "warningDetail": "如果您忘记密码，备份密钥是解锁数据库的唯一方式。请安全保存。",
+      "label": "备份密钥（用于密码恢复）",
+      "copied": "已复制到剪贴板",
+      "confirm": "我已安全保存备份密钥",
+      "finalize": "完成设置",
+      "exportRequired": "请先下载或复制备份密钥后再继续。",
+      "showKey": "再次显示密钥"
+    },
+    "step3": {
+      "title": "初始化完成",
+      "description": "数据库加密已启用，请点击下方按钮继续。"
+    }
+  },
+  "unlock": {
+    "title": "系统已锁定",
+    "description": "输入主密码以解锁系统。",
+    "modePassword": "密码",
+    "modeKeyFile": "备份密钥",
+    "passwordLabel": "主密码",
+    "passwordPlaceholder": "输入主密码",
+    "keyLabel": "私钥（十六进制）",
+    "keyPlaceholder": "粘贴十六进制格式的备份密钥...",
+    "uploadFile": "上传密钥文件",
+    "button": "解锁",
+    "unlocking": "解锁中...",
+    "invalidKey": "密码或密钥无效，请重试。",
+    "localNote": "解密过程在您的浏览器本地完成，密码和密钥不会离开当前设备。",
+    "rateLimited": "解锁尝试次数过多,请稍后再试。",
+    "systemUnavailable": "数据库不可用,请联系管理员。",
+    "metaMissing": "服务器缺少加密元数据。",
+    "notLocked": "系统未锁定。"
+  }
+}

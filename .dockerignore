@@ -1,0 +1,18 @@
+node_modules
+dist
+data
+.git
+.claude
+*.log
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+# Secrets: never let local creds enter the build stage / GHA layer cache.
+# The runtime image only COPYs the compiled binary, but the build stage
+# (and exported buildkit cache) would otherwise ingest these.
+.env
+.env.*
+!.env.example
+.secret
+.secret/

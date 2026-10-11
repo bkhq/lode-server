@@ -1,0 +1,227 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel in-flight runs for the same PR; never cancel main pushes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  # Pin tool versions explicitly so a bun/node minor upgrade is a deliberate
+  # PR, not a silent main-branch breakage. Renovate/dependabot can bump.
+  BUN_VERSION: "1.4.2"
+  NODE_VERSION: "24.21.0"
+
+jobs:
+  check:
+    name: lint + typecheck + test + build + docs-drift
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-26.04, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Single source of truth — matches `package.json`'s `check` script so a
+      # green local run is a green CI run. Bundles lint + typecheck + test +
+      # build + check:i18n + check:env-docs + check:api-docs.
+      - name: Check
+        run: bun run check
+
+      # Coverage ratchet — enforced here because Bun 1.4.2 does not fail a
+      # run on bunfig `coverageThreshold` (it only prints the table). We parse
+      # the text reporter's "All files" row (which honours
+      # `apps/api/bunfig.toml`'s coveragePathIgnorePatterns) and fail below the
+      # realistic floor documented in the root bunfig.toml. Linux only — the
+      # gate is deterministic across OSes, one run is sufficient and keeps the
+      # macOS leg fast.
+      - name: Coverage gate
+        if: matrix.os == 'ubuntu-26.04'
+        working-directory: apps/api
+        env:
+          MIN_LINE: "80"
+          MIN_FUNC: "70"
+        run: bash ../../scripts/ci/coverage-gate.sh
+
+      - name: Upload coverage
+        if: matrix.os == 'ubuntu-26.04'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-${{ github.run_id }}
+          path: apps/api/coverage/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  security:
+    name: security scans
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # trufflehog walks history for past commits
+
+      - name: trufflehog (secrets)
+        uses: trufflesecurity/trufflehog@v3.95.6
+        with:
+          # Scan the working tree (filesystem mode) so the action stays
+          # agnostic to PR vs push events; --only-verified caps the
+          # noise to credentials trufflehog could actively authenticate
+          # with against the originating service.
+          extra_args: --results=verified,unknown
+
+      - name: osv-scanner (dependency CVEs)
+        uses: google/osv-scanner-action/osv-scanner-action@v2.3.8
+        with:
+          scan-args: |-
+            --lockfile=bun.lock
+
+  dependency-review:
+    name: dependency review (PR only)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure
+
+  codeql:
+    name: codeql (javascript-typescript)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:javascript-typescript"
+
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      # The runner image ships shellcheck. scripts/publish.sh is optional so
+      # the job does not depend on the order it and this workflow land in.
+      - name: shellcheck
+        run: |
+          files=(scripts/ci/*.sh)
+          if [ -f scripts/publish.sh ]; then
+            files+=(scripts/publish.sh)
+          fi
+          shellcheck "${files[@]}"
+
+  docker:
+    name: docker build
+    runs-on: ubuntu-26.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      # The image now runs lode (the app is no longer baked in — lode downloads
+      # the release asset at runtime), so the build is just the lode + bun base.
+      - name: Build image (no push)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: app:ci-${{ github.sha }}
+
+      - name: trivy (built image CVEs)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: app:ci-${{ github.sha }}
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-image.sarif
+
+      - name: Upload Trivy results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-image.sarif
+
+  e2e:
+    name: e2e (dex + api)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # The registry suites that drive the real lode client extract the
+      # binary from this image, by the tag lode.test.ts names. In CI a
+      # missing binary fails those suites instead of skipping them.
+      - name: Pull the lode image for the real-client suites
+        run: docker pull docker.io/bkhq/lode:v0.0.1
+
+      - name: Run e2e suite
+        run: bun run test:e2e
+
+      - name: Upload e2e reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-reports-${{ github.run_id }}
+          path: tests/e2e/.cache/reports/
+          if-no-files-found: ignore
+          retention-days: 14

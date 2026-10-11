@@ -1,0 +1,108 @@
+{
+  "generator": "lode-cli 0.0.1",
+  "signer": {
+    "alg": "ed25519",
+    "keyId": "222e57162bf2faef",
+    "publicKey": "WU9-7qyCQCySN90ERHOeCdEk3_bLxsz0VURD1NQw1bc"
+  },
+  "signed": {
+    "channels": {
+      "beta": {
+        "latest": "2.0.0-rc.1"
+      },
+      "stable": {
+        "latest": "1.2.0"
+      }
+    },
+    "key_id": "222e57162bf2faef",
+    "name": "demo",
+    "schema": "lode/v1",
+    "sig": "EV9YPNzr5DD5ITdXYtYiVYiRlwhgA2nvdyCzaohWupfVgnQ5qM1EbZJESptVQTvGbLRW2LwSF0knPhJEduznAg",
+    "versions": {
+      "1.10.0": {
+        "assets": []
+      },
+      "1.2.0": {
+        "assets": [
+          {
+            "name": "demo-darwin-arm64.tar.gz",
+            "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d",
+            "size": 1,
+            "url": "https://example.test/a"
+          },
+          {
+            "name": "demo-linux-x64.tar.gz",
+            "run": "./demo serve",
+            "sha256": "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6",
+            "size": 1,
+            "url": "https://example.test/b"
+          }
+        ]
+      },
+      "2.0.0-rc.1": {
+        "assets": [
+          {
+            "exec": "./demo",
+            "name": "demo-linux-x64.tar.gz",
+            "run": "./demo serve --port 8080",
+            "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+            "size": 1,
+            "url": "https://example.test/r/abcd1234/demo/2.0.0-rc.1/demo-linux-x64.tar.gz"
+          }
+        ],
+        "notes": "release candidate"
+      }
+    }
+  },
+  "fresh": {
+    "channels": {
+      "beta": {
+        "latest": "2.0.0-rc.1"
+      },
+      "stable": {
+        "latest": "1.2.0"
+      }
+    },
+    "expires": 1794345580,
+    "expires_sig": "159i8sANS09GM9gM14OeZjW3ODQjt-7WDiCg-Wr6A_moyUxm0JLrAqApxCBViF91wBmlGHjUIh759SLPQo3SAg",
+    "key_id": "222e57162bf2faef",
+    "name": "demo",
+    "schema": "lode/v1",
+    "sig": "EV9YPNzr5DD5ITdXYtYiVYiRlwhgA2nvdyCzaohWupfVgnQ5qM1EbZJESptVQTvGbLRW2LwSF0knPhJEduznAg",
+    "versions": {
+      "1.10.0": {
+        "assets": []
+      },
+      "1.2.0": {
+        "assets": [
+          {
+            "name": "demo-darwin-arm64.tar.gz",
+            "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d",
+            "size": 1,
+            "url": "https://example.test/a"
+          },
+          {
+            "name": "demo-linux-x64.tar.gz",
+            "run": "./demo serve",
+            "sha256": "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6",
+            "size": 1,
+            "url": "https://example.test/b"
+          }
+        ]
+      },
+      "2.0.0-rc.1": {
+        "assets": [
+          {
+            "exec": "./demo",
+            "name": "demo-linux-x64.tar.gz",
+            "run": "./demo serve --port 8080",
+            "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+            "size": 1,
+            "url": "https://example.test/r/abcd1234/demo/2.0.0-rc.1/demo-linux-x64.tar.gz"
+          }
+        ],
+        "notes": "release candidate"
+      }
+    }
+  }
+}

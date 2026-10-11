@@ -1,0 +1,18 @@
+# Local `wrangler dev` configuration. Copy to `.dev.vars` (gitignored) and
+# fill in. These mirror the secrets you would set with `wrangler secret put`
+# for a real deployment.
+NODE_ENV=development
+BASE_PATH=
+LOG_LEVEL=warn
+LOG_TO_STDOUT=true
+DEFAULT_ADMIN=admin@example.com
+# Single-user login for the smoke test (tests/workers/smoke.ts).
+# PBKDF2 at 100,000 iterations: argon2/bcrypt cannot be verified on Workers,
+# and Workers refuses PBKDF2 above that ceiling.
+SINGLE_USER_MODE=true
+SINGLE_USER_USERNAME=smoke
+SINGLE_USER_PASSWORD_HASH="pbkdf2-sha256$100000$EcnP8V365V1RKqQ1Q1GuEA==$gTZf4kkRCaQlL74BxA3KT/mc6Dbk4KuIeC9vJB7UT+M="
+
+# Keep the creation caps low so the smoke test can reach them quickly.
+CREATE_RATE_LIMIT_PER_MINUTE=10
+CREATE_RATE_LIMIT_PER_HOUR=1000

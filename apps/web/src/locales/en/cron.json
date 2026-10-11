@@ -1,0 +1,133 @@
+{
+  "page": {
+    "title": "Cron Jobs",
+    "description": "Schedule background tasks: HTTP pings, shell commands, custom actions."
+  },
+  "createJob": "New job",
+  "noJobs": "No cron jobs yet — click \"New job\" to add the first one.",
+  "totalCount": "{{count}} jobs",
+  "refresh": "Refresh",
+  "schedulerDisabled": {
+    "title": "Scheduler is off",
+    "body": "Cron is gated by CRON_ENABLED. You can still create, edit, and delete jobs here — they will start running automatically once an operator flips CRON_ENABLED=true in the API environment and restarts. Manual triggers still execute. See docs/modules/cron.md for details."
+  },
+  "filter": {
+    "label": "Status",
+    "active": "Active",
+    "failed": "Failed",
+    "success": "Successful",
+    "deleted": "Deleted"
+  },
+  "typeFilter": {
+    "label": "Type",
+    "all": "All types",
+    "cat": {
+      "maintenance": "Maintenance",
+      "network": "Network",
+      "system": "System",
+      "custom": "Custom"
+    }
+  },
+  "drawer": {
+    "subtitle": "Schedule a new cron job. Pick an action and its config is built from the registered inputs.",
+    "section": {
+      "meta": "Job metadata",
+      "action": "Action",
+      "config": "Configuration"
+    }
+  },
+  "meta": {
+    "dangerous": "Dangerous"
+  },
+  "status": {
+    "running": "Active",
+    "stopped": "Stopped",
+    "paused": "Paused",
+    "error": "Error",
+    "disabled": "Disabled",
+    "not_loaded": "Not loaded"
+  },
+  "col": {
+    "name": "Name",
+    "action": "Action",
+    "schedule": "Schedule",
+    "next": "Next run",
+    "lastRun": "Last run",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  "form": {
+    "name": "Name",
+    "namePlaceholder": "e.g. ping-prometheus",
+    "nameHint": "Alphanumeric, underscore, or hyphen. Becomes the audit resource and the unique key.",
+    "scheduleMode": "Schedule",
+    "scheduleModePreset": "Preset",
+    "scheduleModeCustom": "Custom",
+    "schedulePreset": "Choose a preset…",
+    "scheduleCustomPlaceholder": "e.g. 0 0 3 * * * or @every_15m",
+    "scheduleCustomHelp": "Supports 5-field, 6-field, @hourly/@daily/@weekly/@monthly/@yearly and @every_N(s|m|h|d). See cron-format.ts.",
+    "action": "Action",
+    "actionPlaceholder": "Pick an action…",
+    "actionRequiredFields": "Required: {{fields}}",
+    "retry": "Retry policy",
+    "retryMax": "Max consecutive failures",
+    "retryMaxHint": "After this many consecutive failed runs the job auto-pauses (no further ticks until you resume). Default 3. Set 0 to disable auto-pause — only do this when the job MUST keep retrying.",
+    "submit": "Create",
+    "submitting": "Creating…",
+    "cancel": "Cancel"
+  },
+  "presets": {
+    "every_1m": "Every minute",
+    "every_5m": "Every 5 minutes",
+    "every_15m": "Every 15 minutes",
+    "every_30m": "Every 30 minutes",
+    "hourly": "Every hour (top of hour)",
+    "every_1h": "Every hour (rolling)",
+    "every_6h": "Every 6 hours",
+    "every_12h": "Every 12 hours",
+    "daily": "Daily at midnight",
+    "weekly": "Weekly (Sun 00:00)",
+    "monthly": "Monthly (1st 00:00)",
+    "yearly": "Yearly (Jan 1 00:00)"
+  },
+  "actionGroup": {
+    "maintenance": "Maintenance",
+    "network": "Network",
+    "system": "System",
+    "custom": "Custom"
+  },
+  "actions": {
+    "trigger": "Run now",
+    "pause": "Pause",
+    "resume": "Resume",
+    "delete": "Delete",
+    "viewLogs": "View logs"
+  },
+  "logs": {
+    "title": "Run history — {{name}}",
+    "filter": "Filter by status",
+    "filterAll": "All",
+    "filterRunning": "Running",
+    "filterSuccess": "Success",
+    "filterFailed": "Failed",
+    "empty": "No runs yet for this job.",
+    "col": {
+      "startedAt": "Started",
+      "duration": "Duration",
+      "status": "Status",
+      "result": "Result"
+    }
+  },
+  "confirm": {
+    "deleteTitle": "Soft-delete job?",
+    "deleteBody": "{{name}} will stop running. Its history stays in the logs table (filter with `?deleted=only`). This can be reverted only by re-creating the job.",
+    "deleteConfirm": "Soft delete"
+  },
+  "toast": {
+    "created": "Job \"{{name}}\" created.",
+    "deleted": "Job \"{{name}}\" deleted.",
+    "paused": "Job \"{{name}}\" paused.",
+    "resumed": "Job \"{{name}}\" resumed.",
+    "triggered": "Job \"{{name}}\" triggered — log {{logStatus}}."
+  }
+}

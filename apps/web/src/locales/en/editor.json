@@ -1,0 +1,20 @@
+{
+  "bold": "Bold (Ctrl+B)",
+  "italic": "Italic (Ctrl+I)",
+  "strikethrough": "Strikethrough",
+  "inlineCode": "Inline code",
+  "link": "Link (Ctrl+K)",
+  "linkPrompt": "Enter URL",
+  "linkDialogTitle": "Insert link",
+  "linkDialogPlaceholder": "https://example.com",
+  "linkInvalidUrl": "Enter a valid http, https, or mailto URL.",
+  "linkInsert": "Insert",
+  "cancel": "Cancel",
+  "bulletList": "Bullet list",
+  "orderedList": "Ordered list",
+  "taskList": "Task list",
+  "quote": "Quote",
+  "codeBlock": "Code block",
+  "table": "Table",
+  "horizontalRule": "Horizontal rule"
+}

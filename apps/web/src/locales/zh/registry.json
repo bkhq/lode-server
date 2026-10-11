@@ -1,0 +1,117 @@
+{
+  "page": {
+    "title": "注册表",
+    "description": "所有用户的命名空间、软件包与令牌。"
+  },
+  "tabs": {
+    "namespaces": "命名空间",
+    "packages": "软件包",
+    "tokens": "令牌"
+  },
+  "filter": {
+    "placeholder": "按所有者、命名空间或标识筛选",
+    "count": "{{shown}} / {{total}}",
+    "noMatch": "没有符合筛选条件的条目。"
+  },
+  "col": {
+    "namespace": "命名空间",
+    "owner": "所有者",
+    "status": "状态",
+    "packages": "软件包数",
+    "storage": "存储",
+    "created": "创建时间",
+    "updated": "更新时间",
+    "package": "软件包",
+    "visibility": "可见性",
+    "token": "令牌",
+    "prefix": "前缀",
+    "grants": "授权",
+    "expires": "过期时间",
+    "lastUsed": "最近使用",
+    "actions": "操作"
+  },
+  "status": {
+    "active": "正常",
+    "suspended": "已停用"
+  },
+  "visibility": {
+    "public": "公开",
+    "private": "私有"
+  },
+  "level": {
+    "read": "读取",
+    "write": "写入",
+    "admin": "管理"
+  },
+  "namespaces": {
+    "empty": "尚未分配任何命名空间。",
+    "copyId": "复制命名空间 ID",
+    "suspend": "停用",
+    "restore": "恢复",
+    "quota": "配额",
+    "quotaOther": "其他用户的配额",
+    "suspendTitle": "停用命名空间 {{namespace}}？",
+    "suspendDescription": "{{owner}} 发布的全部内容将停止服务，直到恢复该命名空间。不会删除任何数据。",
+    "suspendEffectFeed": "该命名空间下所有软件包的读取源返回 404，客户端无法再安装或更新。",
+    "suspendEffectOwner": "所有者变为只读：无法新建软件包、版本，无法上传或修改设置。",
+    "suspendEffectTokens": "所有者的访问令牌将被拒绝。",
+    "suspended": "命名空间 {{namespace}} 已停用。",
+    "restoreTitle": "恢复命名空间 {{namespace}}？",
+    "restoreDescription": "{{owner}} 的软件包将重新提供服务，所有者及其令牌可以再次发布。",
+    "restored": "命名空间 {{namespace}} 已恢复。"
+  },
+  "quota": {
+    "title": "配额",
+    "description": "{{owner}} 的用量与限额。",
+    "packages": "软件包",
+    "storage": "存储",
+    "asset": "单个资产",
+    "usedOf": "已用 {{used}}，上限 {{limit}}",
+    "upTo": "最大 {{limit}}",
+    "hint": "为该用户单独设置限额。留空则使用平台默认值。",
+    "maxPackages": "软件包数上限",
+    "maxStorage": "存储上限",
+    "maxAsset": "单个资产上限",
+    "platformDefault": "平台默认值",
+    "unit": "单位",
+    "assetHint": "最大 500 MiB。",
+    "invalid": "请输入不小于零的整数，或留空。",
+    "assetInvalid": "请输入大于零的整数，或留空。",
+    "assetTooLarge": "单个资产上限不能超过 500 MiB。",
+    "saved": "配额已保存。"
+  },
+  "userPicker": {
+    "title": "其他用户的配额",
+    "description": "选择一位用户以查看并修改其配额，包括尚无命名空间的用户。",
+    "placeholder": "按姓名搜索",
+    "empty": "未找到用户。",
+    "more": "仅显示前若干条匹配结果，请细化搜索以缩小范围。"
+  },
+  "packages": {
+    "empty": "尚未创建任何软件包。",
+    "hint": "如需一次性停止某位发布者的全部内容，请停用其命名空间：",
+    "hintLink": "前往命名空间",
+    "open": "打开",
+    "makePrivate": "设为私有",
+    "makePrivateTitle": "将此软件包设为私有？",
+    "makePrivateDescription": "{{owner}} 的 {{package}} 将不再向匿名客户端提供。所有者可以重新将其公开。",
+    "madePrivate": "{{package}} 已设为私有。",
+    "deleteTitle": "删除此软件包？",
+    "deleteDescription": "{{owner}} 的 {{package}} 及其全部版本和资产将被删除，且无法恢复。",
+    "deleted": "{{package}} 已删除。"
+  },
+  "tokens": {
+    "empty": "没有访问令牌。",
+    "onlyOwner": "{{owner}} 的令牌",
+    "showAll": "显示所有用户的令牌",
+    "grantsNone": "无软件包",
+    "grantsAll": "全部软件包：{{level}}",
+    "noExpiry": "永不过期",
+    "expired": "已过期",
+    "neverUsed": "从未使用",
+    "revoke": "吊销",
+    "revokeTitle": "吊销此令牌？",
+    "revokeDescription": "{{owner}} 的令牌“{{name}}”将立即失效，且无法恢复。",
+    "revoked": "令牌“{{name}}”已吊销。"
+  }
+}

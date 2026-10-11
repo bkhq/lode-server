@@ -1,0 +1,32 @@
+{
+  "title": "出错了",
+  "home": "返回首页",
+  "retry": "重试",
+  "detailLabel": "查看技术详情",
+  "codes": {
+    "oauth_not_configured": {
+      "title": "登录功能不可用",
+      "description": "服务器尚未配置 OAuth，请联系管理员设置 OAUTH_ISSUER、OAUTH_CLIENT_ID 与 OAUTH_CLIENT_SECRET。"
+    },
+    "oauth_state_invalid": {
+      "title": "登录会话已过期",
+      "description": "登录链接已失效，请重新发起登录。"
+    },
+    "oidc_error": {
+      "title": "身份提供方错误",
+      "description": "身份提供方拒绝了本次登录或无法访问，请查看下方详情后重试。"
+    },
+    "user_disabled": {
+      "title": "账户已停用",
+      "description": "该账户已被停用，如有疑问请联系管理员。"
+    },
+    "single_user_mode_active": {
+      "title": "OAuth 登录已禁用",
+      "description": "服务器已启用单用户模式，请在登录页使用用户名和密码表单。"
+    },
+    "unknown": {
+      "title": "未知错误",
+      "description": "发生未知错误，请稍后重试。"
+    }
+  }
+}

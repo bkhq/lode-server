@@ -1,0 +1,23 @@
+# Runs the example from a registry. Replace <registry> and <namespace>, then:
+#
+#   docker run --rm -v "$PWD/lode.toml:/srv/lode/lode.toml:ro" docker.io/bkhq/lode:latest
+
+[global]
+app = "hello"
+
+[update]
+manifest = "https://<registry>/r/<namespace>/hello/manifest.json"
+asset    = "hello-linux-x64.tar.gz"
+channel  = "stable"
+policy   = "auto"
+check_interval = 30
+
+[command]
+run = "./app.sh"
+
+# For a signed release, pin the publisher's key (the `trusted_keys` entry
+# printed by `lode-cli keygen`) and enforce it:
+#
+# [trust]
+# require_signature = "enforce"
+# trusted_keys = ["<key_id>:<public-key>"]

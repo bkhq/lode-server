@@ -1,0 +1,80 @@
+{
+  "generator": "lode-cli 0.0.1",
+  "signer": {
+    "alg": "ed25519",
+    "keyId": "40c1c52f2cf722a7",
+    "publicKey": "-HKKty9HvrjHYpqRs7k1f7UPXBnpW3w_xPRxAV2khmQ"
+  },
+  "other": {
+    "alg": "ed25519",
+    "keyId": "38672e638702b8ce",
+    "publicKey": "Y93ktuCCCeRA4KoHfggDhF3z5vrE3oqgbaLagsPVA7U"
+  },
+  "vectors": [
+    {
+      "id": "plain",
+      "app": "tool",
+      "name": "demo-linux-x86_64.tar.gz",
+      "version": "1.0.0",
+      "content": "lode test vector: plain asset",
+      "run": null,
+      "exec": null,
+      "sha256": "f5ca576c47614262592c52c5acd5b414b4e7c913bff51715178e0bcb3cca97a2",
+      "sig": "GMU7TEqy_IVJKnthlLUcUFKdv0I7tfEJQeqBCNy3P8SJ-N5kPbnsqipVExXW_fu1YPQCPyowdj22KAqjry4vDg",
+      "keyId": "40c1c52f2cf722a7",
+      "alg": "ed25519"
+    },
+    {
+      "id": "run",
+      "app": "tool",
+      "name": "demo-run.tar.gz",
+      "version": "1.2.3",
+      "content": "lode test vector: asset with run",
+      "run": "./demo serve --port 8080",
+      "exec": null,
+      "sha256": "2f59906a7e4afb5b0e1f5fafaa22469399da4d1c0e4376210b08c0d66f8be8e1",
+      "sig": "FbfBNgozs0Y5tCMP129MpxkL2ZNdGx0evcT2tm23rEN1-NFrFyC2z6-QGPE82_ZPbqRCdpzwps2MGAyTV1kpBw",
+      "keyId": "40c1c52f2cf722a7",
+      "alg": "ed25519"
+    },
+    {
+      "id": "exec",
+      "app": "tool",
+      "name": "demo-exec.zip",
+      "version": "1.2.3",
+      "content": "lode test vector: asset with exec",
+      "run": null,
+      "exec": "./demo",
+      "sha256": "689e9a2b494dcc4738e3dbe9055b914689560d25ee249afc6c2ba93416febeab",
+      "sig": "hPWUhw7BHxpiV7ANnIMEZHK5TXj_258NmnYU5HgCHWL89bVhBqGj4GucEGd6Xj_a2VJFIT5UyUKOxrE-ij_zBQ",
+      "keyId": "40c1c52f2cf722a7",
+      "alg": "ed25519"
+    },
+    {
+      "id": "run-exec",
+      "app": "tool",
+      "name": "demo-both.tar.gz",
+      "version": "1.2.3",
+      "content": "lode test vector: asset with run and exec",
+      "run": "./demo serve",
+      "exec": "./demo",
+      "sha256": "3692ccbf595d10b82938760679c39daff7ccaac7fdc81ee2984de02299f88988",
+      "sig": "rVj6j8mlYrnPDSWWS6gEXQSMciiThmVXVny45fi3ReRHcMqXQBJo3AhpOu4BmFBDZlQWp-IgoP0OIwWE-Eg7Bg",
+      "keyId": "40c1c52f2cf722a7",
+      "alg": "ed25519"
+    },
+    {
+      "id": "version",
+      "app": "tool",
+      "name": "demo_tool-1.x.bin",
+      "version": "2.0.0-rc.1_build-7",
+      "content": "lode test vector: version with dot, dash and underscore",
+      "run": null,
+      "exec": null,
+      "sha256": "b49e1a826208a3fe1cf5cf76da2df7522800af69bd57a1d1c014268892f0d4ba",
+      "sig": "m5esEFm1MPqYomN8yFh-xRn_hh1ztZuBvD6rnbNx4luEl4QJDlpAIYKVxW_r9jNzKL23tOsF_c5vrblOj3iNAA",
+      "keyId": "40c1c52f2cf722a7",
+      "alg": "ed25519"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "INVALID_PUBLIC_KEY": "这不是有效的 ed25519 公钥。请粘贴 lode-cli keygen 输出的公钥。",
+  "KEY_EXISTS": "该密钥已注册或已被吊销。已吊销的密钥无法再次注册，请生成新的密钥。",
+  "PACKAGE_EXISTS": "您已有使用该标识的软件包，请换一个标识。",
+  "PACKAGE_QUOTA_EXCEEDED": "已达到软件包数量上限。请删除不再需要的软件包，或联系管理员提高上限。",
+  "STORAGE_QUOTA_EXCEEDED": "存储配额已用完。请删除旧版本，或联系管理员提高配额。",
+  "ASSET_TOO_LARGE": "该文件超过了单个资产的大小上限。请上传更小的文件，或联系管理员提高上限。",
+  "INVALID_GRANT": "所选软件包中有不存在或不属于您的项。请检查软件包列表后重试。",
+  "VERSION_EXISTS": "该版本已存在，请使用其他版本号。",
+  "VERSION_RETIRED": "该版本号曾发布后被删除，不能再次使用，请使用其他版本号。",
+  "VERSION_NOT_DRAFT": "该版本已不是草稿，无法修改。请创建新版本。",
+  "VERSION_EMPTY": "该版本没有任何资产。请至少上传一个资产后再发布。",
+  "VERSION_NOT_PUBLISHED": "通道只能指向已发布的版本，请先发布该版本。",
+  "VERSION_NOT_YANKED": "该版本未被撤回，无需恢复。请刷新页面查看其当前状态。",
+  "VERSION_IN_CHANNEL": "仍有通道指向该版本，请先将通道移到其他版本。",
+  "VERSION_BUSY": "该版本正在进行其他操作，请稍后重试。",
+  "NAMESPACE_SUSPENDED": "该命名空间已被停用，当前为只读。请联系管理员恢复。",
+  "SIGNATURE_REQUIRED": "该软件包只接受已签名的资产。请使用 lode-cli sign 签名后连同签名一起上传。",
+  "INVALID_SIGNATURE": "该签名无法通过您任何有效签名密钥的验证。请确认密钥已注册且未被吊销，然后重新签名。"
+}

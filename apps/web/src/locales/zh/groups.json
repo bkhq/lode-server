@@ -1,0 +1,28 @@
+{
+  "create": "创建组",
+  "createTitle": "创建组",
+  "createDescription": "添加一个新的用户组。",
+  "editTitle": "编辑组",
+  "editDescription": "更新组名称和描述。",
+  "deleteTitle": "删除组",
+  "deleteConfirm": "确定要删除组「{{name}}」吗？此操作无法撤销。",
+  "listTitle": "用户组",
+  "listDescription": "管理用户组及其成员。",
+  "noResults": "暂无用户组。",
+  "membersTitle": "组成员",
+  "membersDescription": "查看并管理所选组的成员。",
+  "selectGroup": "请选择一个组查看成员。",
+  "noMembers": "该组暂无成员。",
+  "addMember": "添加成员",
+  "addMemberTitle": "添加成员",
+  "addMemberDescription": "搜索要添加到此组的用户。",
+  "searchUserPlaceholder": "搜索用户...",
+  "removeMember": "移除成员",
+  "membersOf": "{{name}} 的成员",
+  "field": {
+    "name": "组名称",
+    "description": "描述"
+  },
+  "idpBadge": "IdP",
+  "idpManaged": "成员由身份提供商管理，每次登录时同步。"
+}

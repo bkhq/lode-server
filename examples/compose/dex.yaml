@@ -1,0 +1,32 @@
+# LOCAL DEV ONLY. Hardcoded test users below — do not deploy as-is.
+# Replace `staticClients[0].secret` and `staticPasswords` with real values
+# (or wire dex's `connectors` block) before exposing this stack to anything
+# beyond your laptop.
+issuer: http://dex:5556/dex
+storage:
+  type: memory
+web:
+  http: 0.0.0.0:5556
+  allowedOrigins: ["*"]
+oauth2:
+  skipApprovalScreen: true
+expiry:
+  idTokens: 1h
+  refreshTokens:
+    validIfNotUsedFor: 2h
+staticClients:
+  - id: app
+    secret: app-secret
+    redirectURIs:
+      # Match BASE_PATH and APP_URL. Update both sides if you change either.
+      - http://localhost/app/api/account/auth/callback
+    name: App
+enablePasswordDB: true
+staticPasswords:
+  # Replace these with real users (or wire dex's connectors block) before
+  # exposing the stack beyond local development.
+  - email: admin@example.com
+    # bcrypt of "admin" — for local development ONLY.
+    hash: "$2b$10$ZDM1j7ol1V4C0pDIyN.uu.eitELj7.LOvYhkA5nXLi/yBoP9.mynC"
+    username: admin
+    userID: dex-admin

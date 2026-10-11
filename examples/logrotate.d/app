@@ -1,0 +1,25 @@
+# /etc/logrotate.d/app — example logrotate config for bare-metal
+# (non-containerised) deployments that write the API log to disk.
+#
+# Container deployments (docker/k8s) should set LOG_TO_STDOUT=true (the
+# default in the bundled Dockerfile) and let the runtime collect stdout;
+# this file is unnecessary there.
+#
+# Drop into /etc/logrotate.d/app and adjust paths / user as needed.
+
+/var/log/app/*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0600 app app
+    # The API holds the log fd open for the lifetime of the process. After
+    # rotation, send SIGHUP so the runtime reopens the destination at the
+    # new path. The handler in apps/api/src/index.ts:process.on('SIGHUP')
+    # turns this into pino's destination.reopen().
+    postrotate
+        pkill -SIGHUP -x app >/dev/null 2>&1 || true
+    endscript
+}

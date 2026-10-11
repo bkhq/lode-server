@@ -1,0 +1,58 @@
+{
+  "page": {
+    "title": "Overview",
+    "description": "Welcome to your workspace."
+  },
+  "welcome": "Welcome, {{name}}",
+  "stats": {
+    "packages": "Packages",
+    "storage": "Storage",
+    "namespace": "Namespace",
+    "namespaceStatus": {
+      "active": "Active",
+      "suspended": "Suspended"
+    }
+  },
+  "recent": {
+    "title": "Recent versions",
+    "empty": "No versions yet. Publish one from CI and it will show up here.",
+    "status": {
+      "draft": "Draft",
+      "published": "Published",
+      "yanked": "Yanked"
+    }
+  },
+  "links": {
+    "packages": {
+      "title": "Packages",
+      "description": "Create packages and manage their versions and channels."
+    },
+    "tokens": {
+      "title": "Access tokens",
+      "description": "Issue tokens for CI pipelines and lode clients."
+    }
+  },
+  "firstRun": {
+    "title": "Publish your first package",
+    "description": "Three steps take you from an empty namespace to a published version.",
+    "createPackage": {
+      "title": "Create a package",
+      "description": "Pick a slug and a name. The slug is what lode clients install.",
+      "link": "Go to packages"
+    },
+    "createToken": {
+      "title": "Create an access token with a write grant",
+      "description": "CI uses the token to upload assets. Grant it write access to the package.",
+      "link": "Go to access tokens"
+    },
+    "publish": {
+      "title": "Publish from CI",
+      "description": "Upload assets and publish a version from your pipeline. To sign releases, register a signing key on the package first, or let the pipeline do it.",
+      "link": "Go to packages"
+    }
+  },
+  "error": {
+    "load": "Could not load this section.",
+    "retry": "Retry"
+  }
+}

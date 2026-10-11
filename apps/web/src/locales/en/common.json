@@ -1,0 +1,61 @@
+{
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "auth": {
+    "logout": "Logout"
+  },
+  "common": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "prev": "Previous",
+    "next": "Next",
+    "add": "Add",
+    "close": "Close",
+    "copy": "Copy",
+    "loading": "Loading...",
+    "retry": "Retry",
+    "submitting": "Submitting...",
+    "saving": "Saving...",
+    "stillLoading": "Still loading...",
+    "errorDetails": "Error details",
+    "networkError": {
+      "title": "Couldn't reach the server",
+      "description": "There was a problem connecting to the server. Check your network and try again."
+    },
+    "notFound": {
+      "title": "Page not found",
+      "description": "We couldn't find the page you were looking for."
+    },
+    "error": {
+      "loadFailed": "Failed to load data",
+      "deleteFailed": "Failed to delete",
+      "operationFailed": "Operation failed",
+      "saveFailed": "Failed to save",
+      "uploadFailed": "Upload failed",
+      "systemUnavailable": "System unavailable. Please try again later.",
+      "dbError": "Database Error",
+      "dbErrorBody": "The database is currently unavailable. The system will keep retrying automatically."
+    }
+  },
+  "nav": {
+    "overview": "Overview",
+    "users": "Users",
+    "policies": "Policies",
+    "audit": "Audit Log",
+    "cron": "Cron",
+    "settings": "Settings",
+    "platformSettings": "Settings",
+    "security": "Security",
+    "home": "Home",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "packages": "Packages",
+    "accessTokens": "Access tokens",
+    "registry": "Registry"
+  }
+}

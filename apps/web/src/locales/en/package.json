@@ -1,0 +1,168 @@
+{
+  "page": {
+    "title": "Package",
+    "description": "Versions, channels and settings of this package."
+  },
+  "header": {
+    "back": "Back to packages",
+    "copyId": "Copy package id",
+    "owner": "Owner: {{name}} (@{{username}})",
+    "signatureRequired": "Signature required",
+    "readOnly": "You can view this package but not change it."
+  },
+  "visibility": {
+    "public": "Public",
+    "private": "Private"
+  },
+  "notFound": {
+    "title": "Package not found",
+    "description": "This package does not exist or you do not have access to it."
+  },
+  "tabs": {
+    "versions": "Versions",
+    "channels": "Channels",
+    "install": "Install",
+    "settings": "Settings",
+    "keys": "Signing keys"
+  },
+  "status": {
+    "draft": "Draft",
+    "published": "Published",
+    "yanked": "Yanked"
+  },
+  "validation": {
+    "empty": "Must not be empty.",
+    "leading": "Must not start with '.' or '-'.",
+    "charset": "Only letters, digits, '.', '_' and '-' are allowed.",
+    "tooLong": "At most {{max}} characters."
+  },
+  "versions": {
+    "uploadNotice": "Assets are uploaded from CI with an access token that has a write grant on this package. There is no upload form here.",
+    "tokensLink": "Manage access tokens",
+    "new": "New draft version",
+    "empty": "No versions yet. Create a draft, then upload its assets from CI.",
+    "expand": "Show assets",
+    "collapse": "Hide assets",
+    "col": {
+      "version": "Version",
+      "status": "Status",
+      "published": "Published",
+      "assets": "Assets",
+      "size": "Size",
+      "channels": "Channels",
+      "actions": "Actions"
+    },
+    "notes": "Notes",
+    "noAssets": "This version has no assets yet.",
+    "asset": {
+      "name": "File",
+      "size": "Size",
+      "sha256": "SHA-256",
+      "copySha256": "Copy full SHA-256",
+      "signature": "Signature",
+      "signed": "Signed",
+      "unsigned": "Unsigned",
+      "launch": "Launch override"
+    },
+    "publish": "Publish",
+    "publishNeedsAssets": "Upload an asset first",
+    "yank": "Yank",
+    "restore": "Restore",
+    "create": {
+      "title": "New draft version",
+      "description": "A draft is not served until it is published. Upload its assets from CI, then publish it.",
+      "version": "Version",
+      "versionPlaceholder": "1.0.0",
+      "notes": "Notes (optional)",
+      "submit": "Create draft",
+      "success": "Draft {{version}} created"
+    },
+    "publishDialog": {
+      "title": "Publish {{version}}",
+      "description": "The version becomes available to lode clients and the channel pointer moves to it. Its assets can no longer be changed.",
+      "channel": "Channel",
+      "success": "Version {{version}} published"
+    },
+    "yankDialog": {
+      "title": "Yank {{version}}",
+      "description": "The version is hidden from the manifest. Nothing is deleted and it can be restored. A version a channel points at cannot be yanked: move the channel first.",
+      "success": "Version {{version}} yanked"
+    },
+    "restoreDialog": {
+      "title": "Restore {{version}}",
+      "description": "The version is served again as a published version.",
+      "success": "Version {{version}} restored"
+    },
+    "deleteDialog": {
+      "title": "Delete {{version}}",
+      "description": "The version, its assets and their stored files are removed permanently. A version a channel points at cannot be deleted: move the channel first.",
+      "success": "Version {{version}} deleted"
+    }
+  },
+  "channels": {
+    "intro": "A channel is a named pointer at a published version. Move a pointer to promote a version or to roll back.",
+    "add": "Add channel",
+    "move": "Move",
+    "empty": "No channels yet. Publishing a version creates its channel.",
+    "noPublished": "Publish a version before adding or moving a channel.",
+    "col": {
+      "name": "Channel",
+      "version": "Version",
+      "updated": "Updated",
+      "actions": "Actions"
+    },
+    "dialog": {
+      "addTitle": "Add channel",
+      "moveTitle": "Move {{channel}}",
+      "description": "Only published versions can be selected. Clients following the channel get this version on their next update, also when it is older than the current one.",
+      "name": "Channel name",
+      "namePlaceholder": "beta",
+      "version": "Version",
+      "submit": "Set channel",
+      "success": "Channel {{channel}} now points at {{version}}"
+    }
+  },
+  "install": {
+    "intro": "The complete lode.toml for a host that installs this package. Pick the channel and the asset for that host, then download it.",
+    "channel": "Channel",
+    "asset": "Asset",
+    "manifestUrl": "Manifest URL",
+    "copyManifestUrl": "Copy manifest URL",
+    "snippet": "lode.toml",
+    "copySnippet": "Copy lode.toml",
+    "download": "Download lode.toml",
+    "ready": "Ready to use: save it as /srv/lode/lode.toml and start lode.",
+    "noAsset": "This package has no published asset yet. Replace the asset placeholder with the file name for the host once a version is published.",
+    "unknownKey": "This asset is signed with a key that is no longer active for this package. Replace the public key placeholder with the publisher's public key.",
+    "unsignedWarning": "This asset is not signed. An operator who installs an unsigned package trusts this server and the publisher's account completely, and lode installs it only with require_signature = \"off\" (or \"auto\" with no trusted keys).",
+    "keysLink": "Manage signing keys",
+    "privateNote": "This package is private. Set LODE_REGISTRY_TOKEN on the host to an access token that has a read grant on this package.",
+    "tokensLink": "Manage access tokens",
+    "manifestSignature": "Manifest signature",
+    "manifestLive": "The manifest is signed by key {{key}}. Hosts can set require_manifest in [trust].",
+    "manifestExpires": "The signature expires {{date}}; sign again before then, or every host stops updating.",
+    "manifestStale": "The manifest changed after it was last signed, so it is served unsigned. Hosts that set require_manifest take no updates until it is signed again.",
+    "manifestExpired": "The manifest signature expired {{date}}, so the manifest is served unsigned. Hosts that set require_manifest take no updates until it is signed again.",
+    "manifestRevoked": "The key behind the manifest signature was revoked, so the manifest is served unsigned. Sign it again with an active key."
+  },
+  "settings": {
+    "general": "General",
+    "slug": "Slug",
+    "slugHint": "The slug is part of every URL and cannot be changed.",
+    "name": "Name",
+    "description": "Description",
+    "visibility": "Visibility",
+    "visibilityHint": "A public package can be installed by anyone. A private one needs an access token with a read grant.",
+    "requireSignature": "Require signatures",
+    "requireSignatureHint": "Refuse the upload of an asset that is not signed with one of the owner's signing keys.",
+    "saved": "Package settings saved",
+    "danger": {
+      "title": "Danger zone",
+      "description": "Deleting the package removes its versions, assets, channels and the token grants on it. This cannot be undone.",
+      "button": "Delete package",
+      "confirmTitle": "Delete {{slug}}",
+      "confirmLabel": "Type {{slug}} to confirm",
+      "deleted": "Package {{slug}} deleted"
+    }
+  }
+}

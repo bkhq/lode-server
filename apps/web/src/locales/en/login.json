@@ -1,0 +1,10 @@
+{
+  "title": "Sign in",
+  "description": "Sign in to access your applications and services.",
+  "button": "Sign in",
+  "username": "Username",
+  "password": "Password",
+  "invalidCredentials": "Invalid username or password.",
+  "rateLimited": "Too many attempts. Please try again later.",
+  "or": "or"
+}

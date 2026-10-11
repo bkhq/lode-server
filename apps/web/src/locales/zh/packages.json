@@ -1,0 +1,75 @@
+{
+  "page": {
+    "title": "软件包",
+    "description": "您发布给 lode 客户端的软件包。"
+  },
+  "namespace": {
+    "title": "命名空间",
+    "description": "由系统分配且永久不变，是每个软件包 URL 的第一段。",
+    "id": "命名空间 ID",
+    "copy": "复制命名空间 ID",
+    "owner": "所有者",
+    "suspendedTitle": "该命名空间已被停用",
+    "suspendedBody": "其中的软件包不再向客户端提供，也无法修改。请联系管理员恢复。"
+  },
+  "quota": {
+    "title": "配额用量",
+    "description": "适用于您命名空间内全部内容的限制。",
+    "packages": "软件包",
+    "storage": "存储",
+    "of": "{{used}} / {{limit}}",
+    "maxAsset": "单个文件大小上限：{{size}}"
+  },
+  "col": {
+    "name": "名称",
+    "package": "软件包",
+    "visibility": "可见性",
+    "updated": "更新时间"
+  },
+  "visibility": {
+    "private": "私有",
+    "public": "公开"
+  },
+  "signatureRequired": "要求签名",
+  "empty": {
+    "title": "还没有软件包",
+    "body": "先在这里创建软件包，然后在 CI 中使用访问令牌发布版本。",
+    "tokensLink": "管理访问令牌"
+  },
+  "create": {
+    "open": "创建软件包",
+    "title": "创建软件包",
+    "description": "一个软件包包含同一应用的各个版本。",
+    "blockedSuspended": "您的命名空间已被停用，无法创建软件包。",
+    "blockedQuota": "已达到软件包数量上限。请删除软件包，或联系管理员提高上限。",
+    "slug": "标识",
+    "slugRule": "只能包含小写字母、数字和“-”，不能以“-”开头，最多 {{max}} 个字符。在您的命名空间内必须唯一。",
+    "slugPermanent": "标识创建后无法修改：它用于软件包 URL，也是 lode 应用名称。",
+    "slugPreview": "软件包路径：",
+    "slugError": {
+      "empty": "请输入标识。",
+      "leadingDash": "标识不能以“-”开头。",
+      "uppercase": "只能使用小写字母。",
+      "illegalChar": "只能包含小写字母、数字和“-”。",
+      "tooLong": "标识最多 {{max}} 个字符。"
+    },
+    "name": "名称",
+    "namePlaceholder": "我的应用",
+    "nameHint": "显示名称，1 到 {{max}} 个字符，之后可以修改。",
+    "nameError": {
+      "empty": "请输入名称。",
+      "tooLong": "名称最多 {{max}} 个字符。",
+      "controlChar": "名称不能包含控制字符。"
+    },
+    "visibility": "可见性",
+    "visibilityHint": {
+      "private": "下载需要具有读取权限的访问令牌。",
+      "public": "任何人无需令牌即可下载该软件包。"
+    },
+    "descriptionField": "描述（可选）",
+    "requireSignature": "要求签名",
+    "requireSignatureHint": "拒绝未附带有效签名（由您的签名密钥签发）的上传文件。",
+    "submit": "创建软件包",
+    "created": "软件包 {{name}} 已创建"
+  }
+}

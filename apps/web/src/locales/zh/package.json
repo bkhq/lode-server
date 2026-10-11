@@ -1,0 +1,168 @@
+{
+  "page": {
+    "title": "软件包",
+    "description": "此软件包的版本、通道与设置。"
+  },
+  "header": {
+    "back": "返回软件包列表",
+    "copyId": "复制软件包标识",
+    "owner": "所有者：{{name}}（@{{username}}）",
+    "signatureRequired": "要求签名",
+    "readOnly": "您可以查看此软件包，但不能修改。"
+  },
+  "visibility": {
+    "public": "公开",
+    "private": "私有"
+  },
+  "notFound": {
+    "title": "未找到软件包",
+    "description": "此软件包不存在，或您没有访问权限。"
+  },
+  "tabs": {
+    "versions": "版本",
+    "channels": "通道",
+    "install": "安装",
+    "settings": "设置",
+    "keys": "签名密钥"
+  },
+  "status": {
+    "draft": "草稿",
+    "published": "已发布",
+    "yanked": "已撤回"
+  },
+  "validation": {
+    "empty": "不能为空。",
+    "leading": "不能以 '.' 或 '-' 开头。",
+    "charset": "只能包含字母、数字、'.'、'_' 和 '-'。",
+    "tooLong": "最多 {{max}} 个字符。"
+  },
+  "versions": {
+    "uploadNotice": "资产由 CI 使用对此软件包拥有 write 授权的访问令牌上传，这里不提供上传表单。",
+    "tokensLink": "管理访问令牌",
+    "new": "新建草稿版本",
+    "empty": "还没有版本。先创建草稿，再从 CI 上传资产。",
+    "expand": "显示资产",
+    "collapse": "隐藏资产",
+    "col": {
+      "version": "版本",
+      "status": "状态",
+      "published": "发布时间",
+      "assets": "资产数",
+      "size": "大小",
+      "channels": "通道",
+      "actions": "操作"
+    },
+    "notes": "说明",
+    "noAssets": "此版本还没有资产。",
+    "asset": {
+      "name": "文件",
+      "size": "大小",
+      "sha256": "SHA-256",
+      "copySha256": "复制完整 SHA-256",
+      "signature": "签名",
+      "signed": "已签名",
+      "unsigned": "未签名",
+      "launch": "启动覆盖"
+    },
+    "publish": "发布",
+    "publishNeedsAssets": "请先上传资产",
+    "yank": "撤回",
+    "restore": "恢复",
+    "create": {
+      "title": "新建草稿版本",
+      "description": "草稿在发布之前不会对外提供。先从 CI 上传资产，再发布。",
+      "version": "版本",
+      "versionPlaceholder": "1.0.0",
+      "notes": "说明（可选）",
+      "submit": "创建草稿",
+      "success": "已创建草稿 {{version}}"
+    },
+    "publishDialog": {
+      "title": "发布 {{version}}",
+      "description": "该版本将对 lode 客户端可用，通道指针会移动到它。发布后其资产不可再修改。",
+      "channel": "通道",
+      "success": "版本 {{version}} 已发布"
+    },
+    "yankDialog": {
+      "title": "撤回 {{version}}",
+      "description": "该版本将从清单中隐藏。不会删除任何内容，之后可以恢复。仍有通道指向的版本不能撤回，请先移动通道。",
+      "success": "版本 {{version}} 已撤回"
+    },
+    "restoreDialog": {
+      "title": "恢复 {{version}}",
+      "description": "该版本将重新作为已发布版本对外提供。",
+      "success": "版本 {{version}} 已恢复"
+    },
+    "deleteDialog": {
+      "title": "删除 {{version}}",
+      "description": "该版本、其资产及已存储的文件将被永久删除。仍有通道指向的版本不能删除，请先移动通道。",
+      "success": "版本 {{version}} 已删除"
+    }
+  },
+  "channels": {
+    "intro": "通道是指向某个已发布版本的命名指针。移动指针即可提升版本或回滚。",
+    "add": "添加通道",
+    "move": "移动",
+    "empty": "还没有通道。发布版本时会创建对应通道。",
+    "noPublished": "请先发布一个版本，再添加或移动通道。",
+    "col": {
+      "name": "通道",
+      "version": "版本",
+      "updated": "更新时间",
+      "actions": "操作"
+    },
+    "dialog": {
+      "addTitle": "添加通道",
+      "moveTitle": "移动 {{channel}}",
+      "description": "只能选择已发布的版本。跟随此通道的客户端会在下次更新时获得该版本，即使它比当前版本更旧。",
+      "name": "通道名称",
+      "namePlaceholder": "beta",
+      "version": "版本",
+      "submit": "设置通道",
+      "success": "通道 {{channel}} 现在指向 {{version}}"
+    }
+  },
+  "install": {
+    "intro": "安装此软件包的主机所需的完整 lode.toml。选择该主机对应的通道和资产，然后下载。",
+    "channel": "通道",
+    "asset": "资产",
+    "manifestUrl": "清单 URL",
+    "copyManifestUrl": "复制清单 URL",
+    "snippet": "lode.toml",
+    "copySnippet": "复制 lode.toml",
+    "download": "下载 lode.toml",
+    "ready": "可直接使用：保存为 /srv/lode/lode.toml 后启动 lode。",
+    "noAsset": "此软件包还没有已发布的资产。发布版本后，请将资产占位符替换为该主机对应的文件名。",
+    "unknownKey": "此资产使用的签名密钥已不在此软件包的有效密钥中。请将公钥占位符替换为发布者的公钥。",
+    "unsignedWarning": "此资产未签名。安装未签名软件包的运维人员需要完全信任本服务器和发布者的账号，并且 lode 只有在 require_signature = \"off\"（或 \"auto\" 且未配置受信任密钥）时才会安装它。",
+    "keysLink": "管理签名密钥",
+    "privateNote": "此软件包为私有。请在主机上将 LODE_REGISTRY_TOKEN 设置为对此软件包拥有 read 授权的访问令牌。",
+    "tokensLink": "管理访问令牌",
+    "manifestSignature": "清单签名",
+    "manifestLive": "清单已由密钥 {{key}} 签名。主机可以在 [trust] 中设置 require_manifest。",
+    "manifestExpires": "签名将于 {{date}} 过期；请在此之前重新签名，否则所有主机都会停止更新。",
+    "manifestStale": "清单在上次签名后发生了变化，目前以未签名形式提供。设置了 require_manifest 的主机在重新签名前不会获取更新。",
+    "manifestExpired": "清单签名已于 {{date}} 过期，清单目前以未签名形式提供。设置了 require_manifest 的主机在重新签名前不会获取更新。",
+    "manifestRevoked": "清单签名所用的密钥已被吊销，清单目前以未签名形式提供。请使用有效密钥重新签名。"
+  },
+  "settings": {
+    "general": "基本信息",
+    "slug": "标识",
+    "slugHint": "标识是所有 URL 的一部分，无法更改。",
+    "name": "名称",
+    "description": "描述",
+    "visibility": "可见性",
+    "visibilityHint": "公开软件包任何人都可以安装；私有软件包需要拥有 read 授权的访问令牌。",
+    "requireSignature": "要求签名",
+    "requireSignatureHint": "拒绝上传未使用所有者签名密钥签名的资产。",
+    "saved": "软件包设置已保存",
+    "danger": {
+      "title": "危险区域",
+      "description": "删除软件包会同时删除其版本、资产、通道以及针对它的令牌授权，且无法撤销。",
+      "button": "删除软件包",
+      "confirmTitle": "删除 {{slug}}",
+      "confirmLabel": "输入 {{slug}} 以确认",
+      "deleted": "软件包 {{slug}} 已删除"
+    }
+  }
+}

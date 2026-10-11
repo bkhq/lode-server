@@ -1,0 +1,75 @@
+{
+  "page": {
+    "title": "Packages",
+    "description": "Packages you publish for lode clients."
+  },
+  "namespace": {
+    "title": "Namespace",
+    "description": "Assigned by the system and permanent. It is the first segment of every package URL.",
+    "id": "Namespace ID",
+    "copy": "Copy namespace ID",
+    "owner": "Owner",
+    "suspendedTitle": "This namespace is suspended",
+    "suspendedBody": "Its packages are not served to clients and cannot be changed. Contact an administrator to restore it."
+  },
+  "quota": {
+    "title": "Quota usage",
+    "description": "Limits that apply to everything in your namespace.",
+    "packages": "Packages",
+    "storage": "Storage",
+    "of": "{{used}} / {{limit}}",
+    "maxAsset": "Largest single asset: {{size}}"
+  },
+  "col": {
+    "name": "Name",
+    "package": "Package",
+    "visibility": "Visibility",
+    "updated": "Updated"
+  },
+  "visibility": {
+    "private": "Private",
+    "public": "Public"
+  },
+  "signatureRequired": "Signature required",
+  "empty": {
+    "title": "No packages yet",
+    "body": "Create a package here, then publish versions from CI with an access token.",
+    "tokensLink": "Manage access tokens"
+  },
+  "create": {
+    "open": "Create package",
+    "title": "Create package",
+    "description": "A package groups the versions of one application.",
+    "blockedSuspended": "Your namespace is suspended, so packages cannot be created.",
+    "blockedQuota": "You have reached your package limit. Delete a package or ask an administrator to raise the limit.",
+    "slug": "Slug",
+    "slugRule": "Lowercase letters, digits and -; cannot start with -; at most {{max}} characters. Unique within your namespace.",
+    "slugPermanent": "The slug cannot be changed later: it is used in the package URL and as the lode app name.",
+    "slugPreview": "Package path:",
+    "slugError": {
+      "empty": "Enter a slug.",
+      "leadingDash": "The slug cannot start with -.",
+      "uppercase": "Use lowercase letters only.",
+      "illegalChar": "Only lowercase letters, digits and - are allowed.",
+      "tooLong": "The slug can be at most {{max}} characters."
+    },
+    "name": "Name",
+    "namePlaceholder": "My App",
+    "nameHint": "Display name, 1 to {{max}} characters. You can change it later.",
+    "nameError": {
+      "empty": "Enter a name.",
+      "tooLong": "The name can be at most {{max}} characters.",
+      "controlChar": "The name cannot contain control characters."
+    },
+    "visibility": "Visibility",
+    "visibilityHint": {
+      "private": "Downloads need an access token with read access.",
+      "public": "Anyone can download this package without a token."
+    },
+    "descriptionField": "Description (optional)",
+    "requireSignature": "Require signature",
+    "requireSignatureHint": "Refuse assets that are uploaded without a valid signature from one of your signing keys.",
+    "submit": "Create package",
+    "created": "Package {{name}} created"
+  }
+}

@@ -1,0 +1,89 @@
+name: publish
+
+# Publishes a release of this repository's package to a lode registry with
+# `lode-cli publish`.
+#
+# Copy this file to .github/workflows/publish.yml in the package's own
+# repository and configure what README.md next to it lists.
+#
+# The workflow runs when a GitHub release is published; the version is the
+# release tag without its leading "v". It can also be started by hand for a
+# version, which is how a failed run is retried: the script continues into
+# the draft the failed run left.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish, e.g. 1.4.2"
+        required: true
+        type: string
+      channel:
+        description: "Channel that will point at the version"
+        required: false
+        default: stable
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.event.release.tag_name || inputs.version }}
+  cancel-in-progress: false
+
+env:
+  # Pin to a release you have reviewed.
+  LODE_IMAGE: docker.io/bkhq/lode:v0.0.1
+  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.version }}
+  CHANNEL: ${{ inputs.channel || 'stable' }}
+
+jobs:
+  publish:
+    name: publish to the lode registry
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      # The registry version is the tag without its leading "v".
+      - name: Resolve version
+        run: echo "RELEASE_VERSION=${RELEASE_TAG#v}" >> "$GITHUB_ENV"
+
+      # PLACEHOLDER: replace with your build. It has to leave every asset of
+      # the release in dist/, named the way operators select it in
+      # `[update].asset` (for example myapp-linux-x64.tar.gz).
+      - name: Build release assets
+        run: |
+          echo "::error::replace this step with your build; it must write the release assets to dist/"
+          exit 1
+
+      # lode-cli ships inside the bkhq/lode image as /usr/bin/lode; the
+      # binary is copied out, nothing is run from the image.
+      - name: Install lode-cli
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lode/bin"
+          cid="$(docker create "$LODE_IMAGE")"
+          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          docker cp "$cid:/usr/bin/lode" "$RUNNER_TEMP/lode/bin/lode-cli"
+          chmod +x "$RUNNER_TEMP/lode/bin/lode-cli"
+          echo "$RUNNER_TEMP/lode/bin" >> "$GITHUB_PATH"
+
+      # Both secrets reach the command through the environment only. With a
+      # signing key the assets are signed and the public key is registered
+      # for the package; without one they are uploaded unsigned. Add
+      # `--notes "<text>"` to store release notes with the version.
+      - name: Publish
+        env:
+          LODE_REGISTRY_TOKEN: ${{ secrets.LODE_REGISTRY_TOKEN }}
+          LODE_SIGNING_KEY: ${{ secrets.LODE_SIGNING_KEY }}
+          # Unset means the default registry, https://lode.bk.io/u.
+          LODE_REGISTRY_URL: ${{ vars.LODE_REGISTRY_URL }}
+          LODE_PACKAGE: ${{ vars.LODE_PACKAGE }}
+        run: |
+          set -euo pipefail
+          args=(--package "$LODE_PACKAGE" --version "$RELEASE_VERSION" --channel "$CHANNEL")
+          [ -z "${LODE_REGISTRY_URL:-}" ] || args+=(--registry "$LODE_REGISTRY_URL")
+          [ -z "${LODE_SIGNING_KEY:-}" ] || args+=(--key-env LODE_SIGNING_KEY)
+          lode-cli publish "${args[@]}" dist/*

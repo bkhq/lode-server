@@ -1,0 +1,65 @@
+{
+  "name": "@app/monorepo",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-user lode package registry on Cloudflare Workers.",
+  "homepage": "https://github.com/bkhq/lode-server",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bkhq/lode-server.git"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "catalog": {
+    "typescript": "6.0.3",
+    "vitest": "5.0.0"
+  },
+  "scripts": {
+    "dev": "bun run --filter '@app/*' dev",
+    "dev:all": "bun scripts/dev-all.ts",
+    "dev:dex": "bun scripts/dev-dex.ts",
+    "build": "bun run --filter '*' build",
+    "lint": "eslint apps/ packages/ scripts/ tests/ eslint.config.ts --ext .ts,.tsx",
+    "lint:fix": "eslint apps/ packages/ scripts/ eslint.config.ts --ext .ts,.tsx --fix",
+    "typecheck": "bun run --filter '*' typecheck",
+    "test": "bun run --filter '*' test",
+    "test:e2e": "bun tests/e2e/run.ts",
+    "test:workers": "bun tests/workers/smoke.ts",
+    "check": "bun run lint && bun run typecheck && bun run test && bun run build && bun run check:i18n && bun run check:env-docs && bun run check:api-docs",
+    "check:i18n": "bun scripts/check-i18n.ts",
+    "i18n:unused": "bun scripts/find-unused-i18n.ts",
+    "i18n:clean": "bun scripts/clean-unused-i18n.ts",
+    "check:env-docs": "bun scripts/gen-env-docs.ts --check",
+    "check:api-docs": "bun run --filter @app/api check:api-docs",
+    "gen:env-docs": "bun scripts/gen-env-docs.ts",
+    "gen:api-docs": "bun run --filter @app/api gen:api-docs",
+    "package": "bun scripts/package.ts",
+    "clean": "bun scripts/clean.ts",
+    "clean:all": "bun scripts/clean.ts --all",
+    "rebrand": "bun scripts/rebrand.ts",
+    "hash-password": "bun scripts/hash-password.ts"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "9.5.1",
+    "@app/tsconfig": "workspace:*",
+    "@eslint-react/eslint-plugin": "5.19.1",
+    "@nsio/nsl": "0.1.7",
+    "consola": "3.4.2",
+    "eslint": "10.10.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.7",
+    "otpauth": "9.5.2",
+    "typescript": "catalog:"
+  },
+  "overrides": {
+    "esbuild": "^0.25.0",
+    "qs": "^6.15.2",
+    "dompurify": "^3.4.16",
+    "source-map-js": "^1.2.2",
+    "@modelcontextprotocol/sdk": "^1.31.0",
+    "hono": "4.13.7"
+  }
+}

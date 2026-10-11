@@ -1,0 +1,46 @@
+# Production-style lode deployment behind an external Traefik reverse proxy.
+#
+# The image runs lode (see Dockerfile); lode downloads, verifies, and
+# supervises the app release (update / rollback). App runtime env comes from
+# `.env.docker` (copy `.env.docker.example`) and is passed through to the app
+# by lode. The lode operator config is `deploy/lode.toml` — edit it for your
+# release repo and update policy.
+#
+# Prerequisites:
+#   - An external Docker network named `traefik`:
+#       docker network create traefik
+#   - A `.env.docker` next to this file (copy `.env.docker.example`).
+#
+# `${APP_NAME}` is substituted from a `.env` in this directory (default `lode-server`).
+# Routing is left to your Traefik configuration; add labels here if preferred.
+services:
+  app:
+    container_name: ${APP_NAME:-lode-server}
+    hostname: ${APP_NAME:-lode-server}
+    image: ${APP_NAME:-lode-server}:latest
+    build:
+      context: .
+    restart: unless-stopped
+    # Defence in depth: the Dockerfile already runs as the unprivileged
+    # `bun` user; drop every capability and forbid privilege escalation so
+    # a compromised process cannot regain any.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    env_file:
+      - .env.docker
+    volumes:
+      # Persists lode.toml + downloaded versions/ + state.json + data/.
+      - lode-data:/srv/lode
+      # The operator config (edit deploy/lode.toml for your release source).
+      - ./deploy/lode.toml:/srv/lode/lode.toml:ro
+    networks:
+      - traefik
+
+volumes:
+  lode-data:
+
+networks:
+  traefik:
+    external: true
