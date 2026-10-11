@@ -94,7 +94,7 @@ jobs:
           extra_args: --results=verified,unknown
 
       - name: osv-scanner (dependency CVEs)
-        uses: google/osv-scanner-action/osv-scanner-action@v2.3.8
+        uses: google/osv-scanner-action/osv-scanner-action@v2.6.0
         with:
           scan-args: |-
             --lockfile=bun.lock
