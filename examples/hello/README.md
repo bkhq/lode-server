@@ -28,7 +28,7 @@ a shell script, packed into one asset.
    name; copy it out of the image:
 
    ```bash
-   cid=$(docker create docker.io/bkhq/lode:latest)
+   cid=$(docker create docker.io/bkhq/lode:latest-mini)
    docker cp "$cid:/usr/bin/lode" ~/.local/bin/lode-cli && docker rm "$cid"
    ```
 

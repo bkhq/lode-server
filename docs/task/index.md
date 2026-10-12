@@ -40,3 +40,4 @@ Each task is a single line linking to its detail file. All detailed information 
 - [x] [**20261011-1443-artifact-signature-v2 Verify lode's app-bound asset signature**](20261011-1443-artifact-signature-v2.md) `P1`
 - [x] [**20261011-2134-ci-and-dependency-updates Repair the CI workflow and take the pending dependency updates**](20261011-2134-ci-and-dependency-updates.md) `P2`
 - [x] [**20261012-1120-workers-build-info Report the real build identifiers on the Workers deployment**](20261012-1120-workers-build-info.md) `P2`
+- [x] [**20261012-1852-lode-mini-pin Pin lode to v0.0.3-mini and document the publish workflow**](20261012-1852-lode-mini-pin.md) `P2`

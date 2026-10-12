@@ -212,7 +212,7 @@ jobs:
       # binary from this image, by the tag lode.test.ts names. In CI a
       # missing binary fails those suites instead of skipping them.
       - name: Pull the lode image for the real-client suites
-        run: docker pull docker.io/bkhq/lode:v0.0.1
+        run: docker pull docker.io/bkhq/lode:v0.0.3-mini
 
       - name: Run e2e suite
         run: bun run test:e2e

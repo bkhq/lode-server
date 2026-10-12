@@ -25,9 +25,9 @@ const BIG_SIZE = SINGLE_REQUEST_MAX + 1024 * 1024;
 
 // The signing case needs `lode-cli`; it is looked for the way lode.test.ts
 // does it: `E2E_LODE_BIN`, the cached binary of an earlier run, or the local
-// image `bkhq/lode:v0.0.1`. With none of them that one case is skipped.
-const LODE_DIR = join(CACHE_DIR, "lode-v0.0.1");
-const LODE_IMAGE = "bkhq/lode:v0.0.1";
+// image `bkhq/lode:v0.0.3-mini`. With none of them that one case is skipped.
+const LODE_DIR = join(CACHE_DIR, "lode-v0.0.3");
+const LODE_IMAGE = "bkhq/lode:v0.0.3-mini";
 
 function runs(bin: string): boolean {
   try {

@@ -14,7 +14,7 @@ set -euo pipefail
 : "${RELEASE_VERSION:?RELEASE_VERSION is required}"
 : "${LODE_SIGNING_KEY:?LODE_SIGNING_KEY is required}"
 
-LODE_IMAGE="${LODE_IMAGE:-docker.io/bkhq/lode:v0.0.1}"
+LODE_IMAGE="${LODE_IMAGE:-docker.io/bkhq/lode:v0.0.3-mini}"
 cid="$(docker create "$LODE_IMAGE")"
 trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
 docker cp "$cid:/usr/bin/lode" ./lode-cli

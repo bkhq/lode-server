@@ -6,7 +6,7 @@
 # update / rollback. The app's writable state lives on the /srv/lode volume,
 # separate from the swappable version directories.
 ARG BUN_IMAGE=docker.io/oven/bun:1.4.2-debian
-ARG LODE_IMAGE=docker.io/bkhq/lode:v0.0.1
+ARG LODE_IMAGE=docker.io/bkhq/lode:v0.0.3-mini
 
 FROM ${LODE_IMAGE} AS lode
 

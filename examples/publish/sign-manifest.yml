@@ -35,14 +35,15 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # Pin to a release you have reviewed.
-  LODE_IMAGE: docker.io/bkhq/lode:v0.0.1
+  # The -mini image holds only the lode binary. Pin to a release you have
+  # reviewed; `latest-mini` follows the newest one.
+  LODE_IMAGE: docker.io/bkhq/lode:v0.0.3-mini
 
 jobs:
   sign:
     name: sign the registry manifest
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - name: Install lode-cli

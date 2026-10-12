@@ -37,7 +37,62 @@ LODE_REGISTRY_TOKEN=pat_... lode-cli publish \
 - If a run fails, run it again with the same version: it continues into the draft. Publishing a version that is already published fails; use a new version number.
 - A package with "require signature" turned on refuses an unsigned release.
 
-In GitHub Actions, store the token as the secret `LODE_REGISTRY_TOKEN` and run the same command. A complete workflow: https://github.com/bkhq/lode-server/blob/main/examples/publish/publish.yml
+### Recommended GitHub Actions workflow
+
+Release from the package's own repository when a GitHub release is published. Save this as `.github/workflows/publish.yml` and replace the build step:
+
+```yaml
+name: publish
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+env:
+  # The -mini image holds only the lode binary (about 3 MB). Pin a release you have reviewed.
+  LODE_IMAGE: docker.io/bkhq/lode:v0.0.3-mini
+
+jobs:
+  publish:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      # Replace with your build. It must leave every asset in dist/, named the
+      # way hosts select it in `[update].asset`, for example myapp-linux-x64.tar.gz.
+      - name: Build release assets
+        run: ./build.sh
+
+      # lode-cli is the lode binary under another name. The image has no shell,
+      # so copy the binary out; do not `docker run` a command in it.
+      - name: Install lode-cli
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lode/bin"
+          cid="$(docker create "$LODE_IMAGE")"
+          docker cp "$cid:/usr/bin/lode" "$RUNNER_TEMP/lode/bin/lode-cli"
+          docker rm "$cid" >/dev/null
+          echo "$RUNNER_TEMP/lode/bin" >> "$GITHUB_PATH"
+
+      - name: Publish
+        env:
+          LODE_REGISTRY_TOKEN: ${{ secrets.LODE_REGISTRY_TOKEN }}
+          LODE_SIGNING_KEY: ${{ secrets.LODE_SIGNING_KEY }}
+          LODE_PACKAGE: ${{ vars.LODE_PACKAGE }}   # <namespace>/<slug>
+        run: |
+          lode-cli publish --package "$LODE_PACKAGE" --version "${GITHUB_REF_NAME#v}" \
+            --key-env LODE_SIGNING_KEY dist/*
+```
+
+- Secrets: `LODE_REGISTRY_TOKEN`, a token with a `write` grant on this package only, and `LODE_SIGNING_KEY`, the seed from `lode-cli keygen`. Variable: `LODE_PACKAGE`. To publish unsigned, drop `LODE_SIGNING_KEY` and the `--key-env` flag.
+- The version is the release tag without its leading `v`. A failed run can be started again for the same tag.
+- Keep `contents: read` and pass secrets through `env` only, as above; never interpolate them into the command line.
+- `LODE_IMAGE` can be `docker.io/bkhq/lode:latest-mini` to follow the newest lode instead of a pinned one.
+- The maintained copy, with a manual trigger for a chosen version and channel: https://github.com/bkhq/lode-server/blob/main/examples/publish/publish.yml. To keep the manifest signed as well: https://github.com/bkhq/lode-server/blob/main/examples/publish/sign-manifest.yml
 
 ## Run a package on a host
 
@@ -86,7 +141,10 @@ run = "./myapp"
   ```
 
   Other archives: `lode-linux-arm64.tar.gz`, `lode-darwin-arm64.tar.gz`, `lode-darwin-x64.tar.gz`.
-- Container image, holding only the binary at `/usr/bin/lode`: `docker.io/bkhq/lode`
+- Container image `docker.io/bkhq/lode`, with the binary at `/usr/bin/lode`. Tags are release tags (`v0.0.3`) and `latest`, each in three variants:
+  - `-mini` (`v0.0.3-mini`, `latest-mini`): the binary and nothing else, a few MB, no libc and no shell. Use it to copy the binary out, or to run a static app.
+  - `-slim` (`v0.0.3-slim`, `latest-slim`): Debian slim, with glibc and a shell, for apps that need them or a downloaded Bun, Node or Deno.
+  - no suffix: the full base image.
 
 ## Using lode
 
@@ -126,7 +184,7 @@ LODE_DIR=/srv/lode lode
 - To put lode in your own image, copy the binary in and make it the entry point:
 
   ```dockerfile
-  COPY --from=docker.io/bkhq/lode:latest /usr/bin/lode /usr/bin/lode
+  COPY --from=docker.io/bkhq/lode:latest-mini /usr/bin/lode /usr/bin/lode
   ENTRYPOINT ["/usr/bin/lode"]
   ```
 

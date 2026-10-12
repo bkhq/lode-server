@@ -9,7 +9,7 @@ import { API_BASE } from "../../lib/api";
 import { getClient } from "../../lib/oidc";
 import { createDraft, createPackage, createToken, deletePackage, FEED_BASE, manifestOf, packagePath, publish, registerKey, setChannel, text, uniqueSlug, uploadAsset } from "./helpers";
 
-// The registry driven by the real lode client (v0.0.1): the `lode` supervisor
+// The registry driven by the real lode client (v0.0.3): the `lode` supervisor
 // bootstraps and auto-updates from the live read feed, `lode-cli` generates
 // the publisher key and signs the assets. Nothing here re-implements what
 // lode does; every scenario asserts on lode's own exit status, its log output
@@ -19,15 +19,15 @@ import { createDraft, createPackage, createToken, deletePackage, FEED_BASE, mani
 // on loopback (lode allows plain http there). It is looked for in this order:
 //
 //   1. `E2E_LODE_BIN` — path to a `lode` binary;
-//   2. `tests/e2e/.cache/lode-v0.0.1/lode` — left by an earlier run;
-//   3. extracted from the local image `bkhq/lode:v0.0.1`
-//      (`docker pull docker.io/bkhq/lode:v0.0.1` once) into that cache path.
+//   2. `tests/e2e/.cache/lode-v0.0.3/lode` — left by an earlier run;
+//   3. extracted from the local image `bkhq/lode:v0.0.3-mini`
+//      (`docker pull docker.io/bkhq/lode:v0.0.3-mini` once) into that cache path.
 //
 // With none of them the suite is skipped, with a message, and does not fail.
 
 const CACHE_DIR = resolve(import.meta.dir, "../../.cache");
-const LODE_DIR = join(CACHE_DIR, "lode-v0.0.1");
-const LODE_IMAGE = "bkhq/lode:v0.0.1";
+const LODE_DIR = join(CACHE_DIR, "lode-v0.0.3");
+const LODE_IMAGE = "bkhq/lode:v0.0.3-mini";
 const SIGN_SCRIPT = resolve(import.meta.dir, "../../../../scripts/sign-manifest.sh");
 
 function runs(bin: string): boolean {

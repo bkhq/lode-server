@@ -13,6 +13,18 @@ This repository is a fork: the dated entries directly below are Lode
 Server's own, and everything from `Unreleased` down is the upstream
 template's history, kept unchanged.
 
+## 2026-10-12 18:52 [ci] [web] [examples] [docs]
+
+### Changed
+
+The pinned lode image is `docker.io/bkhq/lode:v0.0.3-mini` (task
+`20261012-1852-lode-mini-pin`): the runtime `Dockerfile`,
+`scripts/ci/sign-release.sh`, the `e2e` job, the e2e suites and
+`examples/publish/`. Everything here only copies `/usr/bin/lode` out of the
+image, and the mini variant holds nothing else. `llms.txt` has a recommended
+GitHub Actions publish workflow in full and describes the image variants.
+The example workflows run on `ubuntu-26.04`.
+
 ## 2026-10-12 11:20 [ci] [docs]
 
 ### Fixed
