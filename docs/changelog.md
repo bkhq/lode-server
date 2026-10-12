@@ -13,6 +13,18 @@ This repository is a fork: the dated entries directly below are Lode
 Server's own, and everything from `Unreleased` down is the upstream
 template's history, kept unchanged.
 
+## 2026-10-12 11:20 [ci] [docs]
+
+### Fixed
+
+Settings → About on the Workers deployment reported `0.0.0-dev`, `dev` and
+the isolate's start time (task `20261012-1120-workers-build-info`). The
+`deploy` job of the `workers` workflow now passes `BUILD_VERSION` (root
+`package.json`), `BUILD_COMMIT` and `BUILD_TIME` (the commit's time) to
+`wrangler deploy`, as `scripts/package.ts` does for the lode asset. A manual
+`wrangler deploy` still gets the placeholders unless it passes the same
+`--define` flags.
+
 ## 2026-10-11 21:34 [ci] [deps] [docs]
 
 CI repair and dependency updates (task

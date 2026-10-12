@@ -440,7 +440,15 @@ jobs:
         working-directory: apps/api
         run: |
           set -euo pipefail
-          bunx wrangler deploy 2>&1 | tee /tmp/deploy.log
+          # What the About page reports. Without these the bundle falls back
+          # to its dev placeholders.
+          commit="${GITHUB_SHA:0:12}"
+          build_time="$(TZ=UTC git show -s --date=format-local:%Y-%m-%dT%H:%M:%SZ --format=%cd HEAD)"
+          version="$(jq -r .version ../../package.json)"
+          bunx wrangler deploy \
+            --define "BUILD_COMMIT:\"$commit\"" \
+            --define "BUILD_TIME:\"$build_time\"" \
+            --define "BUILD_VERSION:\"$version\"" 2>&1 | tee /tmp/deploy.log
           if [ -n "${CUSTOM_DOMAIN:-}" ]; then
             # The suite must target the same origin the app was told it has,
             # or the CSRF guard rejects every mutating request.
