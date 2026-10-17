@@ -35,7 +35,7 @@ concurrency:
 env:
   # The -mini image holds only the lode binary. Pin to a release you have
   # reviewed; `latest-mini` follows the newest one.
-  LODE_IMAGE: docker.io/bkhq/lode:v0.0.3-mini
+  LODE_IMAGE: docker.io/bkhq/lode:v0.1.0-mini
   RELEASE_TAG: ${{ github.event.release.tag_name || inputs.version }}
   CHANNEL: ${{ inputs.channel || 'stable' }}
 

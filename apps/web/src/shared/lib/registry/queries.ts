@@ -4,10 +4,12 @@ import {
   adminListNamespaces,
   adminListPackages,
   adminListTokens,
+  getDelegation,
   getManifestSignature,
   getNamespace,
   getPackage,
   getQuota,
+  getRevocations,
   listKeys,
   listPackages,
   listTokens,
@@ -27,6 +29,8 @@ export const registryKeys = {
   versions: (ns: string, pkg: string) => [...registryKeys.package(ns, pkg), "versions"] as const,
   keys: (ns: string, pkg: string) => [...registryKeys.package(ns, pkg), "keys"] as const,
   manifestSignature: (ns: string, pkg: string) => [...registryKeys.package(ns, pkg), "manifest-signature"] as const,
+  delegation: (ns: string, pkg: string) => [...registryKeys.package(ns, pkg), "delegation"] as const,
+  revocations: (ns: string, pkg: string) => [...registryKeys.package(ns, pkg), "revocations"] as const,
   admin: () => [...registryKeys.all, "admin"] as const,
   adminNamespaces: () => [...registryKeys.admin(), "namespaces"] as const,
   adminPackages: () => [...registryKeys.admin(), "packages"] as const,
@@ -45,6 +49,14 @@ export function keysQuery(ns: string, pkg: string) {
 
 export function manifestSignatureQuery(ns: string, pkg: string) {
   return queryOptions({ queryKey: registryKeys.manifestSignature(ns, pkg), queryFn: () => getManifestSignature(ns, pkg) });
+}
+
+export function delegationQuery(ns: string, pkg: string) {
+  return queryOptions({ queryKey: registryKeys.delegation(ns, pkg), queryFn: () => getDelegation(ns, pkg) });
+}
+
+export function revocationsQuery(ns: string, pkg: string) {
+  return queryOptions({ queryKey: registryKeys.revocations(ns, pkg), queryFn: () => getRevocations(ns, pkg) });
 }
 
 export function packagesQuery() {

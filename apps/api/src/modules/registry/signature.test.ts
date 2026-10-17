@@ -4,13 +4,16 @@ import {
   artifactMessage,
   canonicalCatalog,
   decodeBase64Flexible,
+  delegationMessage,
   encodeBase64Url,
   keyIdOf,
   manifestExpiryMessage,
   manifestMessage,
+  revocationMessage,
   verifyArtifactSignature,
   verifyEd25519,
 } from "./signature";
+import delegated from "./testdata/delegation-vectors.json";
 import manifests from "./testdata/manifest-vectors.json";
 import fixture from "./testdata/vectors.json";
 
@@ -314,5 +317,67 @@ describe("manifest signature", () => {
     }))).toBe(false);
     expect(await verifies(signed, "other")).toBe(false);
     expect(await verifies(signed, signed.name, "ffffffffffffffff")).toBe(false);
+  });
+});
+
+// Signed by the real `lode-cli delegate`, `manifest-sign --delegation` and
+// `revoke`; see testdata/README.md.
+describe("delegation", () => {
+  const { root, sub, delegation } = delegated;
+  const messageOf = (d: typeof delegation, keyB64 = sub.publicKey) =>
+    delegationMessage(d.name, keyB64, d.not_before, d.not_after);
+
+  test("matches lode's canonical bytes", () => {
+    expect(decoder.decode(delegationMessage("myapp", "AAAA", 10, 20))).toBe("lode.delegation.v1\nmyapp\ned25519\nAAAA\n10\n20");
+  });
+
+  test("lode's root signature verifies over the rebuilt message", async () => {
+    expect(delegation.key).toBe(`ed25519:${sub.keyId}:${sub.publicKey}`);
+    expect(await verifyEd25519(root.publicKey, delegation.sig, messageOf(delegation))).toBe(true);
+  });
+
+  test("every bound field breaks it, and only the root's key verifies it", async () => {
+    const verifies = async (d: typeof delegation) => await verifyEd25519(root.publicKey, delegation.sig, messageOf(d));
+    expect(await verifies({ ...delegation, name: "other" })).toBe(false);
+    expect(await verifies({ ...delegation, not_before: delegation.not_before - 1 })).toBe(false);
+    expect(await verifies({ ...delegation, not_after: delegation.not_after + 1 })).toBe(false);
+    expect(await verifyEd25519(root.publicKey, delegation.sig, messageOf(delegation, delegated.other.publicKey))).toBe(false);
+    expect(await verifyEd25519(sub.publicKey, delegation.sig, messageOf(delegation))).toBe(false);
+  });
+
+  test("the sub-key's manifest signature verifies like a root's", async () => {
+    const { manifest } = delegated;
+    const catalog = canonicalCatalog(manifest);
+    expect(manifest.key_id).toBe(sub.keyId);
+    expect(manifest.delegation).toEqual(delegation);
+    expect(await verifyEd25519(sub.publicKey, manifest.sig, manifestMessage(manifest.name, manifest.key_id, catalog))).toBe(true);
+    expect(await verifyEd25519(sub.publicKey, manifest.expires_sig, manifestExpiryMessage(manifest.name, manifest.key_id, manifest.expires, catalog))).toBe(true);
+  });
+});
+
+describe("revocation list", () => {
+  const { root, sub, revocationsByRoot, revocationsBySub } = delegated;
+  const messageOf = (list: { key_id: string; issued_at: number; revoked: string[] }) =>
+    revocationMessage(list.key_id, list.issued_at, list.revoked);
+
+  test("matches lode's canonical bytes: ids sorted and deduplicated, no trailing newline", () => {
+    expect(decoder.decode(revocationMessage("k", 5, ["b", "a", "b"]))).toBe("lode.revocations.v1\nk\n5\na\nb");
+    expect(decoder.decode(revocationMessage("k", 5, []))).toBe("lode.revocations.v1\nk\n5");
+  });
+
+  test("lode's root- and sub-key-signed lists verify over the rebuilt message", async () => {
+    expect(revocationsByRoot.key_id).toBe(root.keyId);
+    expect(await verifyEd25519(root.publicKey, revocationsByRoot.sig, messageOf(revocationsByRoot))).toBe(true);
+    expect(revocationsBySub.key_id).toBe(sub.keyId);
+    expect(revocationsBySub.delegation).toEqual(delegated.delegation);
+    expect(await verifyEd25519(sub.publicKey, revocationsBySub.sig, messageOf(revocationsBySub))).toBe(true);
+  });
+
+  test("the order of the ids is not bound; their set, the time and the signer are", async () => {
+    const verifies = async (list: typeof revocationsBySub) => await verifyEd25519(sub.publicKey, revocationsBySub.sig, messageOf(list));
+    expect(await verifies({ ...revocationsBySub, revoked: [...revocationsBySub.revoked].reverse() })).toBe(true);
+    expect(await verifies({ ...revocationsBySub, revoked: revocationsBySub.revoked.slice(1) })).toBe(false);
+    expect(await verifies({ ...revocationsBySub, issued_at: revocationsBySub.issued_at + 1 })).toBe(false);
+    expect(await verifies({ ...revocationsBySub, key_id: root.keyId })).toBe(false);
   });
 });

@@ -73,7 +73,7 @@ python3 + tar) into `tests/e2e/.cache/dex` and reused.
 | `versions.test.ts`, `uploads.test.ts` | Draft → upload → publish, signatures, channels, yank / restore; one real multipart upload (64 MiB + 1 MiB in two parts). |
 | `admin.test.ts`, `audit.test.ts` | Administration routes, quota overrides, namespace suspension; audit entries. |
 | `feed.test.ts` | The `/r` read feed: manifest, cache headers, the identical 404, private packages. |
-| `lode.test.ts` | The real `lode` / `lode-cli` 0.3.3 binaries against the live feed: signed under `enforce`, unsigned under `off`, rollback refusal, private package. |
+| `lode.test.ts` | The real `lode` / `lode-cli` 0.1.0 binaries against the live feed: signed under `enforce`, unsigned under `off`, rollback refusal, private package, publisher-signed manifest, delegated signing with revocation and re-sign (skipped on an `E2E_LODE_BIN` older than 0.1.0). |
 | `publish.test.ts` | Runs `scripts/publish.sh` as a subprocess, the way a publisher's CI does: draft → upload → publish, re-run into an existing draft, refusals. It moves one asset of about 96 MiB through the multipart path, and signs with `lode-cli` in one case. |
 | `helpers.ts` | Shared request helpers; not a suite. |
 
@@ -82,9 +82,9 @@ python3 + tar) into `tests/e2e/.cache/dex` and reused.
 the test host. It is looked for in this order:
 
 1. `E2E_LODE_BIN` — path to a `lode` binary;
-2. `tests/e2e/.cache/lode-v0.0.3/lode` — left by an earlier run;
-3. extraction from the local image `bkhq/lode:v0.0.3-mini` into that cache path.
-   Pull it once with `docker pull docker.io/bkhq/lode:v0.0.3-mini`; the container
+2. `tests/e2e/.cache/lode-v0.1.0/lode` — left by an earlier run;
+3. extraction from the local image `bkhq/lode:v0.1.0-mini` into that cache path.
+   Pull it once with `docker pull docker.io/bkhq/lode:v0.1.0-mini`; the container
    is created, never started, and removed.
 
 With none of them the real-client cases are **skipped with a message**

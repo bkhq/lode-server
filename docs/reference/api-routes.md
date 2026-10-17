@@ -5,7 +5,7 @@
 > [`api.md`](api.md); this file is the flat per-route index that CI
 > verifies is up to date.
 
-> 130 routes total.
+> 136 routes total.
 
 | Method | Path |
 |---|---|
@@ -105,18 +105,24 @@
 | GET | `/api/registry/packages/:ns/:pkg` |
 | PATCH | `/api/registry/packages/:ns/:pkg` |
 | PUT | `/api/registry/packages/:ns/:pkg/channels/:channel` |
+| DELETE | `/api/registry/packages/:ns/:pkg/delegation` |
+| GET | `/api/registry/packages/:ns/:pkg/delegation` |
+| PUT | `/api/registry/packages/:ns/:pkg/delegation` |
 | GET | `/api/registry/packages/:ns/:pkg/keys` |
 | POST | `/api/registry/packages/:ns/:pkg/keys` |
 | DELETE | `/api/registry/packages/:ns/:pkg/keys/:id` |
 | DELETE | `/api/registry/packages/:ns/:pkg/manifest-signature` |
 | GET | `/api/registry/packages/:ns/:pkg/manifest-signature` |
 | PUT | `/api/registry/packages/:ns/:pkg/manifest-signature` |
+| GET | `/api/registry/packages/:ns/:pkg/revocations` |
+| PUT | `/api/registry/packages/:ns/:pkg/revocations` |
 | GET | `/api/registry/packages/:ns/:pkg/versions` |
 | POST | `/api/registry/packages/:ns/:pkg/versions` |
 | DELETE | `/api/registry/packages/:ns/:pkg/versions/:ver` |
 | GET | `/api/registry/packages/:ns/:pkg/versions/:ver` |
 | DELETE | `/api/registry/packages/:ns/:pkg/versions/:ver/assets/:asset` |
 | PUT | `/api/registry/packages/:ns/:pkg/versions/:ver/assets/:asset` |
+| PUT | `/api/registry/packages/:ns/:pkg/versions/:ver/assets/:asset/signature` |
 | POST | `/api/registry/packages/:ns/:pkg/versions/:ver/publish` |
 | POST | `/api/registry/packages/:ns/:pkg/versions/:ver/restore` |
 | POST | `/api/registry/packages/:ns/:pkg/versions/:ver/uploads` |

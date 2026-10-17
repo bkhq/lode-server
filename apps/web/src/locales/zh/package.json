@@ -143,7 +143,15 @@
     "manifestExpires": "签名将于 {{date}} 过期；请在此之前重新签名，否则所有主机都会停止更新。",
     "manifestStale": "清单在上次签名后发生了变化，目前以未签名形式提供。设置了 require_manifest 的主机在重新签名前不会获取更新。",
     "manifestExpired": "清单签名已于 {{date}} 过期，清单目前以未签名形式提供。设置了 require_manifest 的主机在重新签名前不会获取更新。",
-    "manifestRevoked": "清单签名所用的密钥已被吊销，清单目前以未签名形式提供。请使用有效密钥重新签名。"
+    "manifestRevoked": "清单签名所用的密钥已被吊销，清单目前以未签名形式提供。请使用有效密钥重新签名。",
+    "delegation": "委托签名",
+    "delegationLive": "密钥 {{key}} 代表根密钥 {{root}} 为此软件包签名，有效期至 {{date}}。清单会携带该委托；主机需要 lode 0.1.0 或更高版本，并且只需信任根密钥。请在到期前使用 lode-cli delegate 续期。",
+    "delegationPending": "对密钥 {{key}} 的委托将于 {{date}} 生效。在此之前不会提供该委托，该密钥的签名也不被接受。",
+    "delegationExpired": "对密钥 {{key}} 的委托已于 {{date}} 过期，目前不再提供。该密钥签署的资产和清单签名在强制验签的主机上会失败，直到续期或重新签名。",
+    "delegationRevoked": "对密钥 {{key}} 的委托已失效：其根密钥已被吊销，或吊销列表中包含该密钥。目前不再提供该委托，该密钥签署的内容在强制验签的主机上会失败，直到重新签名。",
+    "revocations": "吊销列表",
+    "revocationsInfo": "签发于 {{date}}。已吊销的密钥：{{ids}}。上面的 lode.toml 已通过 revocation_url 订阅该列表。",
+    "revocationsEmpty": "签发于 {{date}}。目前没有吊销任何密钥。上面的 lode.toml 已通过 revocation_url 订阅该列表。"
   },
   "settings": {
     "general": "基本信息",

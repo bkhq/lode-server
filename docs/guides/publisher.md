@@ -76,7 +76,8 @@ What to know:
   `INVALID_PUBLIC_KEY`).
 - **Revocation is final.** `DELETE /api/registry/packages/<namespace>/<slug>/keys/:id` stops new uploads
   verifying under the key, and the same key cannot be registered again.
-  Signatures already stored stay in the manifest.
+  Signatures already stored stay in the manifest; re-sign an asset with
+  `PUT …/versions/<ver>/assets/<name>/signature` (see below).
 - **`require_signature` on a package** makes the registry refuse an unsigned
   upload (400 `SIGNATURE_REQUIRED`). Without it an unsigned asset is
   accepted and served without a signature, and lode installs it only when
@@ -133,6 +134,55 @@ The package's Install tab shows the state: signed and until when, or why it
 is not. Look at what the script prints before trusting a scheduled run with
 your key: a signature vouches for every version and channel in the manifest
 at that moment, including one somebody else released with a stolen token.
+
+### Delegated signing: keep the root key offline
+
+With lode 0.1.0 your registered key can stay off CI altogether. It signs a
+**delegation** for a second key, the sub-key, for one package and a window;
+CI holds only the sub-key, and operators keep trusting only the root.
+Hosts on lode 0.0.3 or older refuse sub-key signatures: upgrade them first
+(`lode-cli status` lists `delegation` among its features).
+
+```bash
+# Once, where the root key lives:
+lode-cli keygen --out root                # register root's key for the package; give operators its trusted_keys entry
+lode-cli keygen --out ci                  # the sub-key; ci.key becomes the CI secret LODE_SIGNING_KEY
+lode-cli delegate --key root.key --sub ci.pub --app <slug> --valid-for 30d --out delegation.json
+curl -X PUT -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  --data-binary @delegation.json https://<host>/api/registry/packages/<namespace>/<slug>/delegation
+```
+
+Store the delegation before CI first publishes with the sub-key. From then
+on `lode-cli publish --key-env LODE_SIGNING_KEY` and `scripts/sign-manifest.sh`
+work with the sub-key unchanged: the registry accepts its signatures while
+the delegation is live and serves the delegation in the manifest. Do not
+register the sub-key as a key of the package — the registry refuses (409
+`KEY_EXISTS` for a live sub-key, 409 `KEY_REGISTERED` the other way round).
+
+- **Renew before `not_after`.** Run `lode-cli delegate` again for the same
+  sub-key with a new window and `PUT` it. A lapsed delegation is not served,
+  and hosts refuse what the sub-key signed.
+- **Revoke a leaked sub-key** with a signed revocation list, which the
+  registry serves at `/r/<namespace>/<slug>/revocations.json` for hosts that
+  set `[trust].revocation_url`:
+
+  ```bash
+  lode-cli revoke --key root.key --list revocations.json --add <sub key_id>
+  curl -X PUT … --data-binary @revocations.json …/packages/<namespace>/<slug>/revocations
+  ```
+
+  Keep `revocations.json` and add to it: the registry only takes a newer list
+  that keeps every id it has. A sub-key can sign a list too, with
+  `--delegation`.
+- **Moving to a new sub-key** leaves the assets the old one signed failing on
+  `enforce` hosts, since a manifest carries one delegation. Re-sign them:
+  `lode-cli sign <file> --app <slug> --version <ver> --key new.key`, then
+  `PUT …/versions/<ver>/assets/<name>/signature` with `{ "sig": "…" }`. This
+  works on published and yanked versions and does not touch the manifest
+  signature.
+
+The Install tab shows the delegation and the revocation list; its
+`lode.toml` pins the root key and subscribes to the list.
 
 ## 4. Tokens and grants
 

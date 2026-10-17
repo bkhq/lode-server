@@ -12,6 +12,7 @@ import { authRequired } from "@/shared/middleware/auth";
 import { listGrantedPackages, requestToken, requirePackageAccess } from "./access";
 import { registryAdminRoutes } from "./admin.routes";
 import { getActiveBlobStore } from "./blob";
+import { registryDelegationRoutes } from "./delegation.routes";
 import { listKeys, registerKey, revokeKey } from "./key.service";
 import {
   createPackage,
@@ -372,6 +373,7 @@ export function registryRoutes() {
   );
 
   router.route("/", registryReleaseRoutes());
+  router.route("/", registryDelegationRoutes());
   router.route("/", registryUploadRoutes());
   router.route("/", registryTokenRoutes());
   router.route("/", registryAdminRoutes());

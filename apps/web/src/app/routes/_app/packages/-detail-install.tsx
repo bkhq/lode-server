@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { formatDateTime } from "@/shared/lib/format";
-import { keysQuery, manifestSignatureQuery } from "@/shared/lib/registry/queries";
+import { delegationQuery, keysQuery, manifestSignatureQuery, revocationsQuery } from "@/shared/lib/registry/queries";
 import { buildSnippet } from "./-detail-snippet";
 
 interface InstallTabProps {
@@ -45,6 +45,8 @@ export function InstallTab({ pkg, versions, channels, canWrite, onOpenKeys }: In
   const keys = useQuery(keysQuery(pkg.namespace, pkg.slug));
   const signature = useQuery(manifestSignatureQuery(pkg.namespace, pkg.slug)).data;
   const expiry = signature && signature.expires !== null ? formatDateTime(signature.expires * 1000) : null;
+  const delegation = useQuery(delegationQuery(pkg.namespace, pkg.slug)).data;
+  const revocations = useQuery(revocationsQuery(pkg.namespace, pkg.slug)).data;
   const [channelChoice, setChannelChoice] = useState<string | null>(null);
   const [assetChoice, setAssetChoice] = useState<string | null>(null);
 
@@ -64,6 +66,8 @@ export function InstallTab({ pkg, versions, channels, canWrite, onOpenKeys }: In
     channel: channel?.name ?? null,
     asset: asset ? { name: asset.name, key_id: asset.key_id, run: asset.run } : null,
     keys: (keys.data ?? []).filter(k => k.revoked_at === null),
+    delegation: delegation?.status === "live" ? delegation : null,
+    hasRevocations: Boolean(revocations),
   });
 
   return (
@@ -167,6 +171,38 @@ export function InstallTab({ pkg, versions, channels, canWrite, onOpenKeys }: In
                   {signature.status === "revoked" && t("package:install.manifestRevoked")}
                 </p>
               )}
+        </div>
+      )}
+
+      {delegation && (
+        <div className="space-y-1 text-sm">
+          <Label>{t("package:install.delegation")}</Label>
+          {delegation.status === "live" || delegation.status === "pending"
+            ? (
+                <p className="text-muted-foreground">
+                  {delegation.status === "live"
+                    ? t("package:install.delegationLive", { key: delegation.key_id, root: delegation.root_key_id, date: formatDateTime(delegation.not_after * 1000) })
+                    : t("package:install.delegationPending", { key: delegation.key_id, date: formatDateTime(delegation.not_before * 1000) })}
+                </p>
+              )
+            : (
+                <p className="rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2" role="alert">
+                  {delegation.status === "expired"
+                    ? t("package:install.delegationExpired", { key: delegation.key_id, date: formatDateTime(delegation.not_after * 1000) })
+                    : t("package:install.delegationRevoked", { key: delegation.key_id })}
+                </p>
+              )}
+        </div>
+      )}
+
+      {revocations && (
+        <div className="space-y-1 text-sm">
+          <Label>{t("package:install.revocations")}</Label>
+          <p className="text-muted-foreground">
+            {revocations.revoked.length > 0
+              ? t("package:install.revocationsInfo", { date: formatDateTime(revocations.issued_at * 1000), ids: revocations.revoked.join(", ") })
+              : t("package:install.revocationsEmpty", { date: formatDateTime(revocations.issued_at * 1000) })}
+          </p>
         </div>
       )}
 

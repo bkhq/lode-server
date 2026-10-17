@@ -3,13 +3,14 @@ import type { BlobPart, BlobStoreConfig } from "./blob";
 import type { getEffectiveQuota } from "./registry.service";
 import type { AssetDeclaration, RegistryAsset } from "./release.service";
 import type { AppDatabase } from "@/db";
-import { and, asc, eq, isNull, lte } from "drizzle-orm";
+import { and, asc, eq, lte } from "drizzle-orm";
 import { AppError, NotFoundError } from "@/shared/lib/errors";
 import { nanoid } from "@/shared/lib/id";
 import { BlobMultipartError, BlobPutError, getActiveBlobStore, sha256OfBlob } from "./blob";
+import { signingKeys } from "./delegation.service";
 import { abortUploadsInStore, assetBlobKey } from "./registry.service";
 import { admitUpload, claim, notDraft, requireDraft } from "./release.service";
-import { registryAssets, registryKeys, registryUploads, registryVersions } from "./schema";
+import { registryAssets, registryUploads, registryVersions } from "./schema";
 
 type UploadConfig = BlobStoreConfig & Parameters<typeof getEffectiveQuota>[2] & { REGISTRY_UPLOAD_TTL_SECONDS: number };
 
@@ -50,12 +51,7 @@ function uploadExpired(): AppError {
 }
 
 async function isActiveKey(db: AppDatabase, packageId: string, keyId: string): Promise<boolean> {
-  const key = await db
-    .select({ id: registryKeys.id })
-    .from(registryKeys)
-    .where(and(eq(registryKeys.packageId, packageId), eq(registryKeys.keyId, keyId), isNull(registryKeys.revokedAt)))
-    .get();
-  return key !== undefined;
+  return (await signingKeys(db, packageId)).some(key => key.keyId === keyId);
 }
 
 export interface StartedUpload {
@@ -200,11 +196,11 @@ export async function completeUpload(db: AppDatabase, config: BlobStoreConfig, t
       await db.delete(registryUploads).where(thisUpload).run();
       throw notDraft(version.version);
     }
-    // The signature was checked at start; its key may have been revoked since.
+    // The signature was checked at start; its key may have been revoked, or its delegation lapsed, since.
     if (upload.keyId !== null && !(await isActiveKey(db, pkg.id, upload.keyId))) {
       await abortUploadsInStore(store, [{ key, r2UploadId: upload.r2UploadId }]);
       await db.delete(registryUploads).where(thisUpload).run();
-      throw new AppError("The key this upload was signed with has been revoked", 400, "INVALID_SIGNATURE");
+      throw new AppError("The key this upload was signed with is no longer a signing key of the package", 400, "INVALID_SIGNATURE");
     }
 
     const parts = partsOf(upload);

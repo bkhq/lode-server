@@ -6,6 +6,7 @@ import type {
   CreatePackageInput,
   CreateTokenInput,
   CreateVersionInput,
+  Delegation,
   Grants,
   ManifestSignature,
   Namespace,
@@ -14,6 +15,7 @@ import type {
   RegisterKeyInput,
   RegistryPackage,
   RegistryToken,
+  RevocationList,
   SigningKey,
   UpdatePackageInput,
   UserQuota,
@@ -85,6 +87,14 @@ export function listKeys(ns: string, pkg: string): Promise<SigningKey[]> {
 
 export function getManifestSignature(ns: string, pkg: string): Promise<ManifestSignature | null> {
   return request(`${packagePath(ns, pkg)}/manifest-signature`);
+}
+
+export function getDelegation(ns: string, pkg: string): Promise<Delegation | null> {
+  return request(`${packagePath(ns, pkg)}/delegation`);
+}
+
+export function getRevocations(ns: string, pkg: string): Promise<RevocationList | null> {
+  return request(`${packagePath(ns, pkg)}/revocations`);
 }
 
 export function registerKey(ns: string, pkg: string, input: RegisterKeyInput): Promise<SigningKey> {

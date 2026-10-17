@@ -154,6 +154,9 @@ function spawnApi(dataDir: string): Subprocess {
       // covered by its unit tests and the workers smoke suite.
       CREATE_RATE_LIMIT_PER_MINUTE: "1000",
       CREATE_RATE_LIMIT_PER_HOUR: "10000",
+      // The same for the read feed: every lode host of the real-client suite
+      // polls it once a second from loopback, one client to the limiter.
+      RAW_API_RATE_LIMIT_PER_MINUTE: "1000",
       // Cron defaults to off; the orchestrator's e2e suite covers the
       // catalog routes, so flip it on for every API spawn.
       CRON_ENABLED: "true",

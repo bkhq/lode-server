@@ -1,6 +1,6 @@
 import type { SnippetInput } from "./-detail-snippet";
 import { describe, expect, it } from "vitest";
-import { ASSET_PLACEHOLDER, buildSnippet, manifestUrl, PUBLIC_KEY_PLACEHOLDER } from "./-detail-snippet";
+import { ASSET_PLACEHOLDER, buildSnippet, manifestUrl, PUBLIC_KEY_PLACEHOLDER, revocationsUrl } from "./-detail-snippet";
 
 const KEY = { key_id: "0123456789abcdef", public_key: "pk-base64url" };
 
@@ -12,6 +12,8 @@ function input(overrides: Partial<SnippetInput> = {}): SnippetInput {
     visibility: "public",
     asset: null,
     keys: [KEY],
+    delegation: null,
+    hasRevocations: false,
     ...overrides,
   };
 }
@@ -20,6 +22,13 @@ describe("manifestUrl", () => {
   it("joins the origin and the feed path", () => {
     expect(manifestUrl("https://lode.example.com", "abcd1234", "myapp"))
       .toBe("https://lode.example.com/r/abcd1234/myapp/manifest.json");
+  });
+});
+
+describe("revocationsUrl", () => {
+  it("sits beside the manifest", () => {
+    expect(revocationsUrl("https://lode.example.com", "abcd1234", "myapp"))
+      .toBe("https://lode.example.com/r/abcd1234/myapp/revocations.json");
   });
 });
 
@@ -122,5 +131,36 @@ describe("buildSnippet", () => {
     const published = buildSnippet(input({ asset: { name: "myapp.tar.gz", key_id: null, run: "./bin/myapp serve" } }));
     expect(published.text).not.toContain("[command]");
     expect(buildSnippet(input({ asset: { name: "myapp.tar.gz", key_id: null, run: null } })).text).toContain("run = \"./myapp\"");
+  });
+
+  it("trusts the delegation's root, not the sub-key, for an asset the sub-key signed", () => {
+    const delegation = { key_id: "1111222233334444", root_key_id: KEY.key_id };
+    const snippet = buildSnippet(input({ asset: { name: "myapp.tar.gz", key_id: delegation.key_id }, delegation }));
+
+    expect(snippet.signed).toBe(true);
+    expect(snippet.keyKnown).toBe(true);
+    expect(snippet.complete).toBe(true);
+    expect(snippet.text).toContain([
+      "[trust]",
+      "# Needs lode 0.1.0 or later.",
+      "require_signature = \"enforce\"",
+      "trusted_keys = [\"0123456789abcdef:pk-base64url\"]",
+      "",
+    ].join("\n"));
+    expect(snippet.text).not.toContain(delegation.key_id);
+  });
+
+  it("subscribes to the revocation list when the package has one", () => {
+    const snippet = buildSnippet(input({ asset: { name: "myapp.tar.gz", key_id: KEY.key_id }, hasRevocations: true }));
+    expect(snippet.text).toContain([
+      "[trust]",
+      "# Needs lode 0.1.0 or later.",
+      "require_signature = \"enforce\"",
+      "trusted_keys = [\"0123456789abcdef:pk-base64url\"]",
+      "revocation_url = \"https://lode.example.com/r/abcd1234/myapp/revocations.json\"",
+      "",
+    ].join("\n"));
+    // Nothing to check it with on an unsigned asset.
+    expect(buildSnippet(input({ asset: { name: "myapp.tar.gz", key_id: null }, hasRevocations: true })).text).not.toContain("revocation_url");
   });
 });

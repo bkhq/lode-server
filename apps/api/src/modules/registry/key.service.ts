@@ -3,7 +3,7 @@ import { Buffer } from "node:buffer";
 import { and, asc, eq } from "drizzle-orm";
 import { AppError, isUniqueViolation, NotFoundError } from "@/shared/lib/errors";
 import { nanoid } from "@/shared/lib/id";
-import { registryKeys } from "./schema";
+import { registryDelegations, registryKeys, registryRevocationLists } from "./schema";
 
 export type RegistryKey = typeof registryKeys.$inferSelect;
 
@@ -84,12 +84,20 @@ export async function registerKey(
   input: { readonly publicKey: string; readonly name: string },
 ): Promise<RegistryKey> {
   const bytes = parsePublicKey(input.publicKey);
+  const keyId = await deriveKeyId(bytes);
+  const revocations = await db.select({ revoked: registryRevocationLists.revoked }).from(registryRevocationLists).where(eq(registryRevocationLists.packageId, packageId)).get();
+  if (revocations && (JSON.parse(revocations.revoked) as string[]).includes(keyId))
+    throw new AppError("This key is on the package's revocation list", 400, "KEY_REVOKED");
+  // A sub-key stays one: registered, it would be trusted without its delegation.
+  const delegation = await db.select({ keyId: registryDelegations.keyId }).from(registryDelegations).where(eq(registryDelegations.packageId, packageId)).get();
+  if (delegation?.keyId === keyId)
+    throw new AppError("This key is the package's delegated signing key", 409, "KEY_EXISTS");
   const id = nanoid();
   try {
     await db.insert(registryKeys).values({
       id,
       packageId,
-      keyId: await deriveKeyId(bytes),
+      keyId,
       alg: "ed25519",
       publicKey: Buffer.from(bytes).toString("base64url"),
       name: input.name,

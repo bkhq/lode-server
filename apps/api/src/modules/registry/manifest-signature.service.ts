@@ -1,9 +1,10 @@
 import type { RegistryPackage } from "./access";
 import type { Manifest } from "./feed.service";
 import type { AppDatabase } from "@/db";
-import { and, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { AppError } from "@/shared/lib/errors";
-import { registryKeys, registryManifestSignatures } from "./schema";
+import { signingKeys } from "./delegation.service";
+import { registryManifestSignatures } from "./schema";
 import { canonicalCatalog, manifestExpiryMessage, manifestMessage, verifyEd25519 } from "./signature";
 
 // The publisher's signature over the manifest the registry generates (lode's
@@ -19,7 +20,8 @@ export type ManifestSignature = typeof registryManifestSignatures.$inferSelect;
  * - `live`: attached to the manifest;
  * - `stale`: the catalog changed since it was made (a publish, a channel move, a yank or restore);
  * - `expired`: its `expires` has passed;
- * - `revoked`: its key is no longer an active signing key of the package.
+ * - `revoked`: its key is no longer a signing key of the package: a revoked
+ *   registered key, or the sub-key of a delegation no longer live.
  */
 export type ManifestSignatureStatus = "live" | "stale" | "expired" | "revoked";
 
@@ -36,12 +38,8 @@ async function catalogSha256(catalog: string): Promise<string> {
   return Array.from(digest, byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function activeKey(db: AppDatabase, packageId: string, keyId: string) {
-  return await db
-    .select()
-    .from(registryKeys)
-    .where(and(eq(registryKeys.packageId, packageId), eq(registryKeys.keyId, keyId), eq(registryKeys.alg, "ed25519"), isNull(registryKeys.revokedAt)))
-    .get();
+async function activeKey(db: AppDatabase, packageId: string, keyId: string, now: number) {
+  return (await signingKeys(db, packageId, now)).find(key => key.keyId === keyId);
 }
 
 export async function findManifestSignature(db: AppDatabase, packageId: string): Promise<ManifestSignature | undefined> {
@@ -50,7 +48,7 @@ export async function findManifestSignature(db: AppDatabase, packageId: string):
 
 /** Where `stored` stands against `manifest`, the package's manifest as generated now. */
 export async function manifestSignatureStatus(db: AppDatabase, stored: ManifestSignature, manifest: Manifest, now = Date.now()): Promise<ManifestSignatureStatus> {
-  if (!(await activeKey(db, stored.packageId, stored.keyId)))
+  if (!(await activeKey(db, stored.packageId, stored.keyId, now)))
     return "revoked";
   if (stored.catalogSha256 !== await catalogSha256(canonicalCatalog(manifest)))
     return "stale";
@@ -88,7 +86,7 @@ export async function withManifestSignature(db: AppDatabase, pkg: RegistryPackag
  * against the rebuilt catalog first: nothing unverified is stored.
  */
 export async function putManifestSignature(db: AppDatabase, pkg: RegistryPackage, manifest: Manifest, input: ManifestSignatureInput, now = Date.now()): Promise<ManifestSignature> {
-  const key = await activeKey(db, pkg.id, input.keyId);
+  const key = await activeKey(db, pkg.id, input.keyId, now);
   if (!key)
     throw new AppError(`${input.keyId} is not an active signing key of this package`, 400, "UNKNOWN_KEY");
   if (input.expires !== undefined && input.expires <= Math.floor(now / 1000))

@@ -1,4 +1,5 @@
 import type { RegistryPackage } from "./access";
+import type { DelegationDocument } from "./delegation.service";
 import type { RegistryAsset, RegistryVersion } from "./release.service";
 import type { AppDatabase } from "@/db";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
@@ -20,8 +21,9 @@ export interface ManifestAsset {
 /**
  * The `lode/v1` manifest as lode's `manifest.rs` reads it. The top-level
  * `key_id` / `sig` and `expires` / `expires_sig` are the publisher's
- * signature over the catalog; `buildManifest` never sets them, see
- * `withManifestSignature`.
+ * signature over the catalog, `delegation` the package's delegation;
+ * `buildManifest` never sets them, see `withManifestSignature` and
+ * `withDelegation`.
  */
 export interface Manifest {
   schema: "lode/v1";
@@ -31,6 +33,7 @@ export interface Manifest {
   /** Unix seconds. */
   expires?: number;
   expires_sig?: string;
+  delegation?: DelegationDocument;
   channels: Record<string, { latest: string }>;
   versions: Record<string, { notes?: string; assets: ManifestAsset[] }>;
 }

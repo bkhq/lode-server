@@ -33,7 +33,8 @@
 #                        the package.
 #   LODE_SIGNING_KEY     Required. The key seed from `lode-cli keygen`. Its
 #                        public half must be registered for the package,
-#                        which `lode-cli publish --key-env` does.
+#                        which `lode-cli publish --key-env` does, or be the
+#                        sub-key of the package's live delegation.
 #
 # The registry generates the manifest, so the script never signs a change it
 # was not told about: a scheduled run renews an unchanged manifest, and

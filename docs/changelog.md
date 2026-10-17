@@ -13,6 +13,37 @@ This repository is a fork: the dated entries directly below are Lode
 Server's own, and everything from `Unreleased` down is the upstream
 template's history, kept unchanged.
 
+## 2026-10-16 02:24 [api] [web] [ci] [examples] [docs]
+
+### Added
+
+Delegated signing and revocation lists from lode 0.1.0 (task
+`20261016-0224-delegated-signing`). A package's registered keys act as
+roots: `PUT …/delegation` stores the delegation `lode-cli delegate` writes,
+and while it is live the manifest carries it as `delegation` and the
+registry accepts the sub-key's signatures on uploads, the multipart
+completion check and the manifest signature. `PUT …/revocations` stores the
+signed list `lode-cli revoke` writes, newer and never shorter than the
+stored one, and the feed serves it at `/r/<ns>/<pkg>/revocations.json`; a
+revoked sub-key stops verifying and its delegation is no longer served.
+`PUT …/versions/:ver/assets/:asset/signature` replaces an asset's signature
+in any version state, so older versions stay installable after a sub-key
+rotation. Registering the live sub-key as a key answers 409 `KEY_EXISTS`,
+which `lode-cli publish --key-env` takes as done. New tables
+`registry_delegations` and `registry_revocation_lists` (migration
+`0003_delegation`, in the registry backup); the three new mutations are in
+the `packages:write` token scope and audited. The Install tab shows the
+delegation and the list, and its `lode.toml` pins the delegation's root and
+sets `revocation_url`.
+
+### Changed
+
+The pinned lode image is `docker.io/bkhq/lode:v0.1.0-mini`, in the same
+places as before. The real-client e2e case for delegated signing is skipped,
+with a message, on an `E2E_LODE_BIN` older than 0.1.0, and the cached
+`lode-cli` link follows the binary located. The e2e API runs with `RAW_API_RATE_LIMIT_PER_MINUTE=1000`:
+the real-client suite's hosts poll the feed from one loopback client.
+
 ## 2026-10-12 18:52 [ci] [web] [examples] [docs]
 
 ### Changed

@@ -1,0 +1,94 @@
+{
+  "generator": "lode-cli 0.1.0",
+  "root": {
+    "alg": "ed25519",
+    "keyId": "4f230a48d3a355b7",
+    "publicKey": "kcGzYQn2G2L4IuELPUOEjqOngpRsJeiNBgaJJDoCt_U"
+  },
+  "sub": {
+    "alg": "ed25519",
+    "keyId": "12830a7307864b17",
+    "publicKey": "zf8ZnzXRFADdWQFwSvg1nshLfJzTSxCNEkqY5IbLRyk"
+  },
+  "other": {
+    "alg": "ed25519",
+    "keyId": "11b02060c456056a",
+    "publicKey": "fSzQFqkHjvpRdP-u2MUvLBx-cL3U5XDD3-K35Kfo_-Q"
+  },
+  "delegation": {
+    "key": "ed25519:12830a7307864b17:zf8ZnzXRFADdWQFwSvg1nshLfJzTSxCNEkqY5IbLRyk",
+    "name": "demo",
+    "not_before": 1760000000,
+    "not_after": 4913600000,
+    "issuer": "4f230a48d3a355b7",
+    "sig": "NfxDgN-34CaR8FbOaWL7vicvUGW3gDdWsC-qlMiAzoohC18SjPV4PdB4aTnKTINzOkuWoGIjGDFLtwT21zXnCA"
+  },
+  "delegationByOther": {
+    "key": "ed25519:12830a7307864b17:zf8ZnzXRFADdWQFwSvg1nshLfJzTSxCNEkqY5IbLRyk",
+    "name": "demo",
+    "not_before": 1760000000,
+    "not_after": 4913600000,
+    "issuer": "11b02060c456056a",
+    "sig": "m9pTUFdJ4rMdNXSkB_r3unwUj4Kn4havnlKx_1Ef75pql38KWMV--LGXQ9Iu1eEi0R78wH6ls49tcksidhjUDQ"
+  },
+  "manifest": {
+    "channels": {
+      "stable": {
+        "latest": "1.0.0"
+      }
+    },
+    "delegation": {
+      "issuer": "4f230a48d3a355b7",
+      "key": "ed25519:12830a7307864b17:zf8ZnzXRFADdWQFwSvg1nshLfJzTSxCNEkqY5IbLRyk",
+      "name": "demo",
+      "not_after": 4913600000,
+      "not_before": 1760000000,
+      "sig": "NfxDgN-34CaR8FbOaWL7vicvUGW3gDdWsC-qlMiAzoohC18SjPV4PdB4aTnKTINzOkuWoGIjGDFLtwT21zXnCA"
+    },
+    "expires": 4945717598,
+    "expires_sig": "Fs_Qd_d0XqkKUzi_2BuQ0OC1XIuxi7e8ZRt3ExeDTE7JK8T_9o5ipNKAOL1562chG5PAguPl3VDmrVmz3VssDA",
+    "key_id": "12830a7307864b17",
+    "name": "demo",
+    "schema": "lode/v1",
+    "sig": "8gbMNJO62Hs78fuPNTI4psxqBSYGx7PqFGPRyMBavG4dMkPRCQLWpiwzXoA4X-TmbprMJq5E7AmaEQZS_iHlDQ",
+    "versions": {
+      "1.0.0": {
+        "assets": [
+          {
+            "name": "demo-linux-x64.tar.gz",
+            "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+            "size": 1,
+            "url": "https://example.test/a"
+          }
+        ]
+      }
+    }
+  },
+  "revocationsByRoot": {
+    "schema": "lode-revocations/v1",
+    "issued_at": 1792117598,
+    "revoked": [
+      "0123456789abcdef"
+    ],
+    "key_id": "4f230a48d3a355b7",
+    "sig": "9vlF8rVR1U0FyU1ivJnko4R6lM2YNr16ezYivRjhHTNomaSqi1L0H0jDdKdw-KU9pguTlfLt8ll0PkkE5zerBQ"
+  },
+  "revocationsBySub": {
+    "schema": "lode-revocations/v1",
+    "issued_at": 1792117599,
+    "revoked": [
+      "0123456789abcdef",
+      "fedcba9876543210"
+    ],
+    "key_id": "12830a7307864b17",
+    "delegation": {
+      "key": "ed25519:12830a7307864b17:zf8ZnzXRFADdWQFwSvg1nshLfJzTSxCNEkqY5IbLRyk",
+      "name": "demo",
+      "not_before": 1760000000,
+      "not_after": 4913600000,
+      "issuer": "4f230a48d3a355b7",
+      "sig": "NfxDgN-34CaR8FbOaWL7vicvUGW3gDdWsC-qlMiAzoohC18SjPV4PdB4aTnKTINzOkuWoGIjGDFLtwT21zXnCA"
+    },
+    "sig": "WcM97qm7x5CX0Ui-cz-RgPtJCkS6ynYnygFSx0fzWliB7h_9L3BaNuiNP3wnYr9evNIzQPUa4LAL1dNDV1CDDQ"
+  }
+}

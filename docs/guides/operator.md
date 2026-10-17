@@ -86,6 +86,28 @@ what you turn on:
   `signed` or `fresh` refuses it for that time with
   `require_manifest=… but the manifest has no signature`.
 
+**Delegated signing** (lode 0.1.0 or later). A publisher may keep the key
+you pin offline and sign releases with a sub-key it delegated to. The
+manifest then carries that `delegation`, and lode accepts the sub-key's
+signatures on assets and on the manifest while the delegation is within its
+window. You still pin only the root key; the Install tab's `lode.toml` does
+that. lode 0.0.3 and older reject sub-key signatures with
+`signature did not match any trusted key`.
+
+To drop a leaked sub-key before its delegation runs out, subscribe to the
+package's revocation list:
+
+```toml
+revocation_url = "https://<host>/r/<namespace>/<slug>/revocations.json"   # in [trust]
+```
+
+lode fetches it on every update check, verifies it against your trusted
+keys, keeps every id it has seen in `$LODE_DIR/revocations.json`, and never
+fails an update because the list is unreachable. A private package's list
+needs the same `[http].headers` as its manifest. The registry also stops
+serving a revoked sub-key's delegation at once, so hosts without the setting
+refuse it too, on their next manifest fetch.
+
 **The downgrade floor** protects the channel pointer. When it follows a
 channel, lode refuses a version older than the one it has already installed.
 If a pointer is rolled back — by the publisher or by anyone who gained

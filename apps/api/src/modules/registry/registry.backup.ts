@@ -2,12 +2,14 @@ import type { BackupContribution } from "@/modules/backup/registry";
 import {
   registryAssets,
   registryChannels,
+  registryDelegations,
   registryKeys,
   registryManifestSignatures,
   registryNamespaces,
   registryPackages,
   registryQuotas,
   registryRetiredVersions,
+  registryRevocationLists,
   registryUploads,
   registryVersions,
 } from "./schema";
@@ -32,6 +34,8 @@ export const registryBackupContribution: BackupContribution = {
     registryAssets,
     registryChannels,
     registryManifestSignatures,
+    registryDelegations,
+    registryRevocationLists,
     registryUploads,
     registryQuotas,
   ],

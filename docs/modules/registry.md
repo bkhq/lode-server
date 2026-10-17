@@ -41,7 +41,7 @@ inline in the manifest.
 ```text
 apps/api/src/modules/registry/
   index.ts              # registrations: policy namespace, backup contribution, token scopes; re-exports
-  schema.ts             # the eleven registry_* tables
+  schema.ts             # the thirteen registry_* tables
   wire.ts               # snake_case wire shapes and view functions shared by the route files
   validate.ts           # lode's id and command-override rules, the package slug rule
   access.ts             # `package` policy resource, requirePackageAccess / requireUploadAccess, token grants, read-token check
@@ -49,7 +49,9 @@ apps/api/src/modules/registry/
   registry.service.ts   # namespace assignment, quotas and usage, package CRUD, blob key layout
   key.service.ts        # public key parsing, key_id derivation, register / revoke
   release.routes.ts     # versions, single-request upload, publish, channels, yank / restore
-  release.service.ts    # drafts, upload admission, signature check, in-flight claims, publish, channels
+  release.service.ts    # drafts, upload admission, signature check, asset re-sign, in-flight claims, publish, channels
+  delegation.routes.ts  # delegation, revocation list, asset re-sign
+  delegation.service.ts # delegation and revocation-list checks, the package's signing keys
   upload.routes.ts      # multipart: start, part, complete, abort
   upload.service.ts     # multipart flow, completion digest, expired-upload sweep pass
   upload.sweep.ts       # schedules the sweep on the platform scheduler
@@ -57,9 +59,9 @@ apps/api/src/modules/registry/
   token.service.ts      # grant resolution, scope derivation
   admin.routes.ts       # /registry/admin (admin session only)
   admin.service.ts      # cross-user lists, namespace status, quota overrides
-  feed.routes.ts        # the read feed: manifest.json and asset download
+  feed.routes.ts        # the read feed: manifest.json, revocations.json and asset download
   feed.service.ts       # lode/v1 manifest generation
-  signature.ts          # lode.artifact.v2 message, base64 forms, ed25519 verification (WebCrypto)
+  signature.ts          # lode's signed messages (artifact, manifest, delegation, revocation list), base64 forms, ed25519 verification (WebCrypto)
   registry.backup.ts    # backup contribution
   blob/                 # BlobStore seam: local driver (Bun), R2 driver (Workers), digest helper
   testdata/             # signature vectors produced by the real lode-cli 0.3.3
@@ -100,19 +102,21 @@ Times are ISO 8601 text.
 | `registry_assets` | `id`, `version_id`, `name`, `size`, `sha256`, `sig`, `key_id`, `alg`, `run`, `exec`, `blob_key`, `created_at` | Unique `(version_id, name)`. `sig` / `key_id` / `alg` are null together for an unsigned asset. |
 | `registry_channels` | `package_id`, `name`, `version_id`, `updated_at` | Primary key `(package_id, name)`. |
 | `registry_manifest_signatures` | `package_id` (PK), `key_id`, `sig`, `expires` (Unix seconds), `expires_sig`, `catalog_sha256`, `updated_at` | The publisher's signature over the generated manifest, at most one per package. `expires` / `expires_sig` are null together. `catalog_sha256` is the digest of the canonical catalog it was verified over. |
+| `registry_delegations` | `package_id` (PK), `key`, `key_id`, `public_key`, `not_before`, `not_after` (Unix seconds), `issuer`, `sig`, `root_key_id`, `updated_at` | The package's delegation, at most one: the sub-key `key_id` (raw key in `public_key`, unpadded base64url) may sign for the package during `[not_before, not_after)`. `root_key_id` is the registered key the signature verified under. `key`, `issuer` and `sig` are served as sent. |
+| `registry_revocation_lists` | `package_id` (PK), `issued_at` (Unix seconds), `revoked` (JSON array of key ids), `key_id`, `delegation` (JSON, signer's delegation), `sig`, `updated_at` | The package's revocation list as the publisher signed it, at most one. Only replaced by a newer list that keeps every id. |
 | `registry_retired_versions` | `namespace_id`, `package_slug`, `version`, `retired_at` | Primary key on the first three. The id of every version that was published and then deleted, alone or with its package. Not tied to the package row, so it holds for a package created again under the slug. |
 | `registry_uploads` | `id`, `version_id`, `asset_name`, `size`, `sha256`, `sig`, `key_id`, `alg`, `run`, `exec`, `r2_upload_id`, `parts` (JSON), `expires_at`, `created_at` | In-flight multipart uploads. The row is also the quota reservation. |
 | `registry_token_grants` | `token_id`, `package_id` (null = every package of the owner), `access` (`read` / `write` / `admin`) | Unique `(token_id, package_id)`, plus a partial unique index on `token_id WHERE package_id IS NULL`. |
 | `registry_quotas` | `user_id` (PK), `max_packages`, `max_storage_bytes`, `max_asset_bytes`, `updated_at` | Per-user overrides; a null column or no row means the platform default. |
 
 Foreign keys: deleting a package cascades to its signing keys, versions,
-assets, channels, manifest signature, uploads and token grants; deleting an `api_tokens` row cascades to
+assets, channels, manifest signature, delegation, revocation list, uploads and token grants; deleting an `api_tokens` row cascades to
 its grants. Nothing cascades from `users` or from a namespace.
 `registry_channels.version_id` has no cascade, so a version a channel points
 at cannot be deleted from under it.
 
 **Backup.** The `registry` contribution (deps `users`, `policies`) covers
-ten of the eleven tables. `registry_token_grants` is excluded: `api_tokens`
+twelve of the thirteen tables. `registry_token_grants` is excluded: `api_tokens`
 is in no backup contribution, and a restore of `users` cascades the tokens
 away, so a restored grant would fail the foreign key check and abort the
 import. A restore therefore drops per-package grants — it fails closed: the
@@ -201,6 +205,11 @@ token whose grant gives it; **Admin** = session of a platform administrator.
 | GET | `/packages/:ns/:pkg/manifest-signature` | Anyone who can read the package | `{ key_id, expires, status, updated_at }` or `null`. `status` is `live`, `stale`, `expired` or `revoked`; see [Manifest signature](#manifest-signature). |
 | PUT | `/packages/:ns/:pkg/manifest-signature` | Session / token(write) | Store the publisher's signature over the current manifest `{ key_id, sig, expires?, expires_sig? }`, replacing an earlier one. 400 `UNKNOWN_KEY`, 400 `MANIFEST_EXPIRED`, 409 `MANIFEST_CHANGED`. |
 | DELETE | `/packages/:ns/:pkg/manifest-signature` | Session / token(write) | Remove it: `{ removed }`. The manifest is served unsigned. |
+| GET | `/packages/:ns/:pkg/delegation` | Anyone who can read the package | `{ key_id, root_key_id, issuer, not_before, not_after, status, updated_at }` or `null`. `status` is `live`, `pending`, `expired` or `revoked`; see [Delegated signing](#delegated-signing). |
+| PUT | `/packages/:ns/:pkg/delegation` | Session / token(write) | Store the delegation `lode-cli delegate` writes `{ key, name, not_before, not_after, issuer?, sig }`, replacing an earlier one. 400 `INVALID_DELEGATION`, 400 `DELEGATION_EXPIRED`, 400 `KEY_REVOKED`, 409 `KEY_REGISTERED`. |
+| DELETE | `/packages/:ns/:pkg/delegation` | Session / token(write) | Remove it: `{ removed }`. |
+| GET | `/packages/:ns/:pkg/revocations` | Anyone who can read the package | `{ issued_at, revoked, key_id, updated_at }` or `null`. |
+| PUT | `/packages/:ns/:pkg/revocations` | Session / token(write) | Store the list `lode-cli revoke` writes. 400 `INVALID_SIGNATURE`, 400 `REVOCATIONS_SHRINK`, 400 `REVOCATIONS_FUTURE`, 409 `REVOCATIONS_OUTDATED`. No `DELETE`. |
 | GET | `/packages` | Session / token(read) | The caller's packages; with a token, the packages it has a grant on. |
 | POST | `/packages` | Session | Create `{ slug, name, visibility?, description?, require_signature? }`. 409 `PACKAGE_EXISTS`, 409 `PACKAGE_QUOTA_EXCEEDED`. |
 | GET | `/packages/:ns/:pkg` | Session / token(read) | Package metadata. |
@@ -217,6 +226,7 @@ token whose grant gives it; **Admin** = session of a platform administrator.
 | DELETE | `/packages/:ns/:pkg/versions/:ver` | draft: Session / token(write); published or yanked: Session (owner or admin) | Delete the version and its stored bytes. The id of a published or yanked version is retired: its assets were served as immutable, so it cannot be created again, also not after the package is deleted and created anew. 409 `VERSION_IN_CHANNEL` while a channel points at it. |
 | PUT | `/packages/:ns/:pkg/versions/:ver/assets/:asset` | Session / token(write) | Single-request upload, see [Uploads](#uploads). 201 new, 200 replaced. |
 | DELETE | `/packages/:ns/:pkg/versions/:ver/assets/:asset` | Session / token(write) | Remove an asset from a draft. |
+| PUT | `/packages/:ns/:pkg/versions/:ver/assets/:asset/signature` | Session / token(write) | `{ sig }` — replace the asset's signature, in any version state. 400 `INVALID_SIGNATURE`. |
 | POST | `/packages/:ns/:pkg/versions/:ver/uploads` | Session / token(write) | Start a multipart upload. |
 | PUT | `/uploads/:uploadId/parts/:n` | Session / token(write) | Upload one part. |
 | POST | `/uploads/:uploadId/complete` | Session / token(write) | Assemble, verify, create the asset. |
@@ -250,6 +260,7 @@ ordinary `/registry/packages/:ns/:pkg` routes.
 | Method | Path | Access | Purpose |
 |---|---|---|---|
 | GET | `/r/:ns/:pkg/manifest.json` | Public, or token(read) for a private package | The generated `lode/v1` manifest. |
+| GET | `/r/:ns/:pkg/revocations.json` | Public, or token(read) for a private package | The package's `lode-revocations/v1` list, as signed; 404 while there is none. |
 | GET | `/r/:ns/:pkg/:ver/:asset` | Public, or token(read) for a private package | The asset bytes, streamed from the blob store. |
 
 - The feed has no session, CSRF, CORS or policy middleware. Access is
@@ -264,7 +275,9 @@ ordinary `/registry/packages/:ns/:pkg` routes.
   first, capped at `REGISTRY_MANIFEST_MAX_VERSIONS` plus the target of every
   channel; `notes` when the version has it; per asset `name`, an absolute
   same-host `url`, `sha256`, `size`, and `sig` / `key_id` / `alg` / `run` /
-  `exec` only when present. No catalog signature.
+  `exec` only when present. The catalog signature and the delegation only
+  while live (see [Manifest signature](#manifest-signature) and
+  [Delegated signing](#delegated-signing)).
 - Caching: a public manifest carries a strong `ETag` and
   `Cache-Control: public, max-age=60` and answers `If-None-Match` with 304; a
   public asset is `public, max-age=31536000, immutable`; everything of a
@@ -379,7 +392,8 @@ its end and discarded, so the client's connection stays usable.
 - When an upload carries `sig`, the server rebuilds lode's message
   `lode.artifact.v2\n{app}\n{name}\n{version}\n{sha256}\n{run}\n{exec}` (no
   trailing newline) and requires it to verify under one of the **package's**
-  active keys; otherwise 400 `INVALID_SIGNATURE`. A signature is never stored
+  signing keys — its active registered keys, and the sub-key of its live
+  delegation; otherwise 400 `INVALID_SIGNATURE`. A signature is never stored
   unverified. `app` is the **package slug** — the manifest `name`, an
   operator's `[global].app`, what `lode-cli sign --app` takes — so an asset
   signed for one package is refused in another that trusts the same key.
@@ -388,14 +402,14 @@ its end and discarded, so the client's connection stays usable.
   `run` / `exec` is the empty string.
 - The check happens at upload for the single-request path and at **start**
   for multipart; completion refuses the upload (400 `INVALID_SIGNATURE`) when
-  that key was revoked in between. The key it verified under is stored and
+  that key stopped being a signing key in between. The key it verified under is stored and
   served as `key_id` / `alg`.
 - `require_signature` on a package refuses an unsigned upload (400
   `SIGNATURE_REQUIRED`). It defaults to off; an unsigned asset is then served
   without `sig`, and lode installs it only under `require_signature = "off"`
   (or `auto` with no trusted keys).
 - Revoking a key stops new uploads verifying under it. Signatures already
-  stored stay in the manifest.
+  stored stay in the manifest; `PUT …/assets/:asset/signature` replaces one.
 
 Byte compatibility with lode is pinned twice: by unit tests over vectors
 from the real `lode-cli sign` and `lode-cli manifest-sign` (`testdata/`), and
@@ -422,7 +436,8 @@ publisher, over the manifest the registry generates:
    `asset\t{name}\t{sha256}\t{run}\t{exec}` lines in manifest order) and
    verifies both signatures over `lode.manifest.v1\n{name}\n{key_id}\n{catalog}`
    and `lode.manifest-expiry.v1\n{name}\n{key_id}\n{expires}\n{catalog}`
-   under the named key, which must be an active key of the package. Nothing
+   under the named key, which must be a signing key of the package (an
+   active registered key, or the sub-key of the live delegation). Nothing
    unverified is stored. A signature that does not verify is a 409
    `MANIFEST_CHANGED`: a wrong signature and a manifest that changed since
    the download look the same, and the remedy — download again, sign again —
@@ -437,7 +452,7 @@ publisher, over the manifest the registry generates:
 | `live` | Matches the catalog, key active, not expired | signed |
 | `stale` | The catalog changed: a publish, a channel move, a yank or a restore | unsigned |
 | `expired` | `expires` has passed | unsigned |
-| `revoked` | The key was revoked | unsigned |
+| `revoked` | The key was revoked, or it is a sub-key whose delegation is no longer live | unsigned |
 
 Why unsigned rather than the old signature: lode rejects a manifest whose
 signature does not verify, and enforces an `expires` whenever the field is
@@ -457,6 +472,57 @@ Consequences:
   to a minute after it lapsed, and refuses that one response. Keep expiries
   in days.
 
+### Delegated signing
+
+lode 0.1.0 lets a root key stay offline: it signs a **delegation** for a
+sub-key, scoped to one manifest `name` and a window, and the sub-key signs the
+catalog, its expiry and the assets. The delegation is not part of any signed
+message; the manifest carries it as the top-level `delegation`. Hosts trust
+the root only. lode 0.0.3 and older reject sub-key signatures.
+
+The package's registered keys are its roots. `PUT …/delegation` takes the JSON
+`lode-cli delegate --app <slug>` writes and stores it once:
+
+- `name` is the package slug and `key` an ed25519 key
+  (`[ed25519:][<key_id>:]<base64>`), else 400 `INVALID_DELEGATION`;
+- an active registered key verifies `sig` over
+  `lode.delegation.v1\n{name}\ned25519\n{sub_key_base64url}\n{not_before}\n{not_after}`
+  (`issuer` first, then every key), else 400 `INVALID_DELEGATION`;
+- `not_after` lies ahead (400 `DELEGATION_EXPIRED`) and after `not_before`;
+- the sub-key is not on the revocation list (400 `KEY_REVOKED`) and is not, and
+  never was, a registered key of the package (409 `KEY_REGISTERED`).
+
+| `status` | Meaning | Manifest | Sub-key signs |
+|---|---|---|---|
+| `live` | Within `[not_before, not_after)`, root active, sub-key not revoked | `delegation` served | yes |
+| `pending` | `not_before` lies ahead | — | no |
+| `expired` | `not_after` has passed | — | no |
+| `revoked` | The root key was revoked, or the revocation list names the sub-key | — | no |
+
+While it is live, the sub-key counts as a signing key of the package for
+uploads, the multipart completion check, the manifest signature and asset
+re-signs. Registering the sub-key as a key answers 409 `KEY_EXISTS`, so
+`lode-cli publish --key-env <sub-key>` goes on without making it a root.
+
+**Revocation list.** `PUT …/revocations` takes the list `lode-cli revoke`
+writes and serves it at `/r/<ns>/<pkg>/revocations.json`, the URL a host sets
+as `[trust].revocation_url`. It is verified as lode verifies it: `sig` over
+`lode.revocations.v1\n{key_id}\n{issued_at}` and the sorted, deduplicated ids,
+one per line, under an active registered key or a sub-key with its own valid
+`delegation` for the slug that the stored list does not revoke. Hosts merge
+lists grow-only and ignore one not newer than theirs, so the registry requires
+a later `issued_at` (409 `REVOCATIONS_OUTDATED`), at most an hour ahead of its
+clock (400 `REVOCATIONS_FUTURE`), and every stored id (400
+`REVOCATIONS_SHRINK`). Ids are 16 lowercase hex characters. A revoked sub-key
+stops signing here at once and its delegation is no longer served.
+
+**Rotation.** One delegation per manifest: renew it for the same sub-key with
+a new window. Moving to a new sub-key leaves assets signed by the old one
+failing on `enforce` hosts; `PUT …/versions/:ver/assets/:asset/signature`
+replaces the signature of an asset in any version state, verified like an
+upload's over the stored digest and overrides. `sig` is not in the catalog,
+so a manifest signature stays live.
+
 ## Auditing
 
 Every mutation writes an audit entry (`audit()`), with the acting user as
@@ -474,6 +540,9 @@ differs from the actor for an administrator's action — and
 | `registry.asset.uploaded` / `.deleted` | `registry_asset` | `<ns>/<slug>@<version>/<asset>`; detail has `size`, `sha256`, `key_id`, `replaced`, and `multipart` / `upload_id` for a multipart completion |
 | `registry.channel.updated` | `registry_channel` | `<ns>/<slug>#<channel>` |
 | `registry.manifest.signed` / `.unsigned` | `registry_package` | `<ns>/<slug>`; detail has `key_id` and `expires` |
+| `registry.delegation.set` / `.removed` | `registry_package` | detail has the sub-key `key_id`, `root_key_id` and `not_after` |
+| `registry.revocations.published` | `registry_package` | detail has `issued_at`, `key_id` and `revoked` |
+| `registry.asset.resigned` | `registry_asset` | detail has `key_id` and `previous_key_id` |
 | `registry.upload.started` / `.aborted` | `registry_upload` | single parts are not audited |
 | `registry.token.created` / `.grants_replaced` / `.revoked` | `api_token` | never the secret |
 | `registry.quota.updated` | `registry_quota` | admin |
@@ -524,13 +593,14 @@ the live API (encrypted database, dex login) with the `local` blob driver.
 | `feed.test.ts` (unit, `apps/api`) | Also covers the manifest signature: served while live, dropped when stale, expired or revoked, every refusal of `PUT`, and what a read token, a write token and another user may do. |
 | `feed.test.ts` | Exact `lode/v1` manifest of a public package, `ETag` / 304 / cache headers, asset bytes, drafts and yanked versions not served, the identical 404 body for every refusal, private package only with a read-granted token, read-only. |
 | `audit.test.ts` | Entries for package, version, asset, publish and token mutations, with the acting user, `owner_user_id` and `token_id`. |
-| `lode.test.ts` | The real `lode` / `lode-cli` 0.0.1 binaries against the live feed — see below. |
+| `delegation.test.ts` (unit, `apps/api`) | Delegation, revocation list and asset re-sign: lode's own vectors through the API, every refusal, the status transitions, the effect on uploads, the manifest and key registration, token access. |
+| `lode.test.ts` | The real `lode` / `lode-cli` 0.1.0 binaries against the live feed — see below. |
 | `publish.test.ts` | `lode-cli publish` and `scripts/publish.sh`, each run as a subprocess with a write-granted token: draft → upload → publish, one asset of about 96 MiB through the multipart path, re-run into an existing draft, refusals, and signing with `lode-cli` when a binary is available. |
 
 ### Real-client suite (`lode.test.ts`)
 
 Runs the actual lode supervisor and asserts on its exit status, its log
-output and the files it installs. Five scenarios:
+output and the files it installs. Six scenarios:
 
 1. **Signed, `require_signature = "enforce"`, pinned `trusted_keys`** — key
    from `lode-cli keygen`, registered with the registry; assets signed with
@@ -547,12 +617,19 @@ output and the files it installs. Five scenarios:
    refuses to install while the manifest is unsigned, installs after
    `scripts/sign-manifest.sh` ran, refuses again after a publish that was not
    signed again, and installs once it is.
+6. **Delegated signing** — a host that trusts only the root key, with
+   `require_manifest = "fresh"` and `revocation_url`, installs a release
+   published by `lode-cli publish` with a delegated sub-key and signed by
+   `scripts/sign-manifest.sh` with it; after `lode-cli revoke` the next host
+   refuses it; once a new sub-key re-signs the asset and the manifest, a host
+   installs it again. Skipped with a message when `E2E_LODE_BIN` points at a
+   binary older than 0.1.0.
 
 The lode binary is static and runs directly on the test host; the API is
 reached on loopback, where lode allows plain http. It is located in this
-order: `E2E_LODE_BIN`; `tests/e2e/.cache/lode-v0.0.3/lode` from an earlier run;
-extraction from the local image `bkhq/lode:v0.0.3-mini`
-(`docker pull docker.io/bkhq/lode:v0.0.3-mini` once — the container is created,
+order: `E2E_LODE_BIN`; `tests/e2e/.cache/lode-v0.1.0/lode` from an earlier run;
+extraction from the local image `bkhq/lode:v0.1.0-mini`
+(`docker pull docker.io/bkhq/lode:v0.1.0-mini` once — the container is created,
 never started, and removed). With none of them the suite is **skipped with a
 message**, it does not fail. Operator data dirs and the publisher's private
 key live in a per-run directory under `tests/e2e/.cache/` and are removed

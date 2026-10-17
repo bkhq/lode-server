@@ -80,6 +80,26 @@ export interface ManifestSignature {
   readonly updated_at: string;
 }
 
+// The delegation that lets the sub-key `key_id` sign for the package; the
+// window is Unix seconds.
+export interface Delegation {
+  readonly key_id: string;
+  readonly root_key_id: string;
+  readonly issuer: string | null;
+  readonly not_before: number;
+  readonly not_after: number;
+  readonly status: "live" | "pending" | "expired" | "revoked";
+  readonly updated_at: string;
+}
+
+// The package's revocation list. `issued_at` is Unix seconds.
+export interface RevocationList {
+  readonly issued_at: number;
+  readonly revoked: readonly string[];
+  readonly key_id: string;
+  readonly updated_at: string;
+}
+
 // `sig`, `key_id` and `alg` are null together, for an unsigned asset.
 export interface Asset {
   readonly name: string;

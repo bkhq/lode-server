@@ -53,7 +53,7 @@ permissions:
 
 env:
   # The -mini image holds only the lode binary (about 3 MB). Pin a release you have reviewed.
-  LODE_IMAGE: docker.io/bkhq/lode:v0.0.3-mini
+  LODE_IMAGE: docker.io/bkhq/lode:v0.1.0-mini
 
 jobs:
   publish:
@@ -141,9 +141,9 @@ run = "./myapp"
   ```
 
   Other archives: `lode-linux-arm64.tar.gz`, `lode-darwin-arm64.tar.gz`, `lode-darwin-x64.tar.gz`.
-- Container image `docker.io/bkhq/lode`, with the binary at `/usr/bin/lode`. Tags are release tags (`v0.0.3`) and `latest`, each in three variants:
-  - `-mini` (`v0.0.3-mini`, `latest-mini`): the binary and nothing else, a few MB, no libc and no shell. Use it to copy the binary out, or to run a static app.
-  - `-slim` (`v0.0.3-slim`, `latest-slim`): Debian slim, with glibc and a shell, for apps that need them or a downloaded Bun, Node or Deno.
+- Container image `docker.io/bkhq/lode`, with the binary at `/usr/bin/lode`. Tags are release tags (`v0.1.0`) and `latest`, each in three variants:
+  - `-mini` (`v0.1.0-mini`, `latest-mini`): the binary and nothing else, a few MB, no libc and no shell. Use it to copy the binary out, or to run a static app.
+  - `-slim` (`v0.1.0-slim`, `latest-slim`): Debian slim, with glibc and a shell, for apps that need them or a downloaded Bun, Node or Deno.
   - no suffix: the full base image.
 
 ## Using lode
@@ -283,6 +283,12 @@ Prefer `lode-cli publish` for releasing; it does everything below. Use the API d
 | read | `GET /packages/<ns>/<slug>/manifest-signature` | | `{"key_id", "expires", "status", "updated_at"}` or `null`; `status` is `live`, `stale`, `expired` or `revoked` |
 | write | `PUT /packages/<ns>/<slug>/manifest-signature` | `{"key_id", "sig", "expires"?, "expires_sig"?}` | Stores the publisher's signature over the current manifest |
 | write | `DELETE /packages/<ns>/<slug>/manifest-signature` | | The manifest is served unsigned again |
+| read | `GET /packages/<ns>/<slug>/delegation` | | `{"key_id", "root_key_id", "issuer", "not_before", "not_after", "status", "updated_at"}` or `null`; `status` is `live`, `pending`, `expired` or `revoked` |
+| write | `PUT /packages/<ns>/<slug>/delegation` | the JSON `lode-cli delegate` writes | Stores the delegation; its sub-key then signs like a registered key |
+| write | `DELETE /packages/<ns>/<slug>/delegation` | | Removes it |
+| read | `GET /packages/<ns>/<slug>/revocations` | | `{"issued_at", "revoked", "key_id", "updated_at"}` or `null` |
+| write | `PUT /packages/<ns>/<slug>/revocations` | the JSON `lode-cli revoke` writes | Stores the revocation list and serves it in the feed |
+| write | `PUT /packages/<ns>/<slug>/versions/<ver>/assets/<file>/signature` | `{"sig": "<base64url>"}` | Replaces the asset's signature, in any version state |
 | admin | `PATCH /packages/<ns>/<slug>` | any of `name`, `visibility`, `description`, `require_signature` | The package. The slug cannot be changed |
 | admin | `POST /packages/<ns>/<slug>/versions/<ver>/yank` | | Hides a published version from hosts |
 | admin | `POST /packages/<ns>/<slug>/versions/<ver>/restore` | | Puts a yanked version back |
@@ -314,7 +320,7 @@ Uploading a file again under the same name replaces it while the version is a dr
   <exec>
   ```
 
-- Send it as `sig`, base64url without padding. The registry verifies it against the package's active keys when the upload starts and refuses a signature it cannot verify with `400 INVALID_SIGNATURE`; it never stores one unverified.
+- Send it as `sig`, base64url without padding. The registry verifies it against the package's active keys and the sub-key of its live delegation when the upload starts and refuses a signature it cannot verify with `400 INVALID_SIGNATURE`; it never stores one unverified.
 - `lode-cli sign <file> --version <ver> --key-env <VAR>` produces the same signature.
 
 ### Signing the manifest
@@ -328,14 +334,25 @@ Optional. It lets hosts set `[trust].require_manifest = "signed"` or `"fresh"`. 
 - The registry verifies both signatures before storing them. `409 MANIFEST_CHANGED` means the manifest is no longer the one that was signed: download it and sign again.
 - The signature is served only while the manifest is unchanged, the key is active and the expiry has not passed. Every publish, channel move, yank or restore makes it `stale`, and the manifest goes out unsigned until it is signed again. So sign after every release step, and on a schedule shorter than the expiry.
 
+### Delegated signing
+
+Optional, needs lode 0.1.0 or later on every host. The registered key (the root) stays offline and delegates to a sub-key that CI holds; hosts trust only the root.
+
+1. `lode-cli delegate --key root.key --sub ci.pub --app <slug> --valid-for 30d --out delegation.json`, then `PUT /packages/<ns>/<slug>/delegation` with that file as the body. Do this before CI first publishes with the sub-key, and do not register the sub-key as a key.
+2. CI signs with the sub-key as with any key: `lode-cli publish --key-env`, `lode-cli sign`, `scripts/sign-manifest.sh`. Registering it answers `409 KEY_EXISTS`, which `lode-cli publish` treats as done.
+3. Renew before `not_after` with a new delegation for the same sub-key. A lapsed or revoked delegation is not served, and its sub-key's signatures stop verifying on hosts that enforce signatures.
+4. To revoke a sub-key early: `lode-cli revoke --key root.key --list revocations.json --add <key_id>`, then `PUT /packages/<ns>/<slug>/revocations`. Hosts read it from `https://lode.bk.io/r/<ns>/<slug>/revocations.json` when they set `[trust].revocation_url`. Each list must be newer than the stored one and keep all its ids.
+5. After moving to a new sub-key, re-sign older assets with `PUT …/assets/<file>/signature`; one manifest carries one delegation.
+
 ### Read feed
 
 | Method and path | Access | Result |
 |---|---|---|
 | `GET https://lode.bk.io/r/<ns>/<slug>/manifest.json` | public; a private package needs a token with a `read` grant | The manifest lode reads |
+| `GET https://lode.bk.io/r/<ns>/<slug>/revocations.json` | same | The package's signed revocation list; 404 while there is none |
 | `GET https://lode.bk.io/r/<ns>/<slug>/<ver>/<file>` | same | The file |
 
-The manifest has `schema` (`lode/v1`), `name` (the package slug), `channels` (`{"stable": {"latest": "1.4.2"}}`) and `versions`, each with `assets`: `name`, `url`, `sha256`, `size`, and `sig`, `key_id`, `alg` when signed. While the package has a live manifest signature it also has top-level `key_id`, `sig`, and `expires` (Unix seconds) with `expires_sig`. Only published versions are listed. Anything the feed will not serve — unknown, private without a grant, draft, yanked — is the same JSON 404. A package with no published version has empty `channels` and `versions`.
+The manifest has `schema` (`lode/v1`), `name` (the package slug), `channels` (`{"stable": {"latest": "1.4.2"}}`) and `versions`, each with `assets`: `name`, `url`, `sha256`, `size`, and `sig`, `key_id`, `alg` when signed. While the package has a live manifest signature it also has top-level `key_id`, `sig`, and `expires` (Unix seconds) with `expires_sig`, and while it has a live delegation, a top-level `delegation`. Only published versions are listed. Anything the feed will not serve — unknown, private without a grant, draft, yanked — is the same JSON 404. A package with no published version has empty `channels` and `versions`.
 
 ### Error codes worth handling
 
@@ -348,12 +365,16 @@ The manifest has `schema` (`lode/v1`), `name` (the package slug), `channels` (`{
 | 409 | `VERSION_NOT_PUBLISHED` | A channel can only point at a published version |
 | 409 | `VERSION_IN_CHANNEL` | Move the channel elsewhere before yanking or deleting |
 | 409 | `VERSION_BUSY` | An upload and a publish collided; try again |
-| 409 | `KEY_EXISTS` | The signing key is registered already (or was revoked) |
+| 409 | `KEY_EXISTS` | The signing key is registered already (or was revoked), or it is the package's delegated sub-key |
+| 409 | `KEY_REGISTERED` | A delegation names a key that is, or was, registered for the package; delegate to a key of its own |
+| 409 | `REVOCATIONS_OUTDATED` | The revocation list is not newer than the stored one |
 | 409 | `STORAGE_QUOTA_EXCEEDED` | The owner's storage quota would be exceeded |
 | 409 | `UPLOAD_INCOMPLETE`, `UPLOAD_EXPIRED` | A part is missing; or the upload was not completed in time, start again |
 | 409 | `MANIFEST_CHANGED` | The manifest signature does not verify over the manifest served now; download it again and re-sign |
 | 400 | `UNKNOWN_KEY`, `MANIFEST_EXPIRED` | The manifest signature names a key that is not an active key of the package; or its expiry has already passed |
 | 400 | `SIGNATURE_REQUIRED`, `INVALID_SIGNATURE` | The package requires signed assets; or the signature does not verify under the package's keys |
+| 400 | `INVALID_DELEGATION`, `DELEGATION_EXPIRED`, `KEY_REVOKED` | The delegation is for another slug, not ed25519, or not signed by a registered key; or it has run out; or the revocation list names its key |
+| 400 | `REVOCATIONS_SHRINK`, `REVOCATIONS_FUTURE` | The revocation list drops a stored id; or it is issued more than an hour ahead |
 | 411 | `LENGTH_REQUIRED` | The upload had no `Content-Length` |
 | 413 | `SINGLE_REQUEST_TOO_LARGE`, `ASSET_TOO_LARGE` | Use multipart above 95 MiB; nothing above 500 MiB is accepted |
 | 422 | `DIGEST_MISMATCH`, `INVALID_PART_SIZE`, `INVALID_PART_NUMBER` | The bytes do not match the declared `sha256`; or a part is the wrong size or number |

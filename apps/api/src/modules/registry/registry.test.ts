@@ -32,12 +32,14 @@ import { createPackage, ensureNamespace, generateNamespaceSlug, getEffectiveQuot
 import {
   registryAssets,
   registryChannels,
+  registryDelegations,
   registryKeys,
   registryManifestSignatures,
   registryNamespaces,
   registryPackages,
   registryQuotas,
   registryRetiredVersions,
+  registryRevocationLists,
   registryTokenGrants,
   registryUploads,
   registryVersions,
@@ -160,6 +162,8 @@ describe("registration", () => {
       registryAssets,
       registryChannels,
       registryManifestSignatures,
+      registryDelegations,
+      registryRevocationLists,
       registryUploads,
       registryQuotas,
     ]);

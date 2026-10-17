@@ -4,8 +4,9 @@
  * and on Workers.
  *
  * v1 verifies ed25519 only: a raw 32-byte public key and a 64-byte signature,
- * both carried as base64. Two things are signed: an asset, and the catalog of
- * a whole manifest (with an optional expiry).
+ * both carried as base64. Four things are signed: an asset, the catalog of a
+ * whole manifest (with an optional expiry), a delegation to a sub-key, and a
+ * revocation list.
  */
 
 const BASE64URL_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -168,4 +169,19 @@ export function manifestMessage(name: string, keyId: string, catalog: string): U
 /** Signed message of the manifest's `expires_sig`; `expires` is Unix seconds. */
 export function manifestExpiryMessage(name: string, keyId: string, expires: number, catalog: string): Uint8Array<ArrayBuffer> {
   return new TextEncoder().encode(`lode.manifest-expiry.v1\n${name}\n${keyId}\n${expires}\n${catalog}`);
+}
+
+/**
+ * Signed message of a delegation: the root binds the sub-key, given as
+ * unpadded base64url of its raw bytes, to the manifest `name` and the window
+ * `[notBefore, notAfter)` in Unix seconds.
+ */
+export function delegationMessage(name: string, keyB64: string, notBefore: number, notAfter: number): Uint8Array<ArrayBuffer> {
+  return new TextEncoder().encode(`lode.delegation.v1\n${name}\ned25519\n${keyB64}\n${notBefore}\n${notAfter}`);
+}
+
+/** Signed message of a revocation list: the revoked ids sorted by byte order and deduplicated, one per line. */
+export function revocationMessage(keyId: string, issuedAt: number, revoked: readonly string[]): Uint8Array<ArrayBuffer> {
+  const ids = [...new Set(revoked)].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  return new TextEncoder().encode([`lode.revocations.v1\n${keyId}\n${issuedAt}`, ...ids].join("\n"));
 }

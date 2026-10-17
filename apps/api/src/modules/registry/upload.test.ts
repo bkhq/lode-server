@@ -24,6 +24,7 @@ import { getUsage, registryRoutes, startRegistryUploadSweep, stopRegistryUploadS
 import { __resetBlobStoresForTests } from "./blob";
 import { bytesOf, sha256Hex } from "./blob/testing";
 import { registryAssets, registryNamespaces, registryPackages, registryQuotas, registryUploads } from "./schema";
+import { delegationMessage, encodeBase64Url } from "./signature";
 import fixture from "./testdata/vectors.json";
 import { __setPartSizeForTests, MULTIPART_PART_SIZE, runUploadSweepOnce } from "./upload.service";
 import "@/modules/account";
@@ -422,6 +423,27 @@ describe("multipart upload: signatures", () => {
     expect(await uploadRows()).toHaveLength(0);
     expect(await assetRows()).toHaveLength(0);
     expect(storedUploads()).toHaveLength(0);
+  });
+
+  test("an upload signed by a delegated sub-key is refused at complete once the delegation is gone", async () => {
+    __setPartSizeForTests(20);
+    const alice = await seedPublisher("alice", ["tool"]);
+    // A registered root delegates to the vectors' signer.
+    const pair = await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]) as CryptoKeyPair;
+    const root = encodeBase64Url(new Uint8Array(await crypto.subtle.exportKey("raw", pair.publicKey)));
+    await data(await alice.call("POST", "/packages/alice/tool/keys", { public_key: root, name: "root" }));
+    const [notBefore, notAfter] = [Math.floor(Date.now() / 1000) - 60, Math.floor(Date.now() / 1000) + 3600];
+    const sig = encodeBase64Url(new Uint8Array(await crypto.subtle.sign({ name: "Ed25519" }, pair.privateKey, delegationMessage("tool", signer.publicKey, notBefore, notAfter))));
+    await data(await alice.call("PUT", "/packages/alice/tool/delegation", { key: signer.publicKey, name: "tool", not_before: notBefore, not_after: notAfter, sig }));
+
+    await draft(alice, "alice/tool", vector.version);
+    const upload = await started(await alice.call("POST", `/packages/alice/tool/versions/${vector.version}/uploads`, declared));
+    await alice.put(`/uploads/${upload.uploadId}/parts/1`, content.subarray(0, 20));
+    await alice.put(`/uploads/${upload.uploadId}/parts/2`, content.subarray(20));
+
+    await data(await alice.call("DELETE", "/packages/alice/tool/delegation"));
+    await expectError(await alice.call("POST", `/uploads/${upload.uploadId}/complete`), 400, "INVALID_SIGNATURE");
+    expect(await assetRows()).toHaveLength(0);
   });
 
   test("a package that requires signatures takes no unsigned upload", async () => {

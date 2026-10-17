@@ -26,6 +26,10 @@ export interface SnippetInput {
   } | null;
   /** The package's active signing keys, as far as the viewer may list them. */
   readonly keys: readonly { readonly key_id: string; readonly public_key: string }[];
+  /** The package's live delegation: `key_id` signs for the registered `root_key_id`. */
+  readonly delegation: { readonly key_id: string; readonly root_key_id: string } | null;
+  /** The package publishes a revocation list. */
+  readonly hasRevocations: boolean;
 }
 
 export interface Snippet {
@@ -44,11 +48,19 @@ export function manifestUrl(origin: string, namespace: string, slug: string): st
   return `${origin}/r/${namespace}/${slug}/manifest.json`;
 }
 
+/** The package's revocation list, beside its manifest. */
+export function revocationsUrl(origin: string, namespace: string, slug: string): string {
+  return `${origin}/r/${namespace}/${slug}/revocations.json`;
+}
+
 const str = (value: string) => JSON.stringify(value);
 
 export function buildSnippet(input: SnippetInput): Snippet {
   const url = manifestUrl(input.origin, input.namespace, input.slug);
-  const keyId = input.asset?.key_id ?? null;
+  const signerId = input.asset?.key_id ?? null;
+  // A host trusts the root; the sub-key is accepted through the delegation the manifest carries.
+  const delegated = signerId !== null && signerId === input.delegation?.key_id;
+  const keyId = delegated ? input.delegation!.root_key_id : signerId;
   const key = keyId === null ? undefined : input.keys.find(k => k.key_id === keyId);
 
   const blocks = [
@@ -68,8 +80,11 @@ export function buildSnippet(input: SnippetInput): Snippet {
   if (keyId !== null) {
     blocks.push([
       "[trust]",
+      // Older lode refuses sub-key signatures and an unknown `revocation_url`.
+      ...(delegated || input.hasRevocations ? ["# Needs lode 0.1.0 or later."] : []),
       "require_signature = \"enforce\"",
       `trusted_keys = [${str(`${keyId}:${key?.public_key ?? PUBLIC_KEY_PLACEHOLDER}`)}]`,
+      ...(input.hasRevocations ? [`revocation_url = ${str(revocationsUrl(input.origin, input.namespace, input.slug))}`] : []),
     ]);
   }
   if (input.visibility === "private") {

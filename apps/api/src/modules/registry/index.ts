@@ -43,7 +43,7 @@ registerTokenScope({
 
 registerTokenScope({
   name: "packages:write",
-  description: "Release to packages the token has a write grant on: drafts, uploads, publish, channels; register signing keys",
+  description: "Release to packages the token has a write grant on: drafts, uploads, publish, channels; register signing keys, sign the manifest, delegate and revoke sub-keys",
   routes: [
     { method: "POST", path: "/registry/packages/:ns/:pkg/versions" },
     { method: "PUT", path: "/registry/packages/:ns/:pkg/versions/:ver/assets/:asset" },
@@ -60,6 +60,11 @@ registerTokenScope({
     // And signs the manifest after each release step.
     { method: "PUT", path: "/registry/packages/:ns/:pkg/manifest-signature" },
     { method: "DELETE", path: "/registry/packages/:ns/:pkg/manifest-signature" },
+    // Delegated signing: the delegation, the revocation list, re-signed assets.
+    { method: "PUT", path: "/registry/packages/:ns/:pkg/delegation" },
+    { method: "DELETE", path: "/registry/packages/:ns/:pkg/delegation" },
+    { method: "PUT", path: "/registry/packages/:ns/:pkg/revocations" },
+    { method: "PUT", path: "/registry/packages/:ns/:pkg/versions/:ver/assets/:asset/signature" },
   ],
 });
 

@@ -2,12 +2,13 @@ import type { PackageRequest } from "./access";
 import type { BlobStoreConfig } from "./blob";
 import type { getEffectiveQuota } from "./registry.service";
 import type { AppDatabase } from "@/db";
-import { and, asc, count, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq } from "drizzle-orm";
 import { AppError, isUniqueViolation, NotFoundError } from "@/shared/lib/errors";
 import { nanoid } from "@/shared/lib/id";
 import { BlobPutError, getActiveBlobStore } from "./blob";
+import { signingKeys } from "./delegation.service";
 import { abortUploadsInStore, assertUploadAllowed, assetBlobKey, inFlightUploads, retireVersions, versionPrefix } from "./registry.service";
-import { registryAssets, registryChannels, registryKeys, registryPackages, registryRetiredVersions, registryVersions } from "./schema";
+import { registryAssets, registryChannels, registryPackages, registryRetiredVersions, registryVersions } from "./schema";
 import { verifyArtifactSignature } from "./signature";
 
 export type RegistryVersion = typeof registryVersions.$inferSelect;
@@ -173,17 +174,13 @@ export interface VerifiedSignature {
 }
 
 /**
- * The package's active key the signature verifies under. A signature that
+ * The package's signing key the signature verifies under: an active
+ * registered key, or the sub-key of its live delegation. A signature that
  * verifies under none is refused: stored, it would fail on every operator
  * host instead of once here.
  */
-async function verifyUnderPackageKeys(db: AppDatabase, pkg: Target["package"], version: string, input: AssetDeclaration & { sig: string }): Promise<VerifiedSignature> {
-  const keys = await db
-    .select()
-    .from(registryKeys)
-    .where(and(eq(registryKeys.packageId, pkg.id), eq(registryKeys.alg, "ed25519"), isNull(registryKeys.revokedAt)))
-    .all();
-  for (const key of keys) {
+async function verifyUnderPackageKeys(db: AppDatabase, pkg: Target["package"], version: string, input: Omit<AssetDeclaration, "size" | "version"> & { sig: string }): Promise<VerifiedSignature> {
+  for (const key of await signingKeys(db, pkg.id)) {
     const verified = await verifyArtifactSignature({
       // The slug is the manifest `name` an operator sets as `[global].app`.
       app: pkg.slug,
@@ -198,7 +195,7 @@ async function verifyUnderPackageKeys(db: AppDatabase, pkg: Target["package"], v
     if (verified)
       return { keyId: key.keyId, alg: key.alg };
   }
-  throw new AppError("The signature does not verify under any active signing key of the package: it must be made for this package's slug as the app, this asset name and this version", 400, "INVALID_SIGNATURE");
+  throw new AppError("The signature does not verify under any signing key of the package: it must be made for this package's slug as the app, this asset name and this version, by an active registered key or the sub-key of the package's live delegation", 400, "INVALID_SIGNATURE");
 }
 
 /** The version an upload goes into, which has to be a draft. */
@@ -314,6 +311,28 @@ export async function deleteAsset(db: AppDatabase, config: BlobStoreConfig, pack
       throw new NotFoundError("Asset");
     await getActiveBlobStore(config).delete(asset.blobKey);
     return asset;
+  }
+  finally {
+    release();
+  }
+}
+
+/**
+ * Replace the signature of an asset, in a version of any state: verified like
+ * an upload's, over the stored digest and launch overrides. The manifest's
+ * catalog does not cover `sig`, so a manifest signature stays live.
+ */
+export async function resignAsset(db: AppDatabase, pkg: Target["package"], versionString: string, name: string, sig: string): Promise<{ asset: RegistryAsset; previousKeyId: string | null }> {
+  const version = await requireVersion(db, pkg.id, versionString);
+  const release = claim(version.id, name);
+  try {
+    const sameName = and(eq(registryAssets.versionId, version.id), eq(registryAssets.name, name));
+    const current = await db.select().from(registryAssets).where(sameName).get();
+    if (!current)
+      throw new NotFoundError("Asset");
+    const signed = await verifyUnderPackageKeys(db, pkg, version.version, { name, sha256: current.sha256, run: current.run, exec: current.exec, sig });
+    const asset = await db.update(registryAssets).set({ sig, keyId: signed.keyId, alg: signed.alg }).where(eq(registryAssets.id, current.id)).returning().get();
+    return { asset: asset!, previousKeyId: current.keyId };
   }
   finally {
     release();

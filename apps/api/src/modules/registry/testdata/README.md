@@ -6,7 +6,11 @@ CLI. `../signature.test.ts` checks that `../signature.ts` rebuilds the same
 proves the server byte-compatible with the lode client.
 
 `manifest-vectors.json` holds two manifests signed by `lode-cli manifest-sign`;
-see [Manifest vectors](#manifest-vectors) at the end.
+see [Manifest vectors](#manifest-vectors).
+
+`delegation-vectors.json` holds a delegation, a manifest signed by its sub-key
+and two revocation lists; see [Delegation vectors](#delegation-vectors) at the
+end.
 
 ## Provenance
 
@@ -110,3 +114,38 @@ lode-cli manifest-sign --into /data/fresh.json --key /tmp/manifest-signer.key --
 
 `signer` is `manifest-signer.pub`; `signed` and `fresh` are the two output files,
 verbatim (`manifest-sign` rewrites the file with sorted keys).
+
+## Delegation vectors
+
+`delegation-vectors.json` was made by `lode-cli 0.1.0`, the `lode-linux-x64`
+asset of the `bkhq/lode` v0.1.0 release (sha256 checked against its
+`SHA256SUMS`), on 2026-10-16, in an `alpine:3.22` container with
+`--network none`, the same way as above. Three throwaway keypairs: `root`,
+`sub` and `other`; only the public halves were copied out.
+
+- `delegation`: `root` delegates `sub` for the app `demo`.
+- `delegationByOther`: the same delegation issued by `other`.
+- `manifest`: `base.json` (below) signed by `sub` with `delegation` embedded.
+- `revocationsByRoot`: a list signed by `root`; `revocationsBySub` adds an id
+  to it, signed by `sub` with its delegation.
+
+The validity window is fixed (`--not-before 1760000000 --valid-for 36500d`)
+so the tests never see it lapse.
+
+```sh
+lode-cli keygen --alg ed25519 --out /tmp/root > /dev/null
+lode-cli keygen --alg ed25519 --out /tmp/sub > /dev/null
+lode-cli keygen --alg ed25519 --out /tmp/other > /dev/null
+cp /tmp/root.pub /tmp/sub.pub /tmp/other.pub /data/
+lode-cli delegate --key /tmp/root.key --sub /tmp/sub.pub --app demo --not-before 1760000000 --valid-for 36500d --out /data/delegation.json
+lode-cli delegate --key /tmp/other.key --sub /tmp/sub.pub --app demo --not-before 1760000000 --valid-for 36500d --out /data/delegation-other.json
+cp /data/base.json /data/manifest.json
+lode-cli manifest-sign --into /data/manifest.json --key /tmp/sub.key --delegation /data/delegation.json --expires-in 36500d
+lode-cli revoke --key /tmp/root.key --list /data/revocations-root.json --add 0123456789abcdef
+cp /data/revocations-root.json /data/revocations-sub.json
+lode-cli revoke --key /tmp/sub.key --delegation /data/delegation.json --list /data/revocations-sub.json --add fedcba9876543210
+```
+
+`base.json` is a one-version manifest of `demo` with the asset
+`demo-linux-x64.tar.gz` (sha256 of `a`). The files are copied into the JSON
+verbatim; `root`, `sub` and `other` come from the `.pub` files.

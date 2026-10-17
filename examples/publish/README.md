@@ -11,7 +11,7 @@ upload → publish to a channel. It is an example and does not run here.
 2. Replace the **Build release assets** step with your build. It has to leave
    the assets in `dist/`; each file is published under its file name.
 3. Pin `LODE_IMAGE` (where `lode-cli` comes from) to a version you have
-   reviewed. The `-mini` tags (`v0.0.3-mini`, `latest-mini`) hold only the
+   reviewed. The `-mini` tags (`v0.1.0-mini`, `latest-mini`) hold only the
    binary, which is all the workflow copies out.
 4. Configure the repository (Settings → Secrets and variables → Actions):
 

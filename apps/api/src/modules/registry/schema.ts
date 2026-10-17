@@ -129,6 +129,38 @@ export const registryManifestSignatures = sqliteTable("registry_manifest_signatu
   updatedAt: text("updated_at").notNull(),
 });
 
+// The package's delegation, one per package: a registered key (`root_key_id`,
+// the one its signature verified under) lets the sub-key `key_id` sign for the
+// package during `[not_before, not_after)` (Unix seconds). `key`, `issuer` and
+// `sig` are served as the publisher sent them; `public_key` is the sub-key as
+// unpadded base64url.
+export const registryDelegations = sqliteTable("registry_delegations", {
+  packageId: text("package_id").primaryKey().references(() => registryPackages.id, { onDelete: "cascade" }),
+  key: text("key").notNull(),
+  keyId: text("key_id").notNull(),
+  publicKey: text("public_key").notNull(),
+  notBefore: integer("not_before").notNull(),
+  notAfter: integer("not_after").notNull(),
+  issuer: text("issuer"),
+  sig: text("sig").notNull(),
+  rootKeyId: text("root_key_id").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+// The package's revocation list, one per package, as the publisher signed it:
+// `revoked` is a JSON array of sub-key ids, `delegation` the signer's
+// delegation as JSON when a sub-key signed it. Only ever replaced by a newer
+// list that keeps every id.
+export const registryRevocationLists = sqliteTable("registry_revocation_lists", {
+  packageId: text("package_id").primaryKey().references(() => registryPackages.id, { onDelete: "cascade" }),
+  issuedAt: integer("issued_at").notNull(),
+  revoked: text("revoked").notNull(),
+  keyId: text("key_id").notNull(),
+  delegation: text("delegation"),
+  sig: text("sig").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
 // In-flight multipart uploads: removed on completion, aborted by a sweep
 // after `expires_at`. Everything the finished asset row needs is recorded
 // when the upload starts. `parts` is a JSON array.

@@ -1,7 +1,7 @@
 import type { ApiClient } from "../../lib/api";
 import type { Envelope, PackageView, VersionView } from "./helpers";
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { delimiter, join, resolve } from "node:path";
 import process from "node:process";
 import { API_BASE } from "../../lib/api";
@@ -25,9 +25,9 @@ const BIG_SIZE = SINGLE_REQUEST_MAX + 1024 * 1024;
 
 // The signing case needs `lode-cli`; it is looked for the way lode.test.ts
 // does it: `E2E_LODE_BIN`, the cached binary of an earlier run, or the local
-// image `bkhq/lode:v0.0.3-mini`. With none of them that one case is skipped.
-const LODE_DIR = join(CACHE_DIR, "lode-v0.0.3");
-const LODE_IMAGE = "bkhq/lode:v0.0.3-mini";
+// image `bkhq/lode:v0.1.0-mini`. With none of them that one case is skipped.
+const LODE_DIR = join(CACHE_DIR, "lode-v0.1.0");
+const LODE_IMAGE = "bkhq/lode:v0.1.0-mini";
 
 function runs(bin: string): boolean {
   try {
@@ -82,8 +82,10 @@ if (!LODE)
 
 // `lode-cli` is the same binary under another name; the script finds it on PATH.
 const LODE_CLI = join(LODE_DIR, "lode-cli");
-if (LODE && !existsSync(LODE_CLI)) {
+// Re-pointed when it links to another binary than the one located.
+if (LODE && !(existsSync(LODE_CLI) && realpathSync(LODE_CLI) === realpathSync(LODE))) {
   mkdirSync(LODE_DIR, { recursive: true });
+  rmSync(LODE_CLI, { force: true });
   symlinkSync(LODE, LODE_CLI);
 }
 
