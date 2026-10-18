@@ -218,7 +218,7 @@ token whose grant gives it; **Admin** = session of a platform administrator.
 | GET | `/quota` | Session | `{ limits, usage }` of the caller. |
 | GET | `/tokens` | Session | Every personal token of the caller with its grants, expiry and last use; never a secret. |
 | POST | `/tokens` | Session | Create `{ name, expires_at?, grants }`; the secret is returned once, in `token`. 422 `INVALID_GRANT`. |
-| PUT | `/tokens/:id` | Session | Replace the grants `{ grants }`; the secret stays. |
+| PUT | `/tokens/:id` | Session | Replace the grants, and rename when `name` is given: `{ grants, name? }`; the secret stays. |
 | DELETE | `/tokens/:id` | Session | Revoke the token and its grants. |
 | GET | `/packages/:ns/:pkg/versions` | Session / token(read) | `{ versions, channels }`: every version with its assets, drafts and yanked included. |
 | POST | `/packages/:ns/:pkg/versions` | Session / token(write) | Create a draft `{ version, notes? }`. 409 `VERSION_EXISTS`, 409 `VERSION_RETIRED`. |
@@ -544,7 +544,7 @@ differs from the actor for an administrator's action — and
 | `registry.revocations.published` | `registry_package` | detail has `issued_at`, `key_id` and `revoked` |
 | `registry.asset.resigned` | `registry_asset` | detail has `key_id` and `previous_key_id` |
 | `registry.upload.started` / `.aborted` | `registry_upload` | single parts are not audited |
-| `registry.token.created` / `.grants_replaced` / `.revoked` | `api_token` | never the secret |
+| `registry.token.created` / `.grants_replaced` / `.revoked` | `api_token` | never the secret; `.grants_replaced` adds `name` / `previous_name` on a rename |
 | `registry.quota.updated` | `registry_quota` | admin |
 
 The expired-upload sweep writes no audit entries (it logs a count).

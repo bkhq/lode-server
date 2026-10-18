@@ -281,6 +281,18 @@ describe("token management", () => {
     expect(await scopesOf(token.id)).toEqual(["account:read", "packages:read"]);
   });
 
+  test("a token can be renamed with its grants", async () => {
+    const alice = await seedPublisher("alice", ["tool"]);
+    const token = await mint(alice, { all: "read" });
+    const res = await alice.call("PUT", `/tokens/${token.id}`, { name: "  deploy  ", grants: { all: "read" } });
+    expect(await data(res)).toMatchObject({ id: token.id, name: "deploy" });
+    expect((await token.call("GET", "/packages/alice/tool")).status).toBe(200);
+
+    for (const name of ["", "   ", "x".repeat(101)])
+      expect((await alice.call("PUT", `/tokens/${token.id}`, { name, grants: { all: "read" } })).status).toBe(422);
+    expect(await data<unknown[]>(await alice.call("GET", "/tokens"))).toMatchObject([{ name: "deploy" }]);
+  });
+
   test("a grant naming another user's package, or none at all, is refused", async () => {
     const alice = await seedPublisher("alice", ["tool"]);
     const bob = await seedPublisher("bob", ["mine"]);
@@ -334,12 +346,14 @@ describe("token management", () => {
     const alice = await seedPublisher("alice", ["tool"]);
     const token = await mint(alice, { all: "read" });
     await alice.call("PUT", `/tokens/${token.id}`, { grants: [{ package: "alice/tool", access: "write" }] });
+    await alice.call("PUT", `/tokens/${token.id}`, { name: "renamed", grants: [{ package: "alice/tool", access: "write" }] });
     await alice.call("DELETE", `/tokens/${token.id}`);
     const events = (await db.select().from(auditEvents).all()).filter(e => e.action.startsWith("registry.token."));
-    expect(events.map(e => e.action)).toEqual(["registry.token.created", "registry.token.grants_replaced", "registry.token.revoked"]);
+    expect(events.map(e => e.action)).toEqual(["registry.token.created", "registry.token.grants_replaced", "registry.token.grants_replaced", "registry.token.revoked"]);
     for (const event of events)
       expect(event).toMatchObject({ actorId: alice.id, resourceType: "api_token", resourceId: token.id, result: "success" });
     expect(JSON.parse(events[1]!.detail!)).toEqual({ grants: [{ package: "alice/tool", access: "write" }] });
+    expect(JSON.parse(events[2]!.detail!)).toEqual({ grants: [{ package: "alice/tool", access: "write" }], name: "renamed", previous_name: events[0]!.resourceName });
   });
 });
 

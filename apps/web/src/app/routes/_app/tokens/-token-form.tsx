@@ -158,10 +158,11 @@ function EditForm({ token, packages, onSaved }: {
 }) {
   const { t } = useTranslation(["common", "grants", "regerrors"]);
   const queryClient = useQueryClient();
+  const [name, setName] = useState(token.name);
   const [grants, setGrants] = useState<GrantFormState>(() => fromWire(token.grants, packages));
 
   const save = useMutation({
-    mutationFn: () => replaceTokenGrants(token.id, toWire(grants)),
+    mutationFn: () => replaceTokenGrants(token.id, toWire(grants), name.trim()),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: registryKeys.tokens() });
       toast.success(t("grants:edit.saved"));
@@ -177,13 +178,26 @@ function EditForm({ token, packages, onSaved }: {
         save.mutate();
       }}
     >
-      <GrantEditor value={grants} onChange={setGrants} packages={packages} />
+      <div className="space-y-2">
+        <Label htmlFor="registry-token-edit-name">{t("grants:field.name")}</Label>
+        <Input
+          id="registry-token-edit-name"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          maxLength={NAME_MAX}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>{t("grants:field.grants")}</Label>
+        <GrantEditor value={grants} onChange={setGrants} packages={packages} />
+      </div>
 
       <ErrorBanner message={save.isError ? registryErrorMessage(save.error, t, t("common.error.saveFailed")) : null} />
 
       <DialogFooter>
         <DialogClose render={<Button type="button" variant="outline">{t("common.cancel")}</Button>} />
-        <Button type="submit" disabled={save.isPending} aria-busy={save.isPending}>
+        <Button type="submit" disabled={!name.trim() || save.isPending} aria-busy={save.isPending}>
           {save.isPending ? t("common.saving") : t("common.save")}
         </Button>
       </DialogFooter>

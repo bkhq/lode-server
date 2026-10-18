@@ -2,6 +2,7 @@
   "title": "Sign in",
   "description": "Sign in to access your applications and services.",
   "button": "Sign in",
+  "oauthButton": "Sign in with OpenID",
   "username": "Username",
   "password": "Password",
   "invalidCredentials": "Invalid username or password.",

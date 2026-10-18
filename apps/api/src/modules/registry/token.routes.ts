@@ -6,7 +6,7 @@ import { audit } from "@/modules/audit/audit.service";
 import { policyContext } from "@/modules/policy";
 import { NotFoundError } from "@/shared/lib/errors";
 import { describeRoute, errors, jsonCreated, jsonOk, SECURITY, TAGS, validator } from "@/shared/lib/openapi";
-import { createToken, listTokens, replaceGrants, revokeToken } from "./token.service";
+import { createToken, getToken, listTokens, replaceGrants, revokeToken } from "./token.service";
 import { auditMeta, grantsSchema, tokenSchema } from "./wire";
 
 export function tokenView(token: RegistryToken): z.infer<typeof tokenSchema> {
@@ -23,8 +23,10 @@ export function tokenView(token: RegistryToken): z.infer<typeof tokenSchema> {
   };
 }
 
+const tokenNameSchema = z.string().trim().min(1).max(100);
+
 const createTokenSchema = z.object({
-  name: z.string().trim().min(1).max(100),
+  name: tokenNameSchema,
   // Omitted or null: the token does not expire.
   expires_at: z.iso.datetime({ offset: true }).refine(value => Date.parse(value) > Date.now(), "Must be in the future").nullable().optional(),
   grants: grantsSchema,
@@ -90,25 +92,28 @@ export function registryTokenRoutes() {
     describeRoute({
       tags: [TAGS.Registry],
       summary: "Replace a token's grants",
-      description: "Replaces every grant of the token; the secret is not reissued. Session only.",
+      description: "Replaces every grant of the token, and its name when `name` is given; the secret is not reissued. Session only.",
       security: SECURITY.session,
       responses: { ...jsonOk(tokenSchema), ...errors(401, 403, 404, 422) },
     }),
     validator("param", tokenParamSchema),
-    validator("json", z.object({ grants: grantsSchema })),
+    validator("json", z.object({ name: tokenNameSchema.optional(), grants: grantsSchema })),
     async (c) => {
       const db = c.get("db");
       const { id } = c.req.valid("param");
-      const record = await replaceGrants(policyContext(c)!, id, c.req.valid("json").grants);
+      const { name, grants } = c.req.valid("json");
+      const previous = name === undefined ? undefined : await getToken(db, id);
+      const record = await replaceGrants(policyContext(c)!, id, grants, name);
       if (!record)
         throw new NotFoundError("API token", id);
+      const renamed = previous !== undefined && previous.name !== record.name;
       await audit(db, c.get("logger"), {
         ...auditMeta(c),
         action: "registry.token.grants_replaced",
         resourceType: "api_token",
         resourceId: record.id,
         resourceName: record.name,
-        detail: { grants: record.grants },
+        detail: { grants: record.grants, ...(renamed ? { name: record.name, previous_name: previous.name } : {}) },
       });
       return c.json({ success: true, data: tokenView(record) });
     },

@@ -13,6 +13,19 @@ This repository is a fork: the dated entries directly below are Lode
 Server's own, and everything from `Unreleased` down is the upstream
 template's history, kept unchanged.
 
+## 2026-10-17 [api] [web] [docs]
+
+### Added
+
+Access tokens can be renamed: `PUT /api/registry/tokens/:id` takes an
+optional `name` next to `grants`, and the token edit dialog has a name field.
+A rename is recorded in the `registry.token.grants_replaced` audit detail.
+
+### Fixed
+
+The login page labelled both the password form's button and the OAuth
+button "Sign in"; the OAuth one now reads "Sign in with OpenID".
+
 ## 2026-10-16 02:24 [api] [web] [ci] [examples] [docs]
 
 ### Added

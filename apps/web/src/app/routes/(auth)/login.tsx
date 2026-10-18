@@ -89,7 +89,7 @@ function OAuthButton({ redirectTarget, spaced }: { redirectTarget: string; space
     <a href={loginUrl} className={spaced ? "mt-6 block" : "block"}>
       <Button className="w-full" variant={spaced ? "default" : "outline"}>
         <LogIn className="mr-2 size-4" />
-        {t("login:button")}
+        {t("login:oauthButton")}
       </Button>
     </a>
   );

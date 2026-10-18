@@ -78,10 +78,10 @@
     "done": "Done"
   },
   "edit": {
-    "button": "Edit access",
-    "title": "Package access of {{name}}",
-    "description": "The secret stays the same: clients that already use this token keep working with the new access. Name and expiry cannot be changed.",
-    "saved": "Package access updated."
+    "button": "Edit",
+    "title": "Edit {{name}}",
+    "description": "The secret stays the same: clients that already use this token keep working with the new access. Expiry cannot be changed.",
+    "saved": "Token updated."
   },
   "revoke": {
     "button": "Revoke",

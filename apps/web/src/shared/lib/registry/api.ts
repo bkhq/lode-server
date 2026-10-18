@@ -115,8 +115,8 @@ export function createToken(input: CreateTokenInput): Promise<CreatedToken> {
   return request("/tokens", "POST", input);
 }
 
-export function replaceTokenGrants(id: string, grants: Grants): Promise<RegistryToken> {
-  return request(`/tokens/${seg(id)}`, "PUT", { grants });
+export function replaceTokenGrants(id: string, grants: Grants, name?: string): Promise<RegistryToken> {
+  return request(`/tokens/${seg(id)}`, "PUT", { name, grants });
 }
 
 export function revokeToken(id: string): Promise<{ id: string }> {

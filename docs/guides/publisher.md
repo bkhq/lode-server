@@ -207,8 +207,9 @@ Create a token on the token page of the web UI, or from a session with
 ```
 
 `"grants": { "all": "write" }` is the all-packages form; `expires_at` is
-optional. **The secret is shown once**, in the creation response. Grants can
-be changed later (`PUT /api/registry/tokens/:id`) without reissuing it.
+optional. **The secret is shown once**, in the creation response. Grants and
+the name can be changed later (`PUT /api/registry/tokens/:id`) without
+reissuing it.
 
 A token can **never**, whatever its grants: create or delete a package,
 delete a published or yanked version, revoke a signing key, manage tokens, read

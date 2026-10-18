@@ -134,7 +134,7 @@ export async function createToken(
  * token's `packages:*` scopes are derived again, any other scope it holds is
  * kept. Undefined when the actor has no such token.
  */
-export async function replaceGrants(ctx: PolicyContext, id: string, grants: TokenGrants): Promise<RegistryToken | undefined> {
+export async function replaceGrants(ctx: PolicyContext, id: string, grants: TokenGrants, name?: string): Promise<RegistryToken | undefined> {
   const { db } = ctx;
   const existing = await db.select().from(apiTokens).where(eq(apiTokens.id, id)).get();
   if (existing?.userId !== ctx.actor.id)
@@ -147,7 +147,7 @@ export async function replaceGrants(ctx: PolicyContext, id: string, grants: Toke
       await tx.insert(registryTokenGrants).values(rows.map(row => ({ ...row, tokenId: id }))).run();
     // The tokens service has no update, and the scopes have to change with
     // the grants in one step, so the row is written here.
-    await tx.update(apiTokens).set({ scopes: JSON.stringify([...kept, ...deriveScopes(grants)]) }).where(eq(apiTokens.id, id)).run();
+    await tx.update(apiTokens).set({ scopes: JSON.stringify([...kept, ...deriveScopes(grants)]), ...(name === undefined ? {} : { name }) }).where(eq(apiTokens.id, id)).run();
   });
   return await getToken(db, id);
 }
