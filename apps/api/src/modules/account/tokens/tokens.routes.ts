@@ -7,7 +7,7 @@ import { NotFoundError } from "@/shared/lib/errors";
 import { describeRoute, errors, jsonCreated, jsonOk, SECURITY, TAGS, validator } from "@/shared/lib/openapi";
 import { getTokenScopes, isTokenScope } from "@/shared/lib/token-scopes";
 import { authRequired } from "@/shared/middleware/auth";
-import { createApiToken, deleteApiToken, listApiTokens } from "./tokens.service";
+import { createApiToken, deleteApiToken, listApiTokens, updateApiToken } from "./tokens.service";
 
 const tokenSchema = z.object({
   id: z.string(),
@@ -19,12 +19,20 @@ const tokenSchema = z.object({
   createdAt: z.string(),
 });
 
+const tokenNameSchema = z.string().trim().min(1).max(100);
+const tokenScopesSchema = z.array(z.string()).min(1).refine(scopes => scopes.every(isTokenScope), { message: "Unknown scope" });
+
 const createTokenSchema = z.object({
-  name: z.string().trim().min(1).max(100),
-  scopes: z.array(z.string()).min(1).refine(scopes => scopes.every(isTokenScope), { message: "Unknown scope" }),
+  name: tokenNameSchema,
+  scopes: tokenScopesSchema,
   // Omitted → the token does not expire.
   expiresInDays: z.number().int().min(1).max(3650).optional(),
 });
+
+const updateTokenSchema = z.object({
+  name: tokenNameSchema.optional(),
+  scopes: tokenScopesSchema.optional(),
+}).refine(body => body.name !== undefined || body.scopes !== undefined, { message: "Nothing to update" });
 
 /**
  * Token management. None of these routes is listed by any token scope, so
@@ -100,6 +108,47 @@ export function tokenRoutes() {
         result: "success",
       });
       return c.json({ success: true, data: { ...record, token } }, 201);
+    },
+  );
+
+  router.patch(
+    "/account/me/tokens/:id",
+    describeRoute({
+      tags: [TAGS.Account],
+      summary: "Update an API token",
+      description: "Renames or rescopes a token. The secret is unchanged; new scopes apply from its next request.",
+      security: SECURITY.session,
+      responses: {
+        ...jsonOk(tokenSchema, "Token updated"),
+        ...errors(401, 403, 404, 422),
+      },
+    }),
+    validator("param", z.object({ id: z.string() })),
+    validator("json", updateTokenSchema),
+    async (c) => {
+      const db = c.get("db");
+      const user = c.get("user")!;
+      const { id } = c.req.valid("param");
+      const updated = await updateApiToken(db, user.id, id, c.req.valid("json"));
+      if (!updated)
+        throw new NotFoundError("API token", id);
+      const { before, after } = updated;
+      await audit(db, c.get("logger"), {
+        actorId: user.id,
+        actorName: user.name,
+        action: "api_token.updated",
+        resourceType: "api_token",
+        resourceId: id,
+        resourceName: after.name,
+        detail: {
+          ...(before.name !== after.name ? { name: { from: before.name, to: after.name } } : {}),
+          ...(before.scopes.join() !== after.scopes.join() ? { scopes: { from: before.scopes, to: after.scopes } } : {}),
+        },
+        ip: getClientIp(c),
+        userAgent: c.req.header("user-agent") ?? "unknown",
+        result: "success",
+      });
+      return c.json({ success: true, data: after });
     },
   );
 

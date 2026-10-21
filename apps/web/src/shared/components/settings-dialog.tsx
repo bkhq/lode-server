@@ -44,13 +44,13 @@ export function SettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("nav.settings")}</DialogTitle>
           <DialogDescription className="sr-only">{t("nav.settings")}</DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="profile">
+        <Tabs defaultValue="profile" className="min-w-0">
           <TabsList variant="line">
             <TabsTrigger value="profile">{t("settings:tabProfile")}</TabsTrigger>
             <TabsTrigger value="security">{t("settings:tabSecurity")}</TabsTrigger>

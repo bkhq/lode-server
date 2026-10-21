@@ -16,7 +16,7 @@ import { authRequired } from "@/shared/middleware/auth";
 import { errorHandler } from "@/shared/middleware/error-handler";
 import { apiTokens } from "./schema";
 import { tokenRoutes } from "./tokens.routes";
-import { createApiToken, deleteApiToken, listApiTokens } from "./tokens.service";
+import { createApiToken, deleteApiToken, listApiTokens, updateApiToken } from "./tokens.service";
 import "@/modules/account";
 
 const noop = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
@@ -91,6 +91,17 @@ describe("api token service", () => {
     expect(await deleteApiToken(db, b, record.id)).toBeUndefined();
     expect((await deleteApiToken(db, a, record.id))?.name).toBe("ci");
   });
+
+  test("a user can rename and rescope only their own tokens", async () => {
+    const a = await seedUser("a");
+    const b = await seedUser("b");
+    const { record } = await createApiToken(db, a, { name: "ci", scopes: ["things:read"], expiresAt: null });
+    expect(await updateApiToken(db, b, record.id, { name: "stolen" })).toBeUndefined();
+    const updated = await updateApiToken(db, a, record.id, { name: "deploy", scopes: ["things:write", "things:write"] });
+    expect(updated?.before.name).toBe("ci");
+    expect(updated?.after).toMatchObject({ name: "deploy", scopes: ["things:write"], prefix: record.prefix });
+    expect((await listApiTokens(db, a))[0]!.name).toBe("deploy");
+  });
 });
 
 describe("api token authentication", () => {
@@ -126,6 +137,7 @@ describe("api token authentication", () => {
     const { token, record } = await createApiToken(db, u, { name: "ci", scopes: ["things:read", "things:write"], expiresAt: null });
     expect((await app().request("/api/account/me/tokens", bearer(token))).status).toBe(403);
     expect((await app().request("/api/account/me/tokens", bearer(token, { method: "POST", body: JSON.stringify({ name: "x", scopes: ["things:read"] }), headers: { "Content-Type": "application/json" } }))).status).toBe(403);
+    expect((await app().request(`/api/account/me/tokens/${record.id}`, bearer(token, { method: "PATCH", body: JSON.stringify({ scopes: ["things:read", "things:write"] }), headers: { "Content-Type": "application/json" } }))).status).toBe(403);
     expect((await app().request(`/api/account/me/tokens/${record.id}`, bearer(token, { method: "DELETE" }))).status).toBe(403);
   });
 
@@ -192,6 +204,40 @@ describe("token routes (session)", () => {
       });
       expect(res.status).toBe(422);
     }
+  });
+
+  test("update renames and rescopes a token, effective on its next request", async () => {
+    const u = await seedUser("u1");
+    const cookie = await sessionCookie(u);
+    const { token, record } = await createApiToken(db, u, { name: "ci", scopes: ["things:read"], expiresAt: null });
+    expect((await app().request("/api/things", bearer(token, { method: "POST" }))).status).toBe(403);
+
+    const res = await app().request(`/api/account/me/tokens/${record.id}`, {
+      method: "PATCH",
+      headers: { "Cookie": cookie, "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "deploy", scopes: ["things:write"] }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { data: Record<string, unknown> };
+    expect(body.data).toMatchObject({ id: record.id, name: "deploy", scopes: ["things:write"] });
+    expect(body.data).not.toHaveProperty("token");
+
+    expect((await app().request("/api/things", bearer(token, { method: "POST" }))).status).toBe(201);
+    expect((await app().request("/api/things", bearer(token))).status).toBe(403);
+  });
+
+  test("update rejects an empty body, a bad scope list and another user's token", async () => {
+    const cookie = await sessionCookie(await seedUser("u1"));
+    const other = await createApiToken(db, await seedUser("u2"), { name: "theirs", scopes: ["things:read"], expiresAt: null });
+    const mine = await createApiToken(db, "u1", { name: "mine", scopes: ["things:read"], expiresAt: null });
+    const patch = (id: string, body: unknown) => app().request(`/api/account/me/tokens/${id}`, {
+      method: "PATCH",
+      headers: { "Cookie": cookie, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    for (const body of [{}, { scopes: [] }, { scopes: ["nope:read"] }, { name: "  " }])
+      expect((await patch(mine.record.id, body)).status).toBe(422);
+    expect((await patch(other.record.id, { name: "x" })).status).toBe(404);
   });
 
   test("lists the registered scopes", async () => {

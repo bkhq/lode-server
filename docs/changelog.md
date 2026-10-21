@@ -44,6 +44,10 @@ each upstream tag; your fork's `Unreleased` block sits at the top.
   after the session provider. **Schema:** new `api_tokens` table in the
   regenerated `0000_init` migration; a deployed database needs it created by
   hand.
+  A token can be renamed and rescoped after creation, from the token list or
+  at `PATCH /api/account/me/tokens/:id`; the secret and expiry stay the same,
+  new scopes apply from its next request, and each change is audited as
+  `api_token.updated`.
 
 - Group memberships from the identity provider. With `OAUTH_GROUPS_CLAIM`
   set, each OIDC login makes the user's memberships in IdP-managed groups
@@ -229,6 +233,11 @@ each upstream tag; your fork's `Unreleased` block sits at the top.
   recreate, and import — the importer migrates the dump).
 
 ### Fixed
+
+- The API tokens tab no longer pushes its content out of the settings
+  dialog when a token holds many scopes: scopes render as wrapping badges
+  (collapsed past three), the scope picker scrolls within a bounded list with
+  select-all, and the dialog scrolls instead of growing past the viewport.
 
 - `BASE_PATH` did not work on Cloudflare Workers. The SPA's HTML referenced
   `/u/assets/…` while the asset pipeline served files from the build root, so

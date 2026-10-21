@@ -71,6 +71,30 @@ export async function listApiTokens(db: AppDatabase, userId: string): Promise<Ap
   return rows.map(toRecord);
 }
 
+/**
+ * Rename or rescope one of `userId`'s tokens, returning it before and after;
+ * undefined when there is no such token of theirs. The secret is unchanged,
+ * and new scopes apply from the token's next request.
+ */
+export async function updateApiToken(
+  db: AppDatabase,
+  userId: string,
+  id: string,
+  input: { readonly name?: string | undefined; readonly scopes?: readonly string[] | undefined },
+): Promise<{ before: ApiTokenRecord; after: ApiTokenRecord } | undefined> {
+  const mine = and(eq(apiTokens.id, id), eq(apiTokens.userId, userId));
+  const row = await db.select().from(apiTokens).where(mine).get();
+  if (!row)
+    return undefined;
+  const patch: Partial<typeof apiTokens.$inferInsert> = {};
+  if (input.name !== undefined)
+    patch.name = input.name;
+  if (input.scopes !== undefined)
+    patch.scopes = JSON.stringify([...new Set(input.scopes)]);
+  const [updated] = await db.update(apiTokens).set(patch).where(mine).returning();
+  return updated ? { before: toRecord(row), after: toRecord(updated) } : undefined;
+}
+
 /** Delete one of `userId`'s tokens, returning it; undefined when there is no such token of theirs. */
 export async function deleteApiToken(db: AppDatabase, userId: string, id: string): Promise<ApiTokenRecord | undefined> {
   const mine = and(eq(apiTokens.id, id), eq(apiTokens.userId, userId));
