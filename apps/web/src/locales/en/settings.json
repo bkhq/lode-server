@@ -166,8 +166,8 @@
   },
   "auth": {
     "sessionTitle": "Session & Admin",
-    "sessionDescription": "Configure session lifetime and default administrators.",
-    "fieldSessionMaxAge": "Session Max Age (seconds)"
+    "sessionDescription": "Configure the session idle timeout (sessions in use are extended; none lasts beyond 30 days) and default administrators.",
+    "fieldSessionMaxAge": "Session idle timeout (seconds)"
   },
   "smtp": {
     "title": "Email (SMTP)",

@@ -234,6 +234,17 @@ each upstream tag; your fork's `Unreleased` block sits at the top.
 
 ### Fixed
 
+- Signed-in users were logged out about an hour after an OIDC login, even
+  mid-use: the session expired with the IdP's access token, and without a
+  refresh token (most IdPs issue one only for `offline_access`) it was
+  deleted. Every sign-in method now gets `session.max_age` (default one day)
+  as an idle timeout — a session in use is extended, and its cookie
+  rewritten, once half of it has passed — with a 30-day absolute limit from
+  sign-in. Expired sessions are deleted rather than renewed through a
+  refresh-token grant, and abandoned ones are swept when a session is
+  created. Admins who set `session.max_age` as a total lifetime should
+  revisit it: it now measures inactivity.
+
 - The API tokens tab no longer pushes its content out of the settings
   dialog when a token holds many scopes: scopes render as wrapping badges
   (collapsed past three), the scope picker scrolls within a bounded list with

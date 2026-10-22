@@ -11,7 +11,7 @@ apps/api/src/modules/account/
   index.ts                     # registers backup contribution + OAuth auth provider
   auth/
     auth.routes.ts
-    auth.service.ts            # session lookup, refresh, default-admin promotion
+    auth.service.ts            # session lookup and renewal, default-admin promotion
     oidc.ts                    # OIDC client (oauth4webapi)
     session-cookie.ts          # cookie name + parse / write helpers
     schema.ts                  # `sessions` table

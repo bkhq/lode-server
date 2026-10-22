@@ -221,7 +221,7 @@ async function signInLocalAccount(c: Context<AppEnv>, usernameRaw: string, passw
   }
 
   // The sentinel marks a session with no OAuth tokens behind it, so logout
-  // skips the IdP revoke and expiry does not try to refresh.
+  // skips the IdP revoke.
   const sessionId = await createSession(db, user.id, SINGLE_USER_ACCESS_TOKEN, undefined, authCfg.sessionMaxAge);
   writeSessionCookie(c, config.NODE_ENV, config.BASE_PATH, sessionId, authCfg.sessionMaxAge);
   await audit(db, c.get("logger"), {
@@ -546,7 +546,7 @@ export function authRoutes() {
         user.id,
         tokens.access_token,
         tokens.refresh_token,
-        tokens.expires_in,
+        authCfg.sessionMaxAge,
       );
 
       writeSessionCookie(c, config.NODE_ENV, config.BASE_PATH, sessionId, authCfg.sessionMaxAge);
@@ -929,7 +929,7 @@ export function authRoutes() {
         challenge.userId,
         challenge.accessToken,
         challenge.refreshToken ?? undefined,
-        challenge.expiresIn ?? undefined,
+        authCfg.sessionMaxAge,
       );
 
       writeSessionCookie(c, config.NODE_ENV, config.BASE_PATH, sessionId, authCfg.sessionMaxAge);

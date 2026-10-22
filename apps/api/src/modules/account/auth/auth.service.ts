@@ -1,5 +1,4 @@
 import type { Context } from "hono";
-import type { Config } from "@/config";
 import type { AppDatabase } from "@/db";
 import type { AuthConfig } from "@/shared/lib/app-config";
 import type { Logger } from "@/shared/lib/logger";
@@ -10,9 +9,9 @@ import { eq, lte, or } from "drizzle-orm";
 import { customAlphabet } from "nanoid";
 import { openPkceVerifier, sealPkceVerifier } from "@/modules/account/auth/pkce-secret";
 import { pkceChallenges, sessions } from "@/modules/account/auth/schema";
-import { clearSessionCookie, readSessionId } from "@/modules/account/auth/session-cookie";
+import { clearSessionCookie, readSessionId, writeSessionCookie } from "@/modules/account/auth/session-cookie";
 import { users } from "@/modules/account/users/schema";
-import { getOAuthConfig } from "@/shared/lib/app-config";
+import { getAuthConfig } from "@/shared/lib/app-config";
 import { AppError, isUniqueViolation } from "@/shared/lib/errors";
 
 const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
@@ -362,24 +361,49 @@ export async function upsertSingleUser(
 }
 
 // --- Session CRUD ---
+//
+// A session's lifetime is the app's own, `session.max_age`, never the IdP
+// access token's: the token is used once at sign-in and once at sign-out, so
+// tying the session to it (an hour at most IdPs) logged users out mid-use.
+// The lifetime is an idle timeout — each use past half of it extends the
+// session by a full period — and no session lives longer than
+// SESSION_ABSOLUTE_LIFETIME_MS from sign-in, so changes made at the IdP
+// (a disabled account, new groups) reach the app at least that often.
 
+export const SESSION_ABSOLUTE_LIFETIME_MS = 30 * 24 * 3_600_000;
+
+/** When a session started at `createdAt` must end, however active. */
+function absoluteDeadline(createdAt: string): number {
+  return Date.parse(createdAt) + SESSION_ABSOLUTE_LIFETIME_MS;
+}
+
+/**
+ * `refreshToken` is kept only so sign-out can revoke it at the IdP; it never
+ * extends a session.
+ */
 export async function createSession(
   db: AppDatabase,
   userId: string,
   accessToken: string,
   refreshToken: string | undefined,
-  expiresIn: number | undefined,
+  maxAgeSeconds: number,
 ): Promise<string> {
   const id = randomBytes(32).toString("hex");
-  const now = new Date().toISOString();
-  const expiresAt = new Date(Date.now() + (expiresIn ?? 3600) * 1000).toISOString();
+  const nowMs = Date.now();
+  const now = new Date(nowMs).toISOString();
+
+  // Nothing else deletes a session that is never used again.
+  await db.delete(sessions).where(or(
+    lte(sessions.expiresAt, now),
+    lte(sessions.createdAt, new Date(nowMs - SESSION_ABSOLUTE_LIFETIME_MS).toISOString()),
+  )).run();
 
   await db.insert(sessions).values({
     id,
     userId,
     accessToken,
     refreshToken: refreshToken ?? null,
-    expiresAt,
+    expiresAt: new Date(nowMs + maxAgeSeconds * 1000).toISOString(),
     createdAt: now,
     updatedAt: now,
   }).run();
@@ -403,27 +427,6 @@ export async function getSessionWithUser(db: AppDatabase, sessionId: string) {
   return row;
 }
 
-export async function updateSessionTokens(
-  db: AppDatabase,
-  sessionId: string,
-  accessToken: string,
-  refreshToken: string | undefined,
-  expiresIn: number | undefined,
-) {
-  const now = new Date().toISOString();
-  const expiresAt = new Date(Date.now() + (expiresIn ?? 3600) * 1000).toISOString();
-
-  await db.update(sessions)
-    .set({
-      accessToken,
-      refreshToken: refreshToken ?? undefined,
-      expiresAt,
-      updatedAt: now,
-    })
-    .where(eq(sessions.id, sessionId))
-    .run();
-}
-
 export async function deleteSession(db: AppDatabase, sessionId: string) {
   await db.delete(sessions).where(eq(sessions.id, sessionId)).run();
 }
@@ -432,8 +435,39 @@ export async function deleteUserSessions(db: AppDatabase, userId: string) {
   await db.delete(sessions).where(eq(sessions.userId, userId)).run();
 }
 
-export function isSessionExpired(expiresAt: string): boolean {
-  return new Date(expiresAt).getTime() <= Date.now();
+export function isSessionExpired(session: { readonly expiresAt: string; readonly createdAt: string }): boolean {
+  const now = Date.now();
+  return Date.parse(session.expiresAt) <= now || absoluteDeadline(session.createdAt) <= now;
+}
+
+/**
+ * Extend a session in use once more than half of its current period has
+ * passed, so it is written at most twice per period. `updatedAt` marks the
+ * start of the period. The new period is `session.max_age` as configured
+ * now, cut short at the absolute deadline.
+ */
+async function renewSessionIfDue(
+  db: AppDatabase,
+  c: Context<AppEnv>,
+  session: { readonly id: string; readonly expiresAt: string; readonly createdAt: string; readonly updatedAt: string },
+): Promise<void> {
+  const now = Date.now();
+  const expiresAt = Date.parse(session.expiresAt);
+  const deadline = absoluteDeadline(session.createdAt);
+  const periodStart = Date.parse(session.updatedAt);
+  if (expiresAt >= deadline || now - periodStart < (expiresAt - periodStart) / 2)
+    return;
+
+  const config = c.get("config");
+  const { sessionMaxAge } = await getAuthConfig(db, config);
+  const next = Math.min(now + sessionMaxAge * 1000, deadline);
+  if (next <= expiresAt)
+    return;
+  await db.update(sessions)
+    .set({ expiresAt: new Date(next).toISOString(), updatedAt: new Date(now).toISOString() })
+    .where(eq(sessions.id, session.id))
+    .run();
+  writeSessionCookie(c, config.NODE_ENV, config.BASE_PATH, session.id, Math.floor((next - now) / 1000));
 }
 
 export function logDefaultAdmins(authConfig: AuthConfig, logger: Logger) {
@@ -445,9 +479,9 @@ export function logDefaultAdmins(authConfig: AuthConfig, logger: Logger) {
 // --- AuthProvider implementation (registered with the shared middleware) ---
 
 /**
- * Resolves the request's session-cookie-bound user. Refreshes the OAuth
- * access token when the local session is expired but a refresh token is
- * available; otherwise tears down the session.
+ * Resolves the request's session-cookie-bound user, extending the session
+ * while it is in use. An expired session is deleted; it is never revived
+ * through the IdP's refresh token.
  */
 export async function oauthSessionAuthProvider(db: AppDatabase, c: Context<AppEnv>): Promise<User | undefined> {
   const config = c.get("config");
@@ -464,68 +498,12 @@ export async function oauthSessionAuthProvider(db: AppDatabase, c: Context<AppEn
 
   const { session, user } = result;
 
-  if (user.status === "disabled") {
+  if (user.status === "disabled" || isSessionExpired(session)) {
     await deleteSession(db, sessionId);
     clearSessionCookie(c, config.NODE_ENV, config.BASE_PATH);
     return undefined;
   }
 
-  if (isSessionExpired(session.expiresAt)) {
-    if (session.refreshToken) {
-      try {
-        await refreshSessionWithMutex(db, session.id, session.refreshToken, config);
-        return user;
-      }
-      catch {
-        await deleteSession(db, sessionId);
-        clearSessionCookie(c, config.NODE_ENV, config.BASE_PATH);
-        return undefined;
-      }
-    }
-    await deleteSession(db, sessionId);
-    clearSessionCookie(c, config.NODE_ENV, config.BASE_PATH);
-    return undefined;
-  }
-
+  await renewSessionIfDue(db, c, session);
   return user;
-}
-
-// Per-session mutex for refresh-token grants. Most IdPs treat refresh tokens
-// as single-use; two parallel requests on the same expired session will
-// otherwise both call /token, the IdP rotates the refresh token after the
-// first, the second gets `invalid_grant`, and we end up storing the second
-// (failed) response over the first (succeeded). Coalesce on a single in-flight
-// promise per session id.
-const refreshInFlight = new Map<string, Promise<void>>();
-
-async function refreshSessionWithMutex(
-  db: AppDatabase,
-  sessionId: string,
-  refreshToken: string,
-  config: Config,
-): Promise<void> {
-  const existing = refreshInFlight.get(sessionId);
-  if (existing)
-    return existing;
-
-  const work = (async () => {
-    const oauth = getOAuthConfig(config);
-    const { refreshTokens } = await import("./oidc");
-    const refreshed = await refreshTokens({ oauth, appConfig: config, refreshToken });
-    await updateSessionTokens(
-      db,
-      sessionId,
-      refreshed.access_token,
-      refreshed.refresh_token,
-      refreshed.expires_in,
-    );
-  })();
-  refreshInFlight.set(sessionId, work);
-  try {
-    await work;
-  }
-  finally {
-    if (refreshInFlight.get(sessionId) === work)
-      refreshInFlight.delete(sessionId);
-  }
 }

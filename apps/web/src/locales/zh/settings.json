@@ -166,8 +166,8 @@
   },
   "auth": {
     "sessionTitle": "会话与管理员",
-    "sessionDescription": "配置会话时长和默认管理员。",
-    "fieldSessionMaxAge": "会话有效期（秒）"
+    "sessionDescription": "配置会话空闲超时（使用中的会话会自动续期，最长不超过 30 天）和默认管理员。",
+    "fieldSessionMaxAge": "会话空闲超时（秒）"
   },
   "smtp": {
     "title": "邮件（SMTP）",

@@ -214,24 +214,6 @@ export async function fetchUserInfo(args: {
   return userinfo as OidcUserInfo;
 }
 
-// ─── Refresh ───
-
-export async function refreshTokens(args: {
-  oauth: OAuthConfig;
-  appConfig: Config;
-  refreshToken: string;
-}): Promise<OidcTokens> {
-  const { as, client, clientAuth } = buildAs(args.oauth, args.appConfig);
-  const response = await oauth.refreshTokenGrantRequest(as, client, clientAuth, args.refreshToken, insecureOptions(args.appConfig, args.oauth));
-  const tokens = await oauth.processRefreshTokenResponse(as, client, response);
-  return {
-    access_token: tokens.access_token,
-    refresh_token: tokens.refresh_token,
-    expires_in: tokens.expires_in,
-    id_token: typeof tokens.id_token === "string" ? tokens.id_token : undefined,
-  };
-}
-
 // ─── Revocation (RFC 7009) ───
 
 const RE_TOKEN_PATH = /\/token\/?$/;
