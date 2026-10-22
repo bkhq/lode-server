@@ -16,7 +16,7 @@ import { authRequired } from "@/shared/middleware/auth";
 import { errorHandler } from "@/shared/middleware/error-handler";
 import { apiTokens } from "./schema";
 import { tokenRoutes } from "./tokens.routes";
-import { createApiToken, deleteApiToken, listApiTokens, updateApiToken } from "./tokens.service";
+import { createApiToken, deleteApiToken, listApiTokens, rotateApiToken, updateApiToken } from "./tokens.service";
 import "@/modules/account";
 
 const noop = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
@@ -102,6 +102,17 @@ describe("api token service", () => {
     expect(updated?.after).toMatchObject({ name: "deploy", scopes: ["things:write"], prefix: record.prefix });
     expect((await listApiTokens(db, a))[0]!.name).toBe("deploy");
   });
+
+  test("rotation replaces the secret of only the user's own token", async () => {
+    const a = await seedUser("a");
+    const b = await seedUser("b");
+    const { token, record } = await createApiToken(db, a, { name: "ci", scopes: ["things:read"], expiresAt: null });
+    expect(await rotateApiToken(db, b, record.id, null)).toBeUndefined();
+    const rotated = (await rotateApiToken(db, a, record.id, null))!;
+    expect(rotated.token).not.toBe(token);
+    expect(rotated.token.startsWith("pat_")).toBe(true);
+    expect(rotated.record).toMatchObject({ id: record.id, name: "ci", scopes: ["things:read"], prefix: rotated.token.slice(0, 10) });
+  });
 });
 
 describe("api token authentication", () => {
@@ -138,6 +149,7 @@ describe("api token authentication", () => {
     expect((await app().request("/api/account/me/tokens", bearer(token))).status).toBe(403);
     expect((await app().request("/api/account/me/tokens", bearer(token, { method: "POST", body: JSON.stringify({ name: "x", scopes: ["things:read"] }), headers: { "Content-Type": "application/json" } }))).status).toBe(403);
     expect((await app().request(`/api/account/me/tokens/${record.id}`, bearer(token, { method: "PATCH", body: JSON.stringify({ scopes: ["things:read", "things:write"] }), headers: { "Content-Type": "application/json" } }))).status).toBe(403);
+    expect((await app().request(`/api/account/me/tokens/${record.id}/rotate`, bearer(token, { method: "POST", body: "{}", headers: { "Content-Type": "application/json" } }))).status).toBe(403);
     expect((await app().request(`/api/account/me/tokens/${record.id}`, bearer(token, { method: "DELETE" }))).status).toBe(403);
   });
 
@@ -238,6 +250,56 @@ describe("token routes (session)", () => {
     for (const body of [{}, { scopes: [] }, { scopes: ["nope:read"] }, { name: "  " }])
       expect((await patch(mine.record.id, body)).status).toBe(422);
     expect((await patch(other.record.id, { name: "x" })).status).toBe(404);
+  });
+
+  test("rotate issues a new secret once and the old one stops working at once", async () => {
+    const u = await seedUser("u1");
+    const cookie = await sessionCookie(u);
+    const { token, record } = await createApiToken(db, u, { name: "ci", scopes: ["things:read"], expiresAt: null });
+    await app().request("/api/things", bearer(token));
+
+    const res = await app().request(`/api/account/me/tokens/${record.id}/rotate`, {
+      method: "POST",
+      headers: { "Cookie": cookie, "Content-Type": "application/json" },
+      body: JSON.stringify({ expiresInDays: 30 }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { data: { token: string; id: string; name: string; scopes: string[]; expiresAt: string | null; lastUsedAt: string | null } };
+    expect(body.data).toMatchObject({ id: record.id, name: "ci", scopes: ["things:read"], lastUsedAt: null });
+    expect(body.data.expiresAt).not.toBeNull();
+
+    expect((await app().request("/api/things", bearer(token))).status).toBe(401);
+    expect((await app().request("/api/things", bearer(body.data.token))).status).toBe(200);
+    const list = (await (await app().request("/api/account/me/tokens", { headers: { Cookie: cookie } })).json()) as { data: unknown[] };
+    expect(JSON.stringify(list.data)).not.toContain(body.data.token);
+  });
+
+  test("rotating an expired token revives it; omitting the expiry makes it permanent", async () => {
+    const u = await seedUser("u1");
+    const cookie = await sessionCookie(u);
+    const expired = await createApiToken(db, u, { name: "old", scopes: ["things:read"], expiresAt: new Date(Date.now() - 1000).toISOString() });
+    const res = await app().request(`/api/account/me/tokens/${expired.record.id}/rotate`, {
+      method: "POST",
+      headers: { "Cookie": cookie, "Content-Type": "application/json" },
+      body: "{}",
+    });
+    const body = (await res.json()) as { data: { token: string; expiresAt: string | null } };
+    expect(body.data.expiresAt).toBeNull();
+    expect((await app().request("/api/things", bearer(body.data.token))).status).toBe(200);
+  });
+
+  test("rotate rejects another user's token and a bad expiry", async () => {
+    const cookie = await sessionCookie(await seedUser("u1"));
+    const other = await createApiToken(db, await seedUser("u2"), { name: "theirs", scopes: ["things:read"], expiresAt: null });
+    const mine = await createApiToken(db, "u1", { name: "mine", scopes: ["things:read"], expiresAt: null });
+    const rotate = (id: string, body: unknown) => app().request(`/api/account/me/tokens/${id}/rotate`, {
+      method: "POST",
+      headers: { "Cookie": cookie, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    expect((await rotate(other.record.id, {})).status).toBe(404);
+    expect((await rotate(mine.record.id, { expiresInDays: 0 })).status).toBe(422);
+    expect((await app().request("/api/things", bearer(mine.token))).status).toBe(200);
   });
 
   test("lists the registered scopes", async () => {

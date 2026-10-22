@@ -7,7 +7,7 @@ import { NotFoundError } from "@/shared/lib/errors";
 import { describeRoute, errors, jsonCreated, jsonOk, SECURITY, TAGS, validator } from "@/shared/lib/openapi";
 import { getTokenScopes, isTokenScope } from "@/shared/lib/token-scopes";
 import { authRequired } from "@/shared/middleware/auth";
-import { createApiToken, deleteApiToken, listApiTokens, updateApiToken } from "./tokens.service";
+import { createApiToken, deleteApiToken, listApiTokens, rotateApiToken, updateApiToken } from "./tokens.service";
 
 const tokenSchema = z.object({
   id: z.string(),
@@ -22,12 +22,22 @@ const tokenSchema = z.object({
 const tokenNameSchema = z.string().trim().min(1).max(100);
 const tokenScopesSchema = z.array(z.string()).min(1).refine(scopes => scopes.every(isTokenScope), { message: "Unknown scope" });
 
+// Omitted → the token does not expire.
+const expiresInDaysSchema = z.number().int().min(1).max(3650).optional();
+
 const createTokenSchema = z.object({
   name: tokenNameSchema,
   scopes: tokenScopesSchema,
-  // Omitted → the token does not expire.
-  expiresInDays: z.number().int().min(1).max(3650).optional(),
+  expiresInDays: expiresInDaysSchema,
 });
+
+const rotateTokenSchema = z.object({
+  expiresInDays: expiresInDaysSchema,
+});
+
+function expiresAtFor(expiresInDays: number | undefined): string | null {
+  return expiresInDays === undefined ? null : new Date(Date.now() + expiresInDays * 86_400_000).toISOString();
+}
 
 const updateTokenSchema = z.object({
   name: tokenNameSchema.optional(),
@@ -91,10 +101,7 @@ export function tokenRoutes() {
       const db = c.get("db");
       const user = c.get("user")!;
       const body = c.req.valid("json");
-      const expiresAt = body.expiresInDays === undefined
-        ? null
-        : new Date(Date.now() + body.expiresInDays * 86_400_000).toISOString();
-      const { token, record } = await createApiToken(db, user.id, { name: body.name, scopes: body.scopes, expiresAt });
+      const { token, record } = await createApiToken(db, user.id, { name: body.name, scopes: body.scopes, expiresAt: expiresAtFor(body.expiresInDays) });
       await audit(db, c.get("logger"), {
         actorId: user.id,
         actorName: user.name,
@@ -149,6 +156,44 @@ export function tokenRoutes() {
         result: "success",
       });
       return c.json({ success: true, data: after });
+    },
+  );
+
+  router.post(
+    "/account/me/tokens/:id/rotate",
+    describeRoute({
+      tags: [TAGS.Account],
+      summary: "Rotate an API token",
+      description: "Replaces the token's secret and returns the new one once, in `token`. The old secret stops working at once; name and scopes are kept, and the expiry is set anew as at creation.",
+      security: SECURITY.session,
+      responses: {
+        ...jsonOk(tokenSchema.extend({ token: z.string() }), "Token rotated"),
+        ...errors(401, 403, 404, 422),
+      },
+    }),
+    validator("param", z.object({ id: z.string() })),
+    validator("json", rotateTokenSchema),
+    async (c) => {
+      const db = c.get("db");
+      const user = c.get("user")!;
+      const { id } = c.req.valid("param");
+      const rotated = await rotateApiToken(db, user.id, id, expiresAtFor(c.req.valid("json").expiresInDays));
+      if (!rotated)
+        throw new NotFoundError("API token", id);
+      const { token, record } = rotated;
+      await audit(db, c.get("logger"), {
+        actorId: user.id,
+        actorName: user.name,
+        action: "api_token.rotated",
+        resourceType: "api_token",
+        resourceId: record.id,
+        resourceName: record.name,
+        detail: { expiresAt: record.expiresAt },
+        ip: getClientIp(c),
+        userAgent: c.req.header("user-agent") ?? "unknown",
+        result: "success",
+      });
+      return c.json({ success: true, data: { ...record, token } });
     },
   );
 

@@ -47,7 +47,11 @@ each upstream tag; your fork's `Unreleased` block sits at the top.
   A token can be renamed and rescoped after creation, from the token list or
   at `PATCH /api/account/me/tokens/:id`; the secret and expiry stay the same,
   new scopes apply from its next request, and each change is audited as
-  `api_token.updated`.
+  `api_token.updated`. Rotation (`POST /api/account/me/tokens/:id/rotate`, or
+  the rotate button) replaces the secret under the same id, name and scopes:
+  the old secret stops working at once, the new one is shown once, and the
+  expiry is set anew — which also revives an expired token. Audited as
+  `api_token.rotated`. Expired tokens are marked as such in the list.
 
 - Group memberships from the identity provider. With `OAUTH_GROUPS_CLAIM`
   set, each OIDC login makes the user's memberships in IdP-managed groups

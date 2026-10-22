@@ -1,4 +1,4 @@
-import { Check, Copy, KeyRound, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, Copy, KeyRound, Loader2, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/shared/components/ui/badge";
@@ -36,6 +36,7 @@ export function ApiTokensTab() {
   const [scopes, setScopes] = useState<TokenScope[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<FormMode | null>(null);
+  const [rotating, setRotating] = useState<ApiToken | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -76,6 +77,21 @@ export function ApiTokensTab() {
 
   if (loading)
     return <div className="py-8 text-center text-sm text-muted-foreground">{t("common.loading")}</div>;
+
+  if (rotating) {
+    return (
+      <RotateForm
+        token={rotating}
+        onCancel={() => setRotating(null)}
+        onRotated={(newSecret) => {
+          setRotating(null);
+          setSecret(newSecret);
+          setCopied(false);
+          void fetchAll();
+        }}
+      />
+    );
+  }
 
   if (form) {
     return (
@@ -145,7 +161,11 @@ export function ApiTokensTab() {
                       </div>
                       <ScopeBadges scopes={token.scopes} />
                       <div className="text-xs text-muted-foreground">
-                        {token.expiresAt ? t("tokens:expires", { date: formatDate(token.expiresAt) }) : t("tokens:neverExpires")}
+                        {token.expiresAt === null
+                          ? t("tokens:neverExpires")
+                          : Date.parse(token.expiresAt) <= Date.now()
+                            ? <span className="text-destructive">{t("tokens:expired", { date: formatDate(token.expiresAt) })}</span>
+                            : t("tokens:expires", { date: formatDate(token.expiresAt) })}
                         {" · "}
                         {token.lastUsedAt ? t("tokens:lastUsed", { date: formatDate(token.lastUsedAt) }) : t("tokens:neverUsed")}
                       </div>
@@ -166,6 +186,9 @@ export function ApiTokensTab() {
                         <div className="flex shrink-0 items-center gap-0.5">
                           <Button variant="ghost" size="icon-xs" aria-label={t("tokens:edit")} onClick={() => setForm({ kind: "edit", token })}>
                             <Pencil className="size-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon-xs" aria-label={t("tokens:rotate")} onClick={() => setRotating(token)}>
+                            <RefreshCw className="size-3.5" />
                           </Button>
                           <Button variant="ghost" size="icon-xs" aria-label={t("tokens:revoke")} onClick={() => setDeleteId(token.id)}>
                             <Trash2 className="size-3.5 text-destructive" />
@@ -199,6 +222,73 @@ function ScopeBadges({ scopes }: { readonly scopes: readonly string[] }) {
           </Badge>
         </button>
       )}
+    </div>
+  );
+}
+
+function isValidDays(days: string): boolean {
+  return days.trim() === "" || (/^\d+$/.test(days) && Number(days) >= 1 && Number(days) <= 3650);
+}
+
+function RotateForm({
+  token,
+  onCancel,
+  onRotated,
+}: {
+  readonly token: ApiToken;
+  readonly onCancel: () => void;
+  readonly onRotated: (secret: string) => void;
+}) {
+  const { t } = useTranslation(["common", "tokens"]);
+  const [days, setDays] = useState("90");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleRotate = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const expiresInDays = days.trim() === "" ? undefined : Number(days);
+      const res = await http<{ data: ApiToken & { token: string } }>(`/account/me/tokens/${token.id}/rotate`, {
+        method: "POST",
+        body: JSON.stringify({ expiresInDays }),
+      });
+      onRotated(res.data.token);
+    }
+    catch (err) {
+      setError(err instanceof Error ? err.message : t("common.error.operationFailed"));
+    }
+    finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4 pt-4">
+      <div className="space-y-1">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <span className="truncate text-sm font-medium">{token.name}</span>
+          <span className="shrink-0 font-mono text-xs text-muted-foreground">
+            {token.prefix}
+            …
+          </span>
+        </div>
+        <ScopeBadges scopes={token.scopes} />
+      </div>
+      <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-600 dark:text-amber-400">
+        {t("tokens:rotateWarning")}
+      </p>
+      <div className="space-y-2">
+        <Label htmlFor="token-rotate-days">{t("tokens:expiresInDays")}</Label>
+        <Input id="token-rotate-days" inputMode="numeric" value={days} onChange={e => setDays(e.target.value)} placeholder={t("tokens:neverExpires")} autoFocus />
+      </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={onCancel}>{t("common.cancel")}</Button>
+        <Button size="sm" onClick={() => void handleRotate()} disabled={!isValidDays(days) || submitting} aria-busy={submitting}>
+          {submitting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : t("tokens:rotate")}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -263,7 +353,7 @@ function TokenForm({
     }
   };
 
-  const validDays = days.trim() === "" || (/^\d+$/.test(days) && Number(days) >= 1 && Number(days) <= 3650);
+  const validDays = isValidDays(days);
 
   return (
     <div className="space-y-4 pt-4">

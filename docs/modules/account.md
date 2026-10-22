@@ -155,6 +155,7 @@ A signed-in user can mint tokens for scripts and other services under
 | GET | `/api/account/me/tokens` | Session | The caller's tokens, without secrets. |
 | POST | `/api/account/me/tokens` | Session | Creates a token (`name`, `scopes`, optional `expiresInDays`); the response carries the secret once. |
 | PATCH | `/api/account/me/tokens/:id` | Session | Renames or rescopes a token (`name` and/or `scopes`); the secret is unchanged and new scopes apply from its next request. |
+| POST | `/api/account/me/tokens/:id/rotate` | Session | Replaces a token's secret (optional `expiresInDays`, as at creation); the old secret stops working at once and the response carries the new one once. |
 | DELETE | `/api/account/me/tokens/:id` | Session | Revokes a token. |
 
 A token is sent as `Authorization: Bearer pat_…`, needs no CSRF header, and
