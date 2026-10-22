@@ -336,7 +336,7 @@ function SetupPage() {
                       <Textarea
                         readOnly
                         value={backupKey}
-                        className="h-20 min-h-0 resize-none bg-muted/50 font-mono text-xs break-all"
+                        className="h-20 min-h-0 resize-none bg-muted/50 pr-14 font-mono text-xs break-all"
                       />
                     )
                   : (
