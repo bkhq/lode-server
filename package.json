@@ -15,7 +15,7 @@
   ],
   "catalog": {
     "typescript": "6.0.3",
-    "vitest": "5.0.0"
+    "vitest": "5.0.5"
   },
   "scripts": {
     "dev": "bun run --filter '@app/*' dev",
@@ -57,7 +57,8 @@
   "overrides": {
     "esbuild": "^0.25.0",
     "qs": "^6.15.2",
-    "dompurify": "^3.4.16",
+    "dompurify": "^3.4.17",
+    "ip-address": "^10.7.4",
     "source-map-js": "^1.2.2",
     "@modelcontextprotocol/sdk": "^1.31.0",
     "hono": "4.13.11"
