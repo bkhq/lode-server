@@ -72,6 +72,14 @@ describe("listUsers", () => {
     expect(byEmail.data.length).toBe(1);
   });
 
+  test("matches % and _ in the search literally", async () => {
+    await seedUser({ name: "Ann", email: "ann_lee@test.com", username: "ann" });
+    await seedUser({ name: "Bea", email: "bea@test.com", username: "bea" });
+
+    const r = await listUsers(db, { q: "_", page: 1, limit: 20 });
+    expect(r.data.map(u => u.name)).toEqual(["Ann"]);
+  });
+
   test("filters by role", async () => {
     await seedUser({ role: "admin" });
     await seedUser({ role: "user" });

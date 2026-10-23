@@ -248,6 +248,12 @@ each upstream tag; your fork's `Unreleased` block sits at the top.
   of the client's: every audit write read the IP without the proxy config.
   They now share `auditMeta(c)`, and `getClientIp` requires the config so a
   call site cannot leave it out again.
+- Searching documents, issues, items or users for text containing `%` or `_`
+  found nothing (documents, issues, items) or matched too much (users): the
+  services escaped the wildcards but SQLite only honours an escape character
+  the query names. Searches now go through `likeEscaped` in
+  `shared/lib/like.ts`, which adds `ESCAPE '\'`.
+
 - Signed-in users were logged out about an hour after an OIDC login, even
   mid-use: the session expired with the IdP's access token, and without a
   refresh token (most IdPs issue one only for `offline_access`) it was

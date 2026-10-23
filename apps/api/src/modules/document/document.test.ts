@@ -24,6 +24,7 @@ import {
   getDocumentPermission,
   getDocumentTreeForUser,
   isVersionConflict,
+  listDocuments,
   listDocumentSharesWithInheritance,
   listMyDocuments,
   removeDocumentShare,
@@ -169,6 +170,14 @@ describe("createDocument", () => {
     expect(doc.parentId).toBeNull();
     expect(doc.version).toBe(1);
     expect(doc.creatorId).toBe(userId);
+  });
+
+  test("listDocuments matches % and _ in the title and tag search literally", async () => {
+    const userId = await seedUser("Alice");
+    await createDocument(db, { title: "Q3 at 50%", tags: ["fy_2026"], creatorId: userId });
+    await createDocument(db, { title: "Q3 at 500", tags: ["fyx2026"], creatorId: userId });
+    expect((await listDocuments(db, { q: "50%" })).data.map(d => d.title)).toEqual(["Q3 at 50%"]);
+    expect((await listDocuments(db, { tag: "fy_2026" })).data.map(d => d.title)).toEqual(["Q3 at 50%"]);
   });
 
   test("nests via parentId; parent stored as short_id", async () => {

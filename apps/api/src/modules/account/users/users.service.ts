@@ -1,5 +1,5 @@
 import type { AppDatabase } from "@/db";
-import { and, asc, count, eq, inArray, like, or } from "drizzle-orm";
+import { and, asc, count, eq, inArray, or } from "drizzle-orm";
 import {
   listGroupMembershipsForUser,
   listGroupMembershipsForUsers,
@@ -7,6 +7,7 @@ import {
 } from "@/modules/account/groups/group-members.service";
 import { groups } from "@/modules/account/groups/schema";
 import { users } from "@/modules/account/users/schema";
+import { escapeLike, likeEscaped } from "@/shared/lib/like";
 
 type UserRole = "admin" | "user";
 type UserStatus = "active" | "disabled";
@@ -39,8 +40,8 @@ export async function listUsers(db: AppDatabase, params: ListUsersParams) {
   const conditions = [];
 
   if (q) {
-    const pattern = `%${q}%`;
-    conditions.push(or(like(users.name, pattern), like(users.email, pattern), like(users.username, pattern)));
+    const pattern = `%${escapeLike(q)}%`;
+    conditions.push(or(likeEscaped(users.name, pattern), likeEscaped(users.email, pattern), likeEscaped(users.username, pattern)));
   }
   if (role) {
     conditions.push(eq(users.role, role));

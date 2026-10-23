@@ -1,20 +1,15 @@
 import type { AppDatabase } from "@/db";
-import { and, count, desc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { users } from "@/modules/account/users/schema";
 import { issueDetails } from "@/modules/issue/schema";
 import { items } from "@/modules/item/schema";
 import { DIRECT_SUBJECT, relationTuples } from "@/modules/policy/schema";
 import { check, listUserResources } from "@/modules/policy/zanzibar.engine";
 import { nanoid, ulid, ulidTimestamp } from "@/shared/lib/id";
+import { escapeLike, likeEscaped } from "@/shared/lib/like";
 
 export type IssueStatus = "open" | "in_progress" | "done" | "cancelled";
 export type IssuePriority = "low" | "medium" | "high" | "urgent";
-
-const LIKE_SPECIAL_RE = /[%_]/g;
-
-function escapeLike(v: string): string {
-  return v.replace(LIKE_SPECIAL_RE, "\\$&");
-}
 
 /** Composite view returned by routes and tests. */
 export interface IssueRow {
@@ -249,7 +244,7 @@ async function buildIssueConditions(params: ListIssueParams) {
   if (params.creatorId)
     conditions.push(eq(items.creatorId, params.creatorId));
   if (params.q)
-    conditions.push(like(items.title, `%${escapeLike(params.q)}%`));
+    conditions.push(likeEscaped(items.title, `%${escapeLike(params.q)}%`));
   return conditions;
 }
 

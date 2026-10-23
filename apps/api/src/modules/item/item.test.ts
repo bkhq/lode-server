@@ -260,6 +260,14 @@ describe("listItemsByIds / listItemsByType", () => {
     expect(docs.total).toBe(1);
   });
 
+  test("listItemsByType matches % and _ in the search literally", async () => {
+    const userId = await seedUser("Alice");
+    await createItem(db, { type: "issue", title: "Ship 50% of fixes", status: "open", creatorId: userId });
+    await createItem(db, { type: "issue", title: "Ship 500 fixes", status: "open", creatorId: userId });
+    const r = await listItemsByType(db, { type: "issue", search: "50%" });
+    expect(r.data.map(i => i.title)).toEqual(["Ship 50% of fixes"]);
+  });
+
   test("listItemsByType paginates", async () => {
     const userId = await seedUser("Alice");
     for (let i = 0; i < 5; i++) {

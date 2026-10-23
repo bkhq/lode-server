@@ -189,6 +189,15 @@ describe("listIssues (admin path)", () => {
     expect(r.data[0]!.title).toBe("Fix the bug");
   });
 
+  test("matches % and _ in the search literally", async () => {
+    const userId = await seedUser("Alice");
+    await createIssue(db, { title: "Ship 50% of fixes", creatorId: userId });
+    await createIssue(db, { title: "Ship 500 fixes", creatorId: userId });
+    await createIssue(db, { title: "Rename user_id", creatorId: userId });
+    expect((await listIssues(db, { q: "50%" })).data.map(i => i.title)).toEqual(["Ship 50% of fixes"]);
+    expect((await listIssues(db, { q: "_id" })).data.map(i => i.title)).toEqual(["Rename user_id"]);
+  });
+
   test("filters by assignee id via the policy tuple set", async () => {
     const creator = await seedUser("Alice");
     const target = await seedUser("Bob");
