@@ -5,9 +5,9 @@ import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { eq } from "drizzle-orm";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { cronJobLogs, cronJobs } from "@/db/schema";
+import { nanoid } from "@/shared/lib/id";
 import {
   __resetAndReinitActionsForTests,
   defineAction,
@@ -40,8 +40,6 @@ function fixtureAction(name: string, execute: ActionExecutor) {
     execute,
   });
 }
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 let db: AppDatabase;
 let dbPath: string;

@@ -3,13 +3,11 @@ import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { bytesToHex, eciesDecrypt, generateKeyPair, hexToBytes } from "@app/shared";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
+import { nanoid } from "@/shared/lib/id";
 import { changeMasterKey, initEncryption, unlockSystem } from "./encryption.service";
 import { readEncryptionMeta } from "./meta";
 import { EncryptionState } from "./state";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 let dir: string;
 let dbPath: string;

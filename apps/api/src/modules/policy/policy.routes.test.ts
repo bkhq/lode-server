@@ -8,19 +8,17 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { createSession } from "@/modules/account/auth/auth.service";
 import { users } from "@/modules/account/users/schema";
 import { auditEvents } from "@/modules/audit/schema";
+import { nanoid } from "@/shared/lib/id";
 import { errorHandler } from "@/shared/middleware/error-handler";
 import { policyRoutes } from "./policy.routes";
 import { DIRECT_SUBJECT, relationTuples } from "./schema";
 // Importing the account module registers the session-cookie auth provider
 // that `authRequired` resolves through — without it the middleware throws.
 import "@/modules/account";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 const stubLogger = {
   debug: () => {},

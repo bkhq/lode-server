@@ -1,11 +1,9 @@
 import type { AppDatabase } from "@/db";
 import { and, eq } from "drizzle-orm";
-import { customAlphabet } from "nanoid";
 import { DIRECT_SUBJECT, relationTuples, resourceGroups } from "@/modules/policy/schema";
 import { isUniqueViolation, NotFoundError, ValidationError } from "@/shared/lib/errors";
+import { nanoid } from "@/shared/lib/id";
 import { getAllNamespaces } from "./namespace-config";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 function duplicateName(): ValidationError {
   return new ValidationError("Duplicate resource group", { name: "A resource group with this name already exists" });

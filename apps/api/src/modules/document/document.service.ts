@@ -7,24 +7,12 @@ import { documentDetails } from "@/modules/document/schema";
 import { items } from "@/modules/item/schema";
 import { NOOP_POLICY_LOGGER } from "@/modules/policy";
 import { DIRECT_SUBJECT, relationTuples } from "@/modules/policy/schema";
-import { nanoid, ulid } from "@/shared/lib/id";
+import { nanoid, ulid, ulidTimestamp } from "@/shared/lib/id";
 
 const LIKE_SPECIAL_RE = /[%_]/g;
 
 function escapeLike(v: string): string {
   return v.replace(LIKE_SPECIAL_RE, "\\$&");
-}
-
-const ULID_ALPHABET = "0123456789abcdefghjkmnpqrstvwxyz";
-function ulidTimestamp(id: string): string {
-  let ms = 0;
-  for (let i = 0; i < 10; i++) {
-    const code = ULID_ALPHABET.indexOf(id[i] ?? "");
-    if (code < 0)
-      return new Date().toISOString();
-    ms = ms * 32 + code;
-  }
-  return new Date(ms).toISOString();
 }
 
 /** Composite document row returned by routes and tests. */

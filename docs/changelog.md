@@ -465,7 +465,9 @@ each upstream tag; your fork's `Unreleased` block sits at the top.
   (`data:image/svg+xml;base64,...`). `i18next-browser-languagedetector` is
   replaced by `shared/lib/language-detector.ts` (stored choice, then the
   browser's languages). The unused `@fontsource-variable/geist` and the
-  undeclared-in-code `@hono/standard-validator` are dropped.
+  undeclared-in-code `@hono/standard-validator` are dropped. Modules and tests
+  now share `nanoid` and `ulidTimestamp` from `shared/lib/id.ts` instead of
+  their own copies.
 
 - Orphaned code with no importers: `shared/lib/api-response.ts` and
   `shared/lib/pagination.ts` (a response-envelope layer superseded by the

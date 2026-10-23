@@ -7,17 +7,16 @@ import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { Hono } from "hono";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { createSession } from "@/modules/account/auth/auth.service";
 import { users } from "@/modules/account/users/schema";
 import { DIRECT_SUBJECT, relationTuples } from "@/modules/policy/schema";
+import { nanoid } from "@/shared/lib/id";
 import { errorHandler } from "@/shared/middleware/error-handler";
 import { issueRoutes } from "./issue.routes";
 import { createIssue, resolveIssueItem } from "./issue.service";
 import "@/modules/account";
 
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 const noopLogger = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
 
 let db: AppDatabase;

@@ -2,10 +2,8 @@ import type { AppDatabase } from "@/db";
 import type { Logger } from "@/shared/lib/logger";
 import { Buffer } from "node:buffer";
 import { and, eq, inArray, notInArray } from "drizzle-orm";
-import { customAlphabet } from "nanoid";
+import { nanoid } from "@/shared/lib/id";
 import { DIRECT_MEMBER, groupMembers, groups } from "./schema";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 // Mirrors the limit on a group name created through the API.
 const MAX_GROUP_NAME = 100;

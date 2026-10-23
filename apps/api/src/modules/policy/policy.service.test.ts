@@ -4,10 +4,10 @@ import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { sql } from "drizzle-orm";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { users } from "@/modules/account/users/schema";
 import { isUniqueViolation } from "@/shared/lib/errors";
+import { nanoid } from "@/shared/lib/id";
 import { loadNamespaces } from "./namespace-config";
 import {
   batchCreateTuples,
@@ -42,8 +42,6 @@ const testNamespaces = [
     },
   },
 ] as const;
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 async function createTestUser(db: AppDatabase, id: string) {
   const now = new Date().toISOString();

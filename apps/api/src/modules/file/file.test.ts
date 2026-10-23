@@ -6,11 +6,11 @@ import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { and, eq } from "drizzle-orm";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { users } from "@/modules/account/users/schema";
 import { fileReferences, files } from "@/modules/file/schema";
 import { loadNamespaces } from "@/modules/policy/namespace-config";
+import { nanoid } from "@/shared/lib/id";
 import {
   addReference,
   buildDownloadResponse,
@@ -50,8 +50,6 @@ const presignOnConfig: FileServiceConfig = {
   FILE_PRESIGN_ENABLED: true,
   FILE_PRESIGN_TTL_SECONDS: 60,
 };
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 let db: AppDatabase;
 let dbPath: string;

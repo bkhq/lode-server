@@ -2,14 +2,12 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { customAlphabet } from "nanoid";
+import { nanoid } from "@/shared/lib/id";
 import {
   discoveryEndpointsMatchIssuer,
   readDiscoveryCache,
   writeDiscoveryCache,
 } from "./oidc-discovery";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 let workdir: string;
 

@@ -5,13 +5,11 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { generateKeyPair } from "@app/shared";
 import { createClient } from "@libsql/client";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
+import { nanoid } from "@/shared/lib/id";
 import { initEncryption, rotateDek } from "./encryption.service";
 import { readEncryptionMeta } from "./meta";
 import { EncryptionState } from "./state";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 let dir: string;
 

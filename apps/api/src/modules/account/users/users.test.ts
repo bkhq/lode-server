@@ -3,13 +3,11 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { addGroupMember, createGroup } from "@/modules/account/groups/groups.service";
 import { users } from "@/modules/account/users/schema";
+import { nanoid } from "@/shared/lib/id";
 import { getUserById, getUserGroups, listUsers, updateUser } from "./users.service";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 let db: AppDatabase;
 let dbPath: string;

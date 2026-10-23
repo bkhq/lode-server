@@ -5,7 +5,7 @@ import { issueDetails } from "@/modules/issue/schema";
 import { items } from "@/modules/item/schema";
 import { DIRECT_SUBJECT, relationTuples } from "@/modules/policy/schema";
 import { check, listUserResources } from "@/modules/policy/zanzibar.engine";
-import { nanoid, ulid } from "@/shared/lib/id";
+import { nanoid, ulid, ulidTimestamp } from "@/shared/lib/id";
 
 export type IssueStatus = "open" | "in_progress" | "done" | "cancelled";
 export type IssuePriority = "low" | "medium" | "high" | "urgent";
@@ -29,20 +29,6 @@ export interface IssueRow {
   readonly createdAt: string; // decoded from items.id (ULID timestamp prefix)
   readonly updatedAt: string;
   readonly version: number;
-}
-
-// Crockford base32 → ms decode for the ULID timestamp prefix that lives on
-// `items.id`. The first 10 chars carry the upload millisecond.
-const ULID_ALPHABET = "0123456789abcdefghjkmnpqrstvwxyz";
-function ulidTimestamp(id: string): string {
-  let ms = 0;
-  for (let i = 0; i < 10; i++) {
-    const code = ULID_ALPHABET.indexOf(id[i] ?? "");
-    if (code < 0)
-      return new Date().toISOString();
-    ms = ms * 32 + code;
-  }
-  return new Date(ms).toISOString();
 }
 
 async function getAssigneeId(db: AppDatabase, itemId: string): Promise<string | null> {

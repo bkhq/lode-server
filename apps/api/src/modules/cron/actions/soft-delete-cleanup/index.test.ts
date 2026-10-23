@@ -5,13 +5,11 @@ import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { eq } from "drizzle-orm";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { cronJobLogs, cronJobs } from "@/db/schema";
+import { nanoid } from "@/shared/lib/id";
 import softDeleteCleanupAction from ".";
 import { __resetActionRegistryForTests, registerAction, validateActionConfig } from "../registry";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 const fakeLogger = {
   debug: () => {},

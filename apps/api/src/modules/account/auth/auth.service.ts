@@ -6,15 +6,13 @@ import type { AppEnv, User } from "@/shared/lib/types";
 import { Buffer } from "node:buffer";
 import { randomBytes } from "node:crypto";
 import { eq, lte, or } from "drizzle-orm";
-import { customAlphabet } from "nanoid";
 import { openPkceVerifier, sealPkceVerifier } from "@/modules/account/auth/pkce-secret";
 import { pkceChallenges, sessions } from "@/modules/account/auth/schema";
 import { clearSessionCookie, readSessionId, writeSessionCookie } from "@/modules/account/auth/session-cookie";
 import { users } from "@/modules/account/users/schema";
 import { getAuthConfig } from "@/shared/lib/app-config";
 import { AppError, isUniqueViolation } from "@/shared/lib/errors";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
+import { nanoid } from "@/shared/lib/id";
 
 // --- PKCE helpers ---
 

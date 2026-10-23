@@ -4,12 +4,10 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { getSetting, setSetting } from "@/modules/settings/settings.service";
+import { nanoid } from "@/shared/lib/id";
 import { deriveOrigin, getAppSetting, getAuthConfig, getOAuthConfig, getOidcLogoutUrl, seedSettingsFromEnv } from "./app-config";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 let db: AppDatabase;
 let dbPath: string;

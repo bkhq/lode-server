@@ -8,12 +8,12 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { createSession } from "@/modules/account/auth/auth.service";
 import { users } from "@/modules/account/users/schema";
 import { items } from "@/modules/item/schema";
 import { loadNamespaces } from "@/modules/policy/namespace-config";
+import { nanoid } from "@/shared/lib/id";
 import { errorHandler } from "@/shared/middleware/error-handler";
 import { documentAccess } from "./document.permission";
 import { documentRoutes } from "./document.routes";
@@ -31,8 +31,6 @@ import {
   updateDocument,
 } from "./document.service";
 import "@/modules/account";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 let db: AppDatabase;
 let dbPath: string;

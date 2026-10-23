@@ -73,3 +73,16 @@ export function ulid(): string {
   lastRandom = tail;
   return encodeTime(ts) + tail;
 }
+
+// Decode the millisecond in a ULID's 10-char time prefix, as an ISO string.
+// Falls back to now for an id that is not a ULID.
+export function ulidTimestamp(id: string): string {
+  let ms = 0;
+  for (let i = 0; i < 10; i++) {
+    const code = ENCODING.indexOf(id[i] ?? "");
+    if (code < 0)
+      return new Date().toISOString();
+    ms = ms * ENCODING_LEN + code;
+  }
+  return new Date(ms).toISOString();
+}
