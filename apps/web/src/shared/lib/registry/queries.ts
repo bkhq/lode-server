@@ -10,6 +10,8 @@ import {
   getPackage,
   getQuota,
   getRevocations,
+  listEvents,
+  listInstances,
   listKeys,
   listPackages,
   listTokens,
@@ -31,6 +33,8 @@ export const registryKeys = {
   manifestSignature: (ns: string, pkg: string) => [...registryKeys.package(ns, pkg), "manifest-signature"] as const,
   delegation: (ns: string, pkg: string) => [...registryKeys.package(ns, pkg), "delegation"] as const,
   revocations: (ns: string, pkg: string) => [...registryKeys.package(ns, pkg), "revocations"] as const,
+  instances: (ns: string, pkg: string) => [...registryKeys.package(ns, pkg), "instances"] as const,
+  events: (ns: string, pkg: string) => [...registryKeys.package(ns, pkg), "events"] as const,
   admin: () => [...registryKeys.all, "admin"] as const,
   adminNamespaces: () => [...registryKeys.admin(), "namespaces"] as const,
   adminPackages: () => [...registryKeys.admin(), "packages"] as const,
@@ -41,6 +45,14 @@ export const registryKeys = {
 
 export function namespaceQuery() {
   return queryOptions({ queryKey: registryKeys.namespace(), queryFn: getNamespace });
+}
+
+export function instancesQuery(ns: string, pkg: string) {
+  return queryOptions({ queryKey: registryKeys.instances(ns, pkg), queryFn: () => listInstances(ns, pkg) });
+}
+
+export function eventsQuery(ns: string, pkg: string) {
+  return queryOptions({ queryKey: registryKeys.events(ns, pkg), queryFn: () => listEvents(ns, pkg) });
 }
 
 export function keysQuery(ns: string, pkg: string) {

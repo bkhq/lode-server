@@ -205,6 +205,12 @@ export const configSchema = z.object({
   // How many published versions a package manifest lists, newest first.
   // Versions a channel points at are always listed.
   REGISTRY_MANIFEST_MAX_VERSIONS: z.coerce.number().int().positive().default(50),
+  // What hosts report to `/r/otlp`: events, and instances that stopped
+  // reporting, are dropped after this many days (0 keeps them). A package
+  // tracks at most REGISTRY_OBSERVE_MAX_INSTANCES instances; reports from
+  // further ones are refused.
+  REGISTRY_OBSERVE_RETENTION_DAYS: z.coerce.number().int().nonnegative().default(30),
+  REGISTRY_OBSERVE_MAX_INSTANCES: z.coerce.number().int().positive().default(1000),
 
   DEFAULT_ADMIN: z.string().default(""),
 

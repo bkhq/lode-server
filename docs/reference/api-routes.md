@@ -5,7 +5,7 @@
 > [`api.md`](api.md); this file is the flat per-route index that CI
 > verifies is up to date.
 
-> 136 routes total.
+> 138 routes total.
 
 | Method | Path |
 |---|---|
@@ -108,6 +108,8 @@
 | DELETE | `/api/registry/packages/:ns/:pkg/delegation` |
 | GET | `/api/registry/packages/:ns/:pkg/delegation` |
 | PUT | `/api/registry/packages/:ns/:pkg/delegation` |
+| GET | `/api/registry/packages/:ns/:pkg/events` |
+| GET | `/api/registry/packages/:ns/:pkg/instances` |
 | GET | `/api/registry/packages/:ns/:pkg/keys` |
 | POST | `/api/registry/packages/:ns/:pkg/keys` |
 | DELETE | `/api/registry/packages/:ns/:pkg/keys/:id` |

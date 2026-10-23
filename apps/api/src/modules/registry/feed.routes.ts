@@ -10,6 +10,7 @@ import { getActiveBlobStore } from "./blob";
 import { findRevocationList, revocationListDocument, withDelegation } from "./delegation.service";
 import { buildManifest, findPublishedAsset } from "./feed.service";
 import { withManifestSignature } from "./manifest-signature.service";
+import { registryOtlpRoutes } from "./observe.routes";
 
 /** Mount point of the read feed, at the origin root whatever BASE_PATH is. Part of every manifest URL an operator configures: permanent. */
 export const READ_FEED_PREFIX = "/r";
@@ -68,6 +69,9 @@ const ACCESS_NOTE = "A public package is served anonymously. A private one needs
  */
 export function registryFeedRoutes() {
   const router = new Hono<AppEnv>();
+
+  // What hosts report: `/r/otlp/v1/metrics` and `/r/otlp/v1/logs`.
+  router.route("/otlp", registryOtlpRoutes());
 
   router.get(
     "/:ns/:pkg/manifest.json",

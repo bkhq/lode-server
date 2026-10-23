@@ -55,6 +55,18 @@ export function revocationsUrl(origin: string, namespace: string, slug: string):
 
 const str = (value: string) => JSON.stringify(value);
 
+/** The `[report]` block that sends a host's status to this registry over OTLP. */
+export function reportSnippet(origin: string): string {
+  return [
+    "[report]",
+    "# Needs lode 0.2.0 or later.",
+    "# Set LODE_REGISTRY_TOKEN on the host to a token with a read grant on this package.",
+    `endpoint = ${str(`${origin}/r/otlp`)}`,
+    `headers = [${str(AUTH_HEADER)}]`,
+    "",
+  ].join("\n");
+}
+
 export function buildSnippet(input: SnippetInput): Snippet {
   const url = manifestUrl(input.origin, input.namespace, input.slug);
   const signerId = input.asset?.key_id ?? null;

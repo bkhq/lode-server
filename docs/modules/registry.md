@@ -41,7 +41,7 @@ inline in the manifest.
 ```text
 apps/api/src/modules/registry/
   index.ts              # registrations: policy namespace, backup contribution, token scopes; re-exports
-  schema.ts             # the thirteen registry_* tables
+  schema.ts             # the fifteen registry_* tables
   wire.ts               # snake_case wire shapes and view functions shared by the route files
   validate.ts           # lode's id and command-override rules, the package slug rule
   access.ts             # `package` policy resource, requirePackageAccess / requireUploadAccess, token grants, read-token check
@@ -59,7 +59,11 @@ apps/api/src/modules/registry/
   token.service.ts      # grant resolution, scope derivation
   admin.routes.ts       # /registry/admin (admin session only)
   admin.service.ts      # cross-user lists, namespace status, quota overrides
-  feed.routes.ts        # the read feed: manifest.json, revocations.json and asset download
+  feed.routes.ts        # the read feed: manifest.json, revocations.json and asset download; mounts /r/otlp
+  observe.otlp.ts       # OTLP/HTTP JSON decoding: resource attributes, gauge/sum points, log records
+  observe.service.ts    # instances and events: upsert, caps, listing, retention pass
+  observe.routes.ts     # /r/otlp/v1/{metrics,logs} ingest; instances and events listing
+  observe.retention.ts  # schedules the retention pass on the platform scheduler
   feed.service.ts       # lode/v1 manifest generation
   signature.ts          # lode's signed messages (artifact, manifest, delegation, revocation list), base64 forms, ed25519 verification (WebCrypto)
   registry.backup.ts    # backup contribution
@@ -83,7 +87,9 @@ apps/api/src/modules/registry/
   Durable Object alarm on Workers) every
   `REGISTRY_UPLOAD_SWEEP_INTERVAL_SECONDS`; the first pass runs 30 s after
   boot. `stopRegistryUploadSweep` runs at shutdown before the database
-  closes.
+  closes. `startObserveRetentionSweep` schedules
+  `registry-observe-retention` hourly the same way (first pass 30 s after
+  boot; off when `REGISTRY_OBSERVE_RETENTION_DAYS` is 0).
 - **Read feed**: mounted by `buildFullApp` at `/r` on the origin root (outside `BASE_PATH`) as a second
   app from the raw-app builder. A locked deployment (`buildLockedApp`) does
   not mount it.
@@ -108,15 +114,19 @@ Times are ISO 8601 text.
 | `registry_uploads` | `id`, `version_id`, `asset_name`, `size`, `sha256`, `sig`, `key_id`, `alg`, `run`, `exec`, `r2_upload_id`, `parts` (JSON), `expires_at`, `created_at` | In-flight multipart uploads. The row is also the quota reservation. |
 | `registry_token_grants` | `token_id`, `package_id` (null = every package of the owner), `access` (`read` / `write` / `admin`) | Unique `(token_id, package_id)`, plus a partial unique index on `token_id WHERE package_id IS NULL`. |
 | `registry_quotas` | `user_id` (PK), `max_packages`, `max_storage_bytes`, `max_asset_bytes`, `updated_at` | Per-user overrides; a null column or no row means the platform default. |
+| `registry_instances` | `package_id`, `instance_id` (PK together), `version`, `status`, `host_name`, `os_type`, `host_arch`, `lode_version`, `interval_seconds`, `attributes` (JSON), `metrics` (JSON), `first_seen_at`, `last_seen_at` | The latest snapshot of each host reporting for the package over OTLP (migration `0004_observability`). At most `REGISTRY_OBSERVE_MAX_INSTANCES` per package. |
+| `registry_instance_events` | `id`, `package_id`, `instance_id`, `name`, `version`, `body`, `attributes` (JSON), `at` | Reported log records. Indexed on `(package_id, at)` and `at`. |
 
 Foreign keys: deleting a package cascades to its signing keys, versions,
-assets, channels, manifest signature, delegation, revocation list, uploads and token grants; deleting an `api_tokens` row cascades to
+assets, channels, manifest signature, delegation, revocation list, uploads, token grants, instances and events; deleting an `api_tokens` row cascades to
 its grants. Nothing cascades from `users` or from a namespace.
 `registry_channels.version_id` has no cascade, so a version a channel points
 at cannot be deleted from under it.
 
 **Backup.** The `registry` contribution (deps `users`, `policies`) covers
-twelve of the thirteen tables. `registry_token_grants` is excluded: `api_tokens`
+twelve of the fifteen tables. `registry_instances` and
+`registry_instance_events` are reported telemetry and are left out;
+`registry_token_grants` is excluded too: `api_tokens`
 is in no backup contribution, and a restore of `users` cascades the tokens
 away, so a restored grant would fail the foreign key check and abort the
 import. A restore therefore drops per-package grants — it fails closed: the
@@ -210,6 +220,8 @@ token whose grant gives it; **Admin** = session of a platform administrator.
 | DELETE | `/packages/:ns/:pkg/delegation` | Session / token(write) | Remove it: `{ removed }`. |
 | GET | `/packages/:ns/:pkg/revocations` | Anyone who can read the package | `{ issued_at, revoked, key_id, updated_at }` or `null`. |
 | PUT | `/packages/:ns/:pkg/revocations` | Session / token(write) | Store the list `lode-cli revoke` writes. 400 `INVALID_SIGNATURE`, 400 `REVOCATIONS_SHRINK`, 400 `REVOCATIONS_FUTURE`, 409 `REVOCATIONS_OUTDATED`. No `DELETE`. |
+| GET | `/packages/:ns/:pkg/instances` | Anyone who can read the package | The hosts that reported to `/r/otlp`, most recently seen first: `instance_id`, `version`, `status`, `host_name`, `os_type`, `host_arch`, `lode_version`, `interval_seconds`, `online`, `attributes`, `metrics`, `first_seen_at`, `last_seen_at`. See [Observability](#observability). |
+| GET | `/packages/:ns/:pkg/events` | Anyone who can read the package | Reported events, newest first, 100 per page; `?before=<at>` pages back. |
 | GET | `/packages` | Session / token(read) | The caller's packages; with a token, the packages it has a grant on. |
 | POST | `/packages` | Session | Create `{ slug, name, visibility?, description?, require_signature? }`. 409 `PACKAGE_EXISTS`, 409 `PACKAGE_QUOTA_EXCEEDED`. |
 | GET | `/packages/:ns/:pkg` | Session / token(read) | Package metadata. |
@@ -262,6 +274,8 @@ ordinary `/registry/packages/:ns/:pkg` routes.
 | GET | `/r/:ns/:pkg/manifest.json` | Public, or token(read) for a private package | The generated `lode/v1` manifest. |
 | GET | `/r/:ns/:pkg/revocations.json` | Public, or token(read) for a private package | The package's `lode-revocations/v1` list, as signed; 404 while there is none. |
 | GET | `/r/:ns/:pkg/:ver/:asset` | Public, or token(read) for a private package | The asset bytes, streamed from the blob store. |
+| POST | `/r/otlp/v1/metrics` | Token with a grant on the package | OTLP/HTTP JSON metrics export; see [Observability](#observability). |
+| POST | `/r/otlp/v1/logs` | Token with a grant on the package | OTLP/HTTP JSON logs export, stored as events. |
 
 - The feed has no session, CSRF, CORS or policy middleware. Access is
   checked in the handler: a public package is anonymous; a private one needs
@@ -523,6 +537,47 @@ replaces the signature of an asset in any version state, verified like an
 upload's over the stored digest and overrides. `sig` is not in the catalog,
 so a manifest signature stays live.
 
+## Observability
+
+`/r/otlp` is an OpenTelemetry OTLP/HTTP endpoint: any exporter whose base
+endpoint is `https://<host>/r/otlp` posts to `/v1/metrics` and `/v1/logs`.
+lode's `[report]` block and a stock OpenTelemetry SDK or collector are
+configured the same way; nothing in the request names lode-server.
+
+- **Encoding.** JSON only (`Content-Type: application/json`), optionally
+  `Content-Encoding: gzip`. At most 1 MiB on the wire and 4 MiB inflated
+  (413). Protobuf and other encodings answer 415.
+- **Auth.** `Authorization: Bearer pat_…` is required, also for a public
+  package (401 otherwise). The token's owner must not be suspended.
+- **Matching.** Each resource in the export is matched on its own:
+  `service.name` is the package slug, looked up in the namespace
+  `service.namespace` names, else in the token owner's namespace. The token
+  needs a grant of any level on that package. The instance is
+  `service.instance.id`, else `host.name`.
+- **Partial success.** A resource that matches no granted package, names no
+  instance, or would be a new instance past `REGISTRY_OBSERVE_MAX_INSTANCES`
+  is dropped and counted in the OTLP `partialSuccess`
+  (`rejectedDataPoints` / `rejectedLogRecords`); the answer is still 200, as
+  OTLP specifies. An export with nothing dropped answers `{}`.
+- **Metrics.** A metrics export refreshes the instance: `service.version`,
+  `host.name`, `os.type`, `host.arch`, `lode.version`,
+  `lode.report.interval`, the resource attributes (4 KiB), and the latest
+  gauge and sum points by metric name (16 KiB). `status` is the `status`
+  attribute of the `lode.app.status` point whose value is 1.
+- **Logs.** Each log record becomes an event named by its `eventName`, else
+  its `event.name` attribute, else `log`; at most 100 per resource and
+  export. The instance is refreshed as well.
+- **Online.** An instance is `online` until it reports the status `stopped`
+  or has been silent for three of its report intervals
+  (`lode.report.interval`, default 300 s).
+- **Retention.** Events older than `REGISTRY_OBSERVE_RETENTION_DAYS`, and
+  instances not seen for as long, are deleted by the hourly retention pass.
+- **Rate limit.** The endpoint shares the raw per-IP bucket
+  (`RAW_API_RATE_LIMIT_PER_MINUTE`) with the read feed.
+
+The console shows a package's instances, the versions online, and recent
+events on its **Observability** tab.
+
 ## Auditing
 
 Every mutation writes an audit entry (`audit()`), with the acting user as
@@ -561,6 +616,8 @@ The expired-upload sweep writes no audit entries (it logs a count).
 | `REGISTRY_UPLOAD_TTL_SECONDS` | `86400` (24 h) | Lifetime of an unfinished multipart upload. |
 | `REGISTRY_UPLOAD_SWEEP_INTERVAL_SECONDS` | `3600` (1 h) | How often expired uploads are swept; `0` disables. |
 | `REGISTRY_MANIFEST_MAX_VERSIONS` | `50` | Published versions listed in a manifest, plus every channel target. |
+| `REGISTRY_OBSERVE_RETENTION_DAYS` | `30` | Days reported events and silent instances are kept; `0` keeps them forever. |
+| `REGISTRY_OBSERVE_MAX_INSTANCES` | `1000` | Instances tracked per package; reports from further new instances are dropped. |
 
 Related, owned by the template:
 

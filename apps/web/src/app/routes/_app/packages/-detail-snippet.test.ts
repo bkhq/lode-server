@@ -1,6 +1,6 @@
 import type { SnippetInput } from "./-detail-snippet";
 import { describe, expect, it } from "vitest";
-import { ASSET_PLACEHOLDER, buildSnippet, manifestUrl, PUBLIC_KEY_PLACEHOLDER, revocationsUrl } from "./-detail-snippet";
+import { ASSET_PLACEHOLDER, buildSnippet, manifestUrl, PUBLIC_KEY_PLACEHOLDER, reportSnippet, revocationsUrl } from "./-detail-snippet";
 
 const KEY = { key_id: "0123456789abcdef", public_key: "pk-base64url" };
 
@@ -162,5 +162,19 @@ describe("buildSnippet", () => {
     ].join("\n"));
     // Nothing to check it with on an unsigned asset.
     expect(buildSnippet(input({ asset: { name: "myapp.tar.gz", key_id: null }, hasRevocations: true })).text).not.toContain("revocation_url");
+  });
+});
+
+describe("reportSnippet", () => {
+  it("points [report] at the origin's OTLP endpoint with a token header", () => {
+    expect(reportSnippet("https://lode.example.com")).toBe([
+      "[report]",
+      "# Needs lode 0.2.0 or later.",
+      "# Set LODE_REGISTRY_TOKEN on the host to a token with a read grant on this package.",
+      "endpoint = \"https://lode.example.com/r/otlp\"",
+      // eslint-disable-next-line no-template-curly-in-string
+      "headers = [\"Authorization: Bearer ${LODE_REGISTRY_TOKEN}\"]",
+      "",
+    ].join("\n"));
   });
 });

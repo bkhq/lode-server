@@ -229,6 +229,8 @@ each constraint: [`modules/registry.md`](../modules/registry.md#database).
 | `registry_uploads`      | `id`, `version_id`, `asset_name`, `size`, `sha256`, `sig`, `key_id`, `alg`, `run`, `exec`, `r2_upload_id`, `parts`, `expires_at`, `created_at` | In-flight multipart uploads; the row reserves quota. Removed on completion, abort or by the sweep. |
 | `registry_token_grants` | `token_id`, `package_id`, `access`                                                                             | Narrows an `api_tokens` row to packages; `package_id` NULL = all of the owner's packages. Unique `(token_id, package_id)` plus a partial unique index for the NULL row. Both FKs cascade. Not in any backup. |
 | `registry_quotas`       | `user_id`, `max_packages`, `max_storage_bytes`, `max_asset_bytes`, `updated_at`                                | Per-user overrides set by an administrator; NULL = platform default. |
+| `registry_instances`    | `package_id`, `instance_id`, `version`, `status`, `host_name`, `os_type`, `host_arch`, `lode_version`, `interval_seconds`, `attributes`, `metrics`, `first_seen_at`, `last_seen_at` | Latest OTLP report per host of a package (migration `0004_observability`). PK `(package_id, instance_id)`. FK → package, cascade. Not in any backup. |
+| `registry_instance_events` | `id`, `package_id`, `instance_id`, `name`, `version`, `body`, `attributes`, `at`                             | Reported OTLP log records. FK → package, cascade. Pruned after `REGISTRY_OBSERVE_RETENTION_DAYS`. Not in any backup. |
 
 ### Shared infrastructure
 

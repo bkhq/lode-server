@@ -161,6 +161,46 @@ export const registryRevocationLists = sqliteTable("registry_revocation_lists", 
   updatedAt: text("updated_at").notNull(),
 });
 
+// What hosts report over OTLP (`/r/otlp`), one row per reporting instance:
+// the latest snapshot, overwritten by every export. `instance_id` is the
+// resource's `service.instance.id` (else `host.name`); `attributes` and
+// `metrics` are JSON. `interval_seconds` is the instance's own report
+// interval, for telling an offline instance. Not backed up.
+export const registryInstances = sqliteTable("registry_instances", {
+  packageId: text("package_id").notNull().references(() => registryPackages.id, { onDelete: "cascade" }),
+  instanceId: text("instance_id").notNull(),
+  version: text("version"),
+  status: text("status"),
+  hostName: text("host_name"),
+  osType: text("os_type"),
+  hostArch: text("host_arch"),
+  lodeVersion: text("lode_version"),
+  intervalSeconds: integer("interval_seconds"),
+  attributes: text("attributes").notNull().default("{}"),
+  metrics: text("metrics").notNull().default("{}"),
+  firstSeenAt: text("first_seen_at").notNull(),
+  lastSeenAt: text("last_seen_at").notNull(),
+}, t => [
+  primaryKey({ columns: [t.packageId, t.instanceId] }),
+  index("idx_registry_instances_last_seen").on(t.lastSeenAt),
+]);
+
+// Events reported as OTLP log records, newest kept for the retention period.
+// `attributes` is JSON. Not backed up.
+export const registryInstanceEvents = sqliteTable("registry_instance_events", {
+  id: text("id").primaryKey(),
+  packageId: text("package_id").notNull().references(() => registryPackages.id, { onDelete: "cascade" }),
+  instanceId: text("instance_id").notNull(),
+  name: text("name").notNull(),
+  version: text("version"),
+  body: text("body"),
+  attributes: text("attributes").notNull().default("{}"),
+  at: text("at").notNull(),
+}, t => [
+  index("idx_registry_instance_events_pkg_at").on(t.packageId, t.at),
+  index("idx_registry_instance_events_at").on(t.at),
+]);
+
 // In-flight multipart uploads: removed on completion, aborted by a sweep
 // after `expires_at`. Everything the finished asset row needs is recorded
 // when the upload starts. `parts` is a JSON array.

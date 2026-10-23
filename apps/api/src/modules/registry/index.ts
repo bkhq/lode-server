@@ -6,6 +6,7 @@ import { registryBackupContribution } from "./registry.backup";
 export { packageAccess, requirePackageAccess, resolveReadToken } from "./access";
 export type { GrantLevel, PackageAccessLevel, PackageRequest, ResolvedPackage } from "./access";
 export { READ_FEED_PREFIX, registryFeedRoutes } from "./feed.routes";
+export { startObserveRetentionSweep, stopObserveRetentionSweep } from "./observe.retention";
 export { registryRoutes } from "./registry.routes";
 export { assertUploadAllowed, getEffectiveQuota, getUsage } from "./registry.service";
 export { startRegistryUploadSweep, stopRegistryUploadSweep } from "./upload.sweep";

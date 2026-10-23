@@ -23,7 +23,8 @@
     "channels": "通道",
     "install": "安装",
     "settings": "设置",
-    "keys": "签名密钥"
+    "keys": "签名密钥",
+    "observe": "观测"
   },
   "status": {
     "draft": "草稿",
@@ -171,6 +172,30 @@
       "confirmTitle": "删除 {{slug}}",
       "confirmLabel": "输入 {{slug}} 以确认",
       "deleted": "软件包 {{slug}} 已删除"
+    }
+  },
+  "observe": {
+    "description": "运行 lode 的主机通过 OpenTelemetry（OTLP/HTTP）向这里上报状态。将此配置块加入主机的 lode.toml；默认每 300 秒上报一次，可通过 [report].interval 调整。",
+    "otel": "任何 OpenTelemetry SDK 或 Collector 也可以上报：将 service.name 设为包标识；使用管理员令牌上报其他用户的包时，再设置 service.namespace。",
+    "copySnippet": "复制 [report] 配置块",
+    "versions": "在线版本",
+    "unknownVersion": "未知",
+    "instances": "实例",
+    "events": "最近事件",
+    "online": "在线",
+    "offline": "离线",
+    "noInstances": "还没有主机上报。",
+    "noEvents": "还没有上报事件。",
+    "col": {
+      "instance": "实例",
+      "version": "版本",
+      "status": "状态",
+      "platform": "平台",
+      "lode": "lode",
+      "lastSeen": "最后上报",
+      "at": "时间",
+      "event": "事件",
+      "detail": "详情"
     }
   }
 }

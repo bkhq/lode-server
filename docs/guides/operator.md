@@ -139,6 +139,32 @@ headers = ["Authorization: Bearer ${LODE_REGISTRY_TOKEN}"]
   a private package 404s, check the token first.
 - Responses of a private package are `Cache-Control: private, no-store`.
 
+## Status reporting
+
+lode 0.2.0 and later can report a host's status — app version, run state,
+restarts, updates and rollbacks — over OpenTelemetry (OTLP/HTTP). The registry accepts it at
+`/r/otlp` and shows it on the package's **Observability** tab:
+
+```toml
+[report]
+endpoint = "https://<host>/r/otlp"
+headers  = ["Authorization: Bearer ${LODE_REGISTRY_TOKEN}"]
+# interval = 300   # seconds between reports
+```
+
+- The token needs a grant (any level) on the package, also for a public
+  package. The package is matched by `[global].app` (`service.name`), in the
+  token owner's namespace.
+- The same block works against any OpenTelemetry backend, and any
+  OpenTelemetry SDK or collector can report to the registry: set
+  `service.name` to the package slug, and `service.namespace` to the
+  namespace when the token is an administrator's granted on another user's
+  package.
+- A host is shown offline once it reports that it stopped, or after three
+  missed reports. Reports from more than
+  `REGISTRY_OBSERVE_MAX_INSTANCES` hosts per package are dropped; events are
+  kept for `REGISTRY_OBSERVE_RETENTION_DAYS`.
+
 ## Rate limiting
 
 The read feed shares one rate-limit bucket with the registry's raw API:

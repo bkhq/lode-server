@@ -13,6 +13,22 @@ This repository is a fork: the dated entries directly below are Lode
 Server's own, and everything from `Unreleased` down is the upstream
 template's history, kept unchanged.
 
+## 2026-10-22 [api] [web] [docs]
+
+### Added
+
+Status reporting over OpenTelemetry (task `20261022-1915-otlp-observability`).
+`POST /r/otlp/v1/metrics` and `/r/otlp/v1/logs` accept OTLP/HTTP JSON exports
+(optionally gzip) with a personal token; each resource is matched to a
+package by `service.name`, in the `service.namespace` namespace or the token
+owner's, and needs a grant on it. Unmatched resources are counted in the
+OTLP `partialSuccess`. Reports are kept in `registry_instances` and
+`registry_instance_events` (migration `0004_observability`), listed by
+`GET /api/registry/packages/:ns/:pkg/instances` and `/events`, and shown on
+the package's new Observability tab. `REGISTRY_OBSERVE_RETENTION_DAYS`
+(default 30) and `REGISTRY_OBSERVE_MAX_INSTANCES` (default 1000) bound them;
+an hourly `registry-observe-retention` pass prunes.
+
 ## 2026-10-17 [api] [web] [docs]
 
 ### Added

@@ -1,7 +1,7 @@
 {
   "name": "@app/monorepo",
   "type": "module",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Multi-user lode package registry on Cloudflare Workers.",
   "homepage": "https://github.com/bkhq/lode-server",

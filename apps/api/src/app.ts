@@ -19,7 +19,7 @@ import { bootstrapEncryption } from "./modules/encryption";
 import { EncryptionState as EncryptionStateCtor } from "./modules/encryption/state";
 import { initFileModule, startFileGcSweep } from "./modules/file";
 import { getAllRouteBindings, policyMiddleware } from "./modules/policy";
-import { READ_FEED_PREFIX, registryFeedRoutes, startRegistryUploadSweep } from "./modules/registry";
+import { READ_FEED_PREFIX, registryFeedRoutes, startObserveRetentionSweep, startRegistryUploadSweep } from "./modules/registry";
 import { protectedRoutes, publicRoutes, rawRoutes, setupRoutes } from "./routes";
 import { getAuthConfig, seedSettingsFromEnv } from "./shared/lib/app-config";
 import { createLogger } from "./shared/lib/logger";
@@ -181,6 +181,7 @@ export async function buildFullApp({ config, db, logger, encryption }: AppDeps) 
   await initFileModule(config, logger);
   startFileGcSweep(db, config, logger);
   startRegistryUploadSweep(db, config, logger);
+  startObserveRetentionSweep(db, config, logger);
   // Actions catalog is always populated so admins can plan jobs even
   // with the scheduler off. `startCron` allocates Baker and starts
   // firing ticks — only run it when the operator opts in. Actions whose

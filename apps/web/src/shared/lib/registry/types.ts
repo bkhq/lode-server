@@ -72,6 +72,34 @@ export interface SigningKey {
   readonly created_at: string;
 }
 
+// A host that reported to `/r/otlp` for the package, with its latest snapshot.
+export interface Instance {
+  readonly instance_id: string;
+  readonly version: string | null;
+  readonly status: string | null;
+  readonly host_name: string | null;
+  readonly os_type: string | null;
+  readonly host_arch: string | null;
+  readonly lode_version: string | null;
+  readonly interval_seconds: number;
+  readonly online: boolean;
+  readonly attributes: Record<string, unknown>;
+  readonly metrics: Record<string, unknown>;
+  readonly first_seen_at: string;
+  readonly last_seen_at: string;
+}
+
+// A log record a host reported to `/r/otlp/v1/logs`.
+export interface InstanceEvent {
+  readonly id: string;
+  readonly instance_id: string;
+  readonly name: string;
+  readonly version: string | null;
+  readonly body: string | null;
+  readonly attributes: Record<string, unknown>;
+  readonly at: string;
+}
+
 // The publisher's signature over the manifest. `expires` is Unix seconds.
 export interface ManifestSignature {
   readonly key_id: string;

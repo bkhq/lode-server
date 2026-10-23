@@ -22,6 +22,9 @@ import {
 // every user, which cascades to their tokens. A restored grant would then
 // reference a token that no longer exists and the foreign key check at COMMIT
 // would fail the whole import. Grants go the way of the tokens they narrow.
+//
+// `registry_instances` and `registry_instance_events` are reported telemetry,
+// rebuilt by the next reports, and are left out as well.
 export const registryBackupContribution: BackupContribution = {
   name: "registry",
   // Parents before children, so insert order alone satisfies the foreign keys.

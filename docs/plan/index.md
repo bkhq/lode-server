@@ -39,3 +39,4 @@ Each plan is a single line linking to its detail file. All detailed information 
 - [x] [**20261011-2134-ci-and-dependency-updates Repair the CI workflow and take the pending dependency updates**](20261011-2134-ci-and-dependency-updates.md) `2026-10-11`
 - [x] [**20261012-1852-lode-mini-pin Pin lode to v0.0.3-mini and document the publish workflow**](20261012-1852-lode-mini-pin.md) `2026-10-12`
 - [x] [**20261016-0224-delegated-signing Delegated signing keys and revocation lists**](20261016-0224-delegated-signing.md) `2026-10-16`
+- [x] [**20261022-1915-otlp-observability Accept lode status reports over OTLP/HTTP**](20261022-1915-otlp-observability.md) `2026-10-22`

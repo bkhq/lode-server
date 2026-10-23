@@ -248,6 +248,41 @@ export async function resolveReadToken(db: AppDatabase, authorization: string | 
   return await grantedLevel(db, { ...token, ownerIsAdmin: live.user.role === "admin" }, resolved) !== undefined;
 }
 
+/**
+ * The live token `authorization` carries, for the OTLP ingest at `/r/otlp`:
+ * undefined for a missing or foreign header, an unknown or expired token, a
+ * disabled owner or a suspended owner namespace.
+ */
+export async function resolveReportToken(db: AppDatabase, authorization: string | undefined): Promise<RequestToken | undefined> {
+  if (!authorization?.startsWith(BEARER))
+    return undefined;
+  const live = await resolveApiToken(db, authorization.slice("Bearer ".length).trim());
+  const token = live && await findTokenId(db, authorization);
+  if (!live || !token || await ownerIsSuspended(db, token.userId))
+    return undefined;
+  return { ...token, ownerIsAdmin: live.user.role === "admin" };
+}
+
+/**
+ * The package a reported resource belongs to: `name` (`service.name`) in the
+ * namespace `namespace` (`service.namespace`) when given, else in the token
+ * owner's namespace. Undefined unless the token holds a grant on it and its
+ * namespace is active.
+ */
+export async function findReportPackage(db: AppDatabase, token: RequestToken, name: string, namespace?: string): Promise<RegistryPackage | undefined> {
+  let nsSlug = namespace;
+  if (nsSlug === undefined) {
+    const own = await db.select({ slug: registryNamespaces.slug }).from(registryNamespaces).where(eq(registryNamespaces.ownerUserId, token.userId)).get();
+    nsSlug = own?.slug;
+  }
+  if (nsSlug === undefined)
+    return undefined;
+  const resolved = await findPackage(db, nsSlug, name);
+  if (!resolved || resolved.namespace.status !== "active")
+    return undefined;
+  return await grantedLevel(db, token, resolved) === undefined ? undefined : resolved.package;
+}
+
 /** What `requirePackageAccess` hands a handler: the package, and the token the request came with. */
 export interface PackageRequest extends ResolvedPackage {
   /** Set for a token request; goes into the audit entry next to the user. */

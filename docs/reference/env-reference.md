@@ -60,6 +60,8 @@
 | `REGISTRY_MAX_ASSET_BYTES` | number | `524288000` | no | Largest single asset in bytes. 500 MiB is both the default and the ceiling; a larger value is refused at boot. |
 | `REGISTRY_MAX_PACKAGES_PER_USER` | number | `50` | no | Platform default for how many packages one user may own. An administrator can override it per user. |
 | `REGISTRY_MAX_STORAGE_BYTES_PER_USER` | number | `10737418240` | no | Platform default for the total asset bytes one user may store (10 GiB), counting uploads in flight. |
+| `REGISTRY_OBSERVE_MAX_INSTANCES` | number | `1000` | no | Hosts tracked per package; reports from further new hosts are dropped. |
+| `REGISTRY_OBSERVE_RETENTION_DAYS` | number | `30` | no | Days reported events and silent instances (/r/otlp) are kept; 0 = forever. |
 | `REGISTRY_UPLOAD_SWEEP_INTERVAL_SECONDS` | number | `3600` | no | How often expired multipart uploads are aborted, in seconds. 0 disables the sweep. |
 | `REGISTRY_UPLOAD_TTL_SECONDS` | number | `86400` | no | Lifetime in seconds of a multipart upload that is never completed. |
 | `SERVICE_TOKEN_BACKUP` | string | — | no | Bearer token authorising backup export over POST /api/backup/export-via-token. Keep distinct from SERVICE_TOKEN_METRICS so a leaked scraper credential cannot also exfiltrate the database. |

@@ -23,7 +23,8 @@
     "channels": "Channels",
     "install": "Install",
     "settings": "Settings",
-    "keys": "Signing keys"
+    "keys": "Signing keys",
+    "observe": "Observability"
   },
   "status": {
     "draft": "Draft",
@@ -171,6 +172,30 @@
       "confirmTitle": "Delete {{slug}}",
       "confirmLabel": "Type {{slug}} to confirm",
       "deleted": "Package {{slug}} deleted"
+    }
+  },
+  "observe": {
+    "description": "Hosts running lode report their status here over OpenTelemetry (OTLP/HTTP). Add this block to the host's lode.toml; lode reports every 300 seconds unless [report].interval says otherwise.",
+    "otel": "Any OpenTelemetry SDK or collector can report too: set service.name to the package slug, and service.namespace when the token is an administrator's granted on another user's package.",
+    "copySnippet": "Copy [report] block",
+    "versions": "Versions online",
+    "unknownVersion": "unknown",
+    "instances": "Instances",
+    "events": "Recent events",
+    "online": "Online",
+    "offline": "Offline",
+    "noInstances": "No host has reported yet.",
+    "noEvents": "No events reported yet.",
+    "col": {
+      "instance": "Instance",
+      "version": "Version",
+      "status": "Status",
+      "platform": "Platform",
+      "lode": "lode",
+      "lastSeen": "Last seen",
+      "at": "Time",
+      "event": "Event",
+      "detail": "Detail"
     }
   }
 }

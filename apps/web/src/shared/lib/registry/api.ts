@@ -8,6 +8,8 @@ import type {
   CreateVersionInput,
   Delegation,
   Grants,
+  Instance,
+  InstanceEvent,
   ManifestSignature,
   Namespace,
   Quota,
@@ -83,6 +85,14 @@ export function deletePackage(ns: string, pkg: string): Promise<{ id: string }> 
 
 export function listKeys(ns: string, pkg: string): Promise<SigningKey[]> {
   return request(`${packagePath(ns, pkg)}/keys`);
+}
+
+export function listInstances(ns: string, pkg: string): Promise<Instance[]> {
+  return request(`${packagePath(ns, pkg)}/instances`);
+}
+
+export function listEvents(ns: string, pkg: string): Promise<InstanceEvent[]> {
+  return request(`${packagePath(ns, pkg)}/events`);
 }
 
 export function getManifestSignature(ns: string, pkg: string): Promise<ManifestSignature | null> {

@@ -260,6 +260,8 @@ package the caller cannot read answers 404 on every route.
 | PUT    | `/api/registry/packages/:ns/:pkg/channels/:channel`         | Session, Token (write)         | Body: `{ version }`. Promote or roll back a pointer. Error: `VERSION_NOT_PUBLISHED` (409). |
 | POST   | `/api/registry/packages/:ns/:pkg/versions/:ver/yank`        | Session, Token (admin)         | Hide a published version from the feed. Error: `VERSION_IN_CHANNEL` (409). |
 | POST   | `/api/registry/packages/:ns/:pkg/versions/:ver/restore`     | Session, Token (admin)         | Put a yanked version back. Error: `VERSION_NOT_YANKED` (409). |
+| GET    | `/api/registry/packages/:ns/:pkg/instances`                 | Session, Token (read)          | Hosts that reported to `/r/otlp` with their latest snapshot and `online`, most recently seen first. |
+| GET    | `/api/registry/packages/:ns/:pkg/events`                    | Session, Token (read)          | Reported events, newest first, 100 per page; `?before=<ISO time>` pages back. |
 
 ### Registry administration
 
@@ -302,6 +304,13 @@ from the generated [`api-routes.md`](api-routes.md).
   `If-None-Match` with 304. A public asset is
   `Cache-Control: public, max-age=31536000, immutable`. Every answer for a
   private package is `Cache-Control: private, no-store`, without an `ETag`.
+- **OTLP ingest.** `POST /r/otlp/v1/metrics` and `POST /r/otlp/v1/logs`
+  take OpenTelemetry OTLP/HTTP JSON exports (optionally gzip; 1 MiB on the
+  wire, 4 MiB inflated) with `Authorization: Bearer pat_…`. Each resource is
+  matched by `service.name` (package slug) in the `service.namespace`
+  namespace, else the token owner's; the token needs a grant on it.
+  Unmatched resources are reported in `partialSuccess`. Errors: 400, 401,
+  413, 415. See [`modules/registry.md`](../modules/registry.md#observability).
 - **URLs.** Asset urls are `<origin><BASE_PATH>/r/<ns>/<pkg>/<ver>/<asset>`,
   the origin being `APP_URL` (required in production) or, outside
   production, the request's own host.

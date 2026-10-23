@@ -8,7 +8,7 @@ import { captureLodeConfigBaseline, reportLodeServing, startLodePrepareWatcher }
 import { stopAuditRetentionSweep } from "./modules/audit";
 import { stopCron } from "./modules/cron";
 import { stopFileGcSweep } from "./modules/file";
-import { stopRegistryUploadSweep } from "./modules/registry";
+import { stopObserveRetentionSweep, stopRegistryUploadSweep } from "./modules/registry";
 import { acquirePidLock, releasePidLock } from "./pid-lock";
 import { attemptSealedUnlock } from "./sealed-unlock";
 
@@ -82,6 +82,7 @@ import { attemptSealedUnlock } from "./sealed-unlock";
     await safe("stopAuditRetentionSweep", stopAuditRetentionSweep, silent);
     await safe("stopFileGcSweep", stopFileGcSweep, silent);
     await safe("stopRegistryUploadSweep", stopRegistryUploadSweep, silent);
+    await safe("stopObserveRetentionSweep", stopObserveRetentionSweep, silent);
     await safe("stopCron", stopCron, silent);
     await safe("logger.flush", () => logger.flush(), true);
     await safe("closeDb", closeDb, silent);

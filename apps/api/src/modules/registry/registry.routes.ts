@@ -14,6 +14,7 @@ import { registryAdminRoutes } from "./admin.routes";
 import { getActiveBlobStore } from "./blob";
 import { registryDelegationRoutes } from "./delegation.routes";
 import { listKeys, registerKey, revokeKey } from "./key.service";
+import { registryObserveRoutes } from "./observe.routes";
 import {
   createPackage,
   deletePackage,
@@ -374,6 +375,7 @@ export function registryRoutes() {
 
   router.route("/", registryReleaseRoutes());
   router.route("/", registryDelegationRoutes());
+  router.route("/", registryObserveRoutes());
   router.route("/", registryUploadRoutes());
   router.route("/", registryTokenRoutes());
   router.route("/", registryAdminRoutes());

@@ -20,6 +20,7 @@ import { useAuthStore } from "@/shared/stores/auth";
 import { ChannelsTab } from "./-detail-channels";
 import { InstallTab } from "./-detail-install";
 import { KeysTab } from "./-detail-keys";
+import { ObserveTab } from "./-detail-observe";
 import { SettingsTab } from "./-detail-settings";
 import { VersionsTab } from "./-detail-versions";
 
@@ -117,6 +118,7 @@ function PackagePage() {
           <TabsTrigger value="channels">{t("package:tabs.channels")}</TabsTrigger>
           {canWrite && <TabsTrigger value="keys">{t("package:tabs.keys")}</TabsTrigger>}
           <TabsTrigger value="install">{t("package:tabs.install")}</TabsTrigger>
+          <TabsTrigger value="observe">{t("package:tabs.observe")}</TabsTrigger>
           <TabsTrigger value="settings">{t("package:tabs.settings")}</TabsTrigger>
         </TabsList>
 
@@ -136,6 +138,9 @@ function PackagePage() {
         </TabsContent>
         <TabsContent value="install">
           <InstallTab pkg={pkg} versions={versionList} channels={channelList} canWrite={canWrite} onOpenKeys={() => setTab("keys")} />
+        </TabsContent>
+        <TabsContent value="observe">
+          <ObserveTab ns={ns} pkg={slug} />
         </TabsContent>
         {canWrite && (
           <TabsContent value="keys">
