@@ -132,6 +132,12 @@ each upstream tag; your fork's `Unreleased` block sits at the top.
 
 ### Changed
 
+- `/api/docs` no longer serves an API reference page. It redirects to an
+  external viewer (`https://client.scalar.com/?url=`, set in `DOCS_VIEWER`)
+  handed the absolute URL of `/api/openapi.json`, which now allows any origin
+  to read it. `@scalar/hono-api-reference` and the docs page's CSP exception
+  are gone. The spec URL is built from `APP_URL` when set.
+
 - On Cloudflare Workers, a configuration change now resets the Durable
   Object. It keeps the `env` it was constructed with while resident, and the
   app's alarms keep it resident, so `wrangler secret put` otherwise appeared

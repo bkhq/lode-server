@@ -7,7 +7,7 @@ import { auditRoutes } from "@/modules/audit";
 import { systemRoutes } from "@/modules/system";
 import { rawRoutes } from "@/routes/raw";
 import { SECURITY } from "@/shared/lib/openapi";
-import { mountDocs } from "./docs.routes";
+import { DOCS_VIEWER, mountDocs } from "./docs.routes";
 
 const cfg = { BASE_PATH: "", APP_NAME: "app" } as unknown as Config;
 
@@ -86,19 +86,30 @@ describe("docs module", () => {
     expect(untagged).toEqual([]);
   });
 
-  it("serves the Scalar UI at /docs", async () => {
-    const res = await buildApp().request("/docs");
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    expect(html).toContain("/openapi.json");
-    expect(html.toLowerCase()).toContain("scalar");
+  it("sends /docs to the external viewer with the spec's absolute URL", async () => {
+    const res = await buildApp().request("http://localhost:3000/docs");
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe(`${DOCS_VIEWER}${encodeURIComponent("http://localhost:3000/api/openapi.json")}`);
+  });
+
+  it("builds the spec URL from APP_URL and BASE_PATH when set", async () => {
+    const config = { BASE_PATH: "/u", APP_NAME: "app", APP_URL: "https://app.example.eu/" } as unknown as Config;
+    const api = new Hono<AppEnv>();
+    mountDocs(api, config);
+    const res = await api.request("http://10.0.0.5:3000/docs");
+    expect(res.headers.get("location")).toBe(`${DOCS_VIEWER}${encodeURIComponent("https://app.example.eu/u/api/openapi.json")}`);
+  });
+
+  it("lets any origin read the spec, since the viewer fetches it cross-origin", async () => {
+    const res = await buildApp().request("/openapi.json", { headers: { Origin: "https://client.scalar.com" } });
+    expect(res.headers.get("access-control-allow-origin")).toBe("*");
   });
 
   it("is not gated by module auth (public docs)", async () => {
     // `/audit` requires auth; the docs routes, mounted first, must not.
     const app = buildApp();
     expect((await app.request("/openapi.json")).status).toBe(200);
-    expect((await app.request("/docs")).status).toBe(200);
+    expect((await app.request("/docs")).status).toBe(302);
   });
 });
 
