@@ -1,8 +1,7 @@
 import type { AppEnv } from "@/shared/lib/types";
 import { Hono } from "hono";
 import { z } from "zod";
-import { audit } from "@/modules/audit/audit.service";
-import { getClientIp } from "@/shared/lib/client-ip";
+import { audit, auditMeta } from "@/modules/audit/audit.service";
 import { AppError, NotFoundError } from "@/shared/lib/errors";
 import { describeRoute, errors, jsonOk, SECURITY, TAGS, validator } from "@/shared/lib/openapi";
 import { adminRequired, authRequired } from "@/shared/middleware/auth";
@@ -138,8 +137,7 @@ export function settingsRoutes() {
         resourceId: key,
         resourceName: key,
         detail: { previousValue, newValue: maskValue(key, body.value) },
-        ip: getClientIp(c),
-        userAgent: c.req.header("user-agent") ?? "unknown",
+        ...auditMeta(c),
         result: "success",
       });
 
@@ -179,8 +177,7 @@ export function settingsRoutes() {
         resourceType: "setting",
         resourceId: key,
         resourceName: key,
-        ip: getClientIp(c),
-        userAgent: c.req.header("user-agent") ?? "unknown",
+        ...auditMeta(c),
         result: "success",
       });
 

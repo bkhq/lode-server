@@ -3,7 +3,7 @@ import type { AppDatabase } from "@/db";
 import type { ItemRow } from "@/modules/item/item.service";
 import type { AppEnv } from "@/shared/lib/types";
 import { z } from "zod";
-import { audit } from "@/modules/audit/audit.service";
+import { audit, auditMeta } from "@/modules/audit/audit.service";
 import {
   buildDownloadResponse,
   getFileById,
@@ -14,7 +14,6 @@ import {
   uploadAndReference,
 } from "@/modules/file";
 import { createComment, deleteComment, getCommentById, listComments } from "@/modules/item/comment.service";
-import { getClientIp } from "@/shared/lib/client-ip";
 import { AppError, ForbiddenError, NotFoundError } from "@/shared/lib/errors";
 import { describeRoute, errors, jsonCreated, jsonOk, raw, SECURITY, TAGS, validator } from "@/shared/lib/openapi";
 
@@ -74,13 +73,6 @@ export interface MountItemCommentRoutesOptions<TResource = unknown> {
     user: { id: string; role: string },
     subject: CommentSubject<TResource>,
   ) => Promise<CommentPermissions>;
-}
-
-function auditMeta(c: Context) {
-  return {
-    ip: getClientIp(c),
-    userAgent: c.req.header("user-agent") ?? "unknown",
-  };
 }
 
 /**

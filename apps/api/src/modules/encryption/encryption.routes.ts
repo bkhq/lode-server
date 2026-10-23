@@ -7,7 +7,7 @@ import { dirname } from "node:path";
 import { eciesDecrypt, hexToBytes } from "@app/shared";
 import { Hono } from "hono";
 import { z } from "zod";
-import { audit } from "@/modules/audit/audit.service";
+import { audit, auditMeta } from "@/modules/audit/audit.service";
 import { getClientIp } from "@/shared/lib/client-ip";
 import { AppError } from "@/shared/lib/errors";
 import { describeRoute, errors, jsonOk, SECURITY, TAGS, validator } from "@/shared/lib/openapi";
@@ -566,8 +566,7 @@ export function encryptionProtectedRoutes() {
           resourceType: "encryption",
           resourceId: "dek",
           resourceName: "data-encryption-key",
-          ip: getClientIp(c),
-          userAgent: c.req.header("user-agent") ?? "unknown",
+          ...auditMeta(c),
           result: "success",
         });
 
@@ -590,8 +589,7 @@ export function encryptionProtectedRoutes() {
           resourceId: "dek",
           resourceName: "data-encryption-key",
           detail: { error: errorMessage },
-          ip: getClientIp(c),
-          userAgent: c.req.header("user-agent") ?? "unknown",
+          ...auditMeta(c),
           result: "failure" as const,
         };
         // audit() swallows db-write errors and returns undefined on failure,
@@ -659,8 +657,7 @@ export function encryptionProtectedRoutes() {
           resourceType: "encryption",
           resourceId: "master-key",
           resourceName: "master-key",
-          ip: getClientIp(c),
-          userAgent: c.req.header("user-agent") ?? "unknown",
+          ...auditMeta(c),
           result: "success",
         });
 

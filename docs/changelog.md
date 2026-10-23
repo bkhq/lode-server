@@ -244,6 +244,10 @@ each upstream tag; your fork's `Unreleased` block sits at the top.
 
 ### Fixed
 
+- With `TRUST_PROXY=true`, audit events recorded the proxy's address instead
+  of the client's: every audit write read the IP without the proxy config.
+  They now share `auditMeta(c)`, and `getClientIp` requires the config so a
+  call site cannot leave it out again.
 - Signed-in users were logged out about an hour after an OIDC login, even
   mid-use: the session expired with the IdP's access token, and without a
   refresh token (most IdPs issue one only for `offline_access`) it was

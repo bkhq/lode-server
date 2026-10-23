@@ -4,9 +4,8 @@ import type { AppEnv } from "@/shared/lib/types";
 import { and, desc, eq, lt, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-import { audit } from "@/modules/audit/audit.service";
+import { audit, auditMeta } from "@/modules/audit/audit.service";
 import { cronJobLogs, cronJobs } from "@/modules/cron/schema";
-import { getClientIp } from "@/shared/lib/client-ip";
 import { AppError, NotFoundError } from "@/shared/lib/errors";
 import { nanoid } from "@/shared/lib/id";
 import { describeRoute, errors, jsonCreated, jsonOk, SECURITY, TAGS, validator } from "@/shared/lib/openapi";
@@ -88,13 +87,6 @@ const jobLogSchema = z.object({
   result: z.string().nullable(),
   error: z.string().nullable(),
 }).loose();
-
-function auditMeta(c: Context) {
-  return {
-    ip: getClientIp(c),
-    userAgent: c.req.header("user-agent") ?? "unknown",
-  };
-}
 
 export function cronRoutes() {
   const router = new Hono<AppEnv>();

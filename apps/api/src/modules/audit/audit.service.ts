@@ -1,7 +1,10 @@
+import type { Context } from "hono";
 import type { AppDatabase } from "@/db";
 import type { Logger } from "@/shared/lib/logger";
+import type { AppEnv } from "@/shared/lib/types";
 import { and, count, desc, eq, gte, like, lte } from "drizzle-orm";
 import { auditEvents } from "@/modules/audit/schema";
+import { getClientIp } from "@/shared/lib/client-ip";
 import { ulid } from "@/shared/lib/id";
 
 export interface AuditParams {
@@ -15,6 +18,14 @@ export interface AuditParams {
   readonly ip: string;
   readonly userAgent: string;
   readonly result: "success" | "failure";
+}
+
+/** The caller's `ip` and `userAgent` for an audit event. */
+export function auditMeta(c: Context<AppEnv>): Pick<AuditParams, "ip" | "userAgent"> {
+  return {
+    ip: getClientIp(c, c.get("config")),
+    userAgent: c.req.header("user-agent") ?? "unknown",
+  };
 }
 
 /**

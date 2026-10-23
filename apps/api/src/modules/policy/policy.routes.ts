@@ -3,8 +3,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { listGroups } from "@/modules/account/groups/groups.service";
 import { listUsers } from "@/modules/account/users/users.service";
-import { audit } from "@/modules/audit/audit.service";
-import { getClientIp } from "@/shared/lib/client-ip";
+import { audit, auditMeta } from "@/modules/audit/audit.service";
 import { NotFoundError, ValidationError } from "@/shared/lib/errors";
 import { describeRoute, errors, jsonCreated, jsonOk, jsonPaged, SECURITY, TAGS, validator } from "@/shared/lib/openapi";
 import { adminRequired, authRequired } from "@/shared/middleware/auth";
@@ -173,8 +172,7 @@ export function policyRoutes() {
         resourceId: body.objectId,
         resourceName: tupleStr,
         detail: { tuple: tupleStr, ...body },
-        ip: getClientIp(c),
-        userAgent: c.req.header("user-agent") ?? "unknown",
+        ...auditMeta(c),
         result: "success",
       });
       return c.json({ success: true, data: tuple }, 201);
@@ -214,8 +212,7 @@ export function policyRoutes() {
           resourceType: existing.namespace,
           resourceId: existing.objectId,
           resourceName: id,
-          ip: getClientIp(c),
-          userAgent: c.req.header("user-agent") ?? "unknown",
+          ...auditMeta(c),
           result: "success",
         });
       }
@@ -265,8 +262,7 @@ export function policyRoutes() {
         resourceId: existing.objectId,
         resourceName: tupleStr,
         detail: { previousRelation: existing.relation, newRelation: body.relation },
-        ip: getClientIp(c),
-        userAgent: c.req.header("user-agent") ?? "unknown",
+        ...auditMeta(c),
         result: "success",
       });
 
@@ -303,8 +299,7 @@ export function policyRoutes() {
       const created = body.create ? await batchCreateTuples(db, body.create, user.id) : [];
       const deletedCount = body.delete ? await batchDeleteTuples(db, body.delete) : 0;
 
-      const ip = getClientIp(c);
-      const userAgent = c.req.header("user-agent") ?? "unknown";
+      const { ip, userAgent } = auditMeta(c);
       if (created.length > 0) {
         const tuples = created.map(t => `${t.namespace}:${t.objectId}#${t.relation}@${t.subjectNamespace}:${t.subjectId}`);
         await audit(db, c.get("logger"), {
@@ -559,8 +554,7 @@ export function policyRoutes() {
         resourceType: "resource_group",
         resourceId: group.id,
         resourceName: group.name,
-        ip: getClientIp(c),
-        userAgent: c.req.header("user-agent") ?? "unknown",
+        ...auditMeta(c),
         result: "success",
       });
 
@@ -600,8 +594,7 @@ export function policyRoutes() {
         resourceType: "resource_group",
         resourceId: group.id,
         resourceName: group.name,
-        ip: getClientIp(c),
-        userAgent: c.req.header("user-agent") ?? "unknown",
+        ...auditMeta(c),
         result: "success",
       });
 
@@ -639,8 +632,7 @@ export function policyRoutes() {
         resourceType: "resource_group",
         resourceId: id,
         resourceName: id,
-        ip: getClientIp(c),
-        userAgent: c.req.header("user-agent") ?? "unknown",
+        ...auditMeta(c),
         result: "success",
       });
 
@@ -700,8 +692,7 @@ export function policyRoutes() {
         resourceType: "resource_group",
         resourceId: groupId,
         resourceName: `${body.namespace}:${body.objectId}`,
-        ip: getClientIp(c),
-        userAgent: c.req.header("user-agent") ?? "unknown",
+        ...auditMeta(c),
         result: "success",
       });
 
@@ -740,8 +731,7 @@ export function policyRoutes() {
         resourceType: "resource_group",
         resourceId: groupId,
         resourceName: tupleId,
-        ip: getClientIp(c),
-        userAgent: c.req.header("user-agent") ?? "unknown",
+        ...auditMeta(c),
         result: "success",
       });
 

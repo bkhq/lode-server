@@ -1,9 +1,8 @@
-import type { Context } from "hono";
 import type { AppDatabase } from "@/db";
 import type { AppEnv } from "@/shared/lib/types";
 import { Hono } from "hono";
 import { z } from "zod";
-import { audit } from "@/modules/audit/audit.service";
+import { audit, auditMeta } from "@/modules/audit/audit.service";
 import {
   buildDownloadResponse,
   getFileById,
@@ -15,7 +14,6 @@ import {
 } from "@/modules/file";
 import { mountItemCommentRoutes } from "@/modules/item/comment.routes";
 import { NOOP_POLICY_LOGGER, policyContext } from "@/modules/policy";
-import { getClientIp } from "@/shared/lib/client-ip";
 import { AppError, ForbiddenError, NotFoundError } from "@/shared/lib/errors";
 import { describeRoute, errors, jsonCreated, jsonOk, jsonPaged, raw, SECURITY, TAGS, validator } from "@/shared/lib/openapi";
 import { authRequired } from "@/shared/middleware/auth";
@@ -70,13 +68,6 @@ const attachmentViewSchema = z.object({
   mimetype: z.string(),
   createdAt: z.string(),
 });
-
-function auditMeta(c: Context) {
-  return {
-    ip: getClientIp(c),
-    userAgent: c.req.header("user-agent") ?? "unknown",
-  };
-}
 
 /** Resolve the `item` row behind an issue short id; 404 when absent. */
 async function requireItem(db: AppDatabase, shortId: string) {

@@ -28,14 +28,14 @@ interface ClientIpConfig {
  * (default) means "any peer is trusted" — preserves the pre-flag
  * behaviour.
  */
-export function getClientIp(c: Context, config?: ClientIpConfig): string {
+export function getClientIp(c: Context, config: ClientIpConfig): string {
   // `c.env.IP.address` is Bun's connection peer. On Cloudflare the edge
   // sets `CF-Connecting-IP` and overwrites any client-supplied value, so it
   // plays the same role: an unspoofable peer identity that does not depend
   // on TRUST_PROXY.
   const peerIp = c.env?.IP?.address ?? c.req.header("cf-connecting-ip");
 
-  if (!config?.TRUST_PROXY) {
+  if (!config.TRUST_PROXY) {
     return peerIp ?? "unknown";
   }
 
