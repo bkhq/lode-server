@@ -169,8 +169,8 @@ jobs:
           context: .
           push: false
           load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # No layer cache: a cached `apt-get upgrade` layer hides fixed CVEs from trivy.
+          no-cache: true
           tags: app:ci-${{ github.sha }}
 
       - name: trivy (built image CVEs)
