@@ -4,6 +4,7 @@ import { and, count, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { groups } from "@/modules/account/groups/schema";
 import { documentAccess } from "@/modules/document/document.permission";
 import { documentDetails } from "@/modules/document/schema";
+import { insertItem } from "@/modules/item/item.service";
 import { items } from "@/modules/item/schema";
 import { NOOP_POLICY_LOGGER } from "@/modules/policy";
 import { DIRECT_SUBJECT, relationTuples } from "@/modules/policy/schema";
@@ -89,17 +90,7 @@ export async function createDocument(db: AppDatabase, input: CreateDocumentInput
   }
 
   await db.transaction(async (tx) => {
-    await tx.insert(items).values({
-      id,
-      shortId,
-      type: "document",
-      title: input.title,
-      status: "active",
-      creatorId: input.creatorId,
-      version: 1,
-      deletedAt: null,
-      updatedAt: now,
-    }).run();
+    await insertItem(tx, { id, shortId, type: "document", title: input.title, status: "active", creatorId: input.creatorId, now });
 
     await tx.insert(documentDetails).values({
       itemId: id,
@@ -107,19 +98,6 @@ export async function createDocument(db: AppDatabase, input: CreateDocumentInput
       tags: JSON.stringify(input.tags ?? []),
       parentId: parentItemId,
       commentsLocked: false,
-    }).run();
-
-    // owner tuple
-    await tx.insert(relationTuples).values({
-      id: nanoid(),
-      namespace: "item",
-      objectId: id,
-      relation: "owner",
-      subjectNamespace: "user",
-      subjectId: input.creatorId,
-      subjectRelation: DIRECT_SUBJECT,
-      createdBy: input.creatorId,
-      createdAt: now,
     }).run();
 
     if (parentItemId) {

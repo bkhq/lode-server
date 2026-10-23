@@ -51,39 +51,62 @@ export interface CreateItemInput {
 export async function createItem(db: AppDatabase, input: CreateItemInput): Promise<ItemRow> {
   return await db.transaction(async (tx) => {
     const id = input.id ?? ulid();
-    const shortId = input.shortId ?? nanoid();
-    const now = new Date().toISOString();
-
-    await tx.insert(items).values({
+    await insertItem(tx, {
       id,
-      shortId,
+      shortId: input.shortId ?? nanoid(),
       type: input.type,
       title: input.title,
       status: input.status,
       creatorId: input.creatorId,
-      version: 1,
-      deletedAt: null,
-      updatedAt: now,
-    }).run();
-
-    // Write the `(item, X, owner, user, creator)` tuple in the same
-    // transaction as the items row. We inline the insert rather than call
-    // policy.createTuple because the latter expects the top-level
-    // AppDatabase shape (close / checkpoint), and we need the atomic guarantee.
-    await tx.insert(relationTuples).values({
-      id: nanoid(),
-      namespace: "item",
-      objectId: id,
-      relation: "owner",
-      subjectNamespace: "user",
-      subjectId: input.creatorId,
-      subjectRelation: DIRECT_SUBJECT,
-      createdBy: input.creatorId,
-      createdAt: now,
-    }).run();
-
+      now: new Date().toISOString(),
+    });
     return (await tx.select().from(items).where(eq(items.id, id)).get())!;
   });
+}
+
+type Tx = Parameters<Parameters<AppDatabase["transaction"]>[0]>[0];
+
+interface NewItem {
+  readonly id: string;
+  readonly shortId: string;
+  readonly type: string;
+  readonly title: string;
+  readonly status: string;
+  readonly creatorId: string;
+  readonly now: string;
+}
+
+/**
+ * Insert an item row and its `(item, X, owner, user, creator)` tuple inside
+ * the caller's transaction, so a sub-type can add its detail row and extra
+ * tuples atomically. The tuple insert is inlined rather than going through
+ * policy.createTuple, which expects the top-level AppDatabase shape (close /
+ * checkpoint).
+ */
+export async function insertItem(tx: Tx, item: NewItem): Promise<void> {
+  await tx.insert(items).values({
+    id: item.id,
+    shortId: item.shortId,
+    type: item.type,
+    title: item.title,
+    status: item.status,
+    creatorId: item.creatorId,
+    version: 1,
+    deletedAt: null,
+    updatedAt: item.now,
+  }).run();
+
+  await tx.insert(relationTuples).values({
+    id: nanoid(),
+    namespace: "item",
+    objectId: item.id,
+    relation: "owner",
+    subjectNamespace: "user",
+    subjectId: item.creatorId,
+    subjectRelation: DIRECT_SUBJECT,
+    createdBy: item.creatorId,
+    createdAt: item.now,
+  }).run();
 }
 
 /** Get a live (non-soft-deleted) item by its internal id. */

@@ -2,6 +2,7 @@ import type { AppDatabase } from "@/db";
 import { and, count, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { users } from "@/modules/account/users/schema";
 import { issueDetails } from "@/modules/issue/schema";
+import { insertItem } from "@/modules/item/item.service";
 import { items } from "@/modules/item/schema";
 import { DIRECT_SUBJECT, relationTuples } from "@/modules/policy/schema";
 import { check, listUserResources } from "@/modules/policy/zanzibar.engine";
@@ -79,36 +80,13 @@ export async function createIssue(db: AppDatabase, input: CreateIssueInput): Pro
   const now = new Date().toISOString();
 
   await db.transaction(async (tx) => {
-    await tx.insert(items).values({
-      id,
-      shortId,
-      type: "issue",
-      title: input.title,
-      status: input.status ?? "open",
-      creatorId: input.creatorId,
-      version: 1,
-      deletedAt: null,
-      updatedAt: now,
-    }).run();
+    await insertItem(tx, { id, shortId, type: "issue", title: input.title, status: input.status ?? "open", creatorId: input.creatorId, now });
 
     await tx.insert(issueDetails).values({
       itemId: id,
       description: input.description ?? null,
       priority: input.priority ?? "medium",
       dueDate: input.dueDate ?? null,
-    }).run();
-
-    // owner tuple
-    await tx.insert(relationTuples).values({
-      id: nanoid(),
-      namespace: "item",
-      objectId: id,
-      relation: "owner",
-      subjectNamespace: "user",
-      subjectId: input.creatorId,
-      subjectRelation: DIRECT_SUBJECT,
-      createdBy: input.creatorId,
-      createdAt: now,
     }).run();
 
     if (input.assigneeId) {

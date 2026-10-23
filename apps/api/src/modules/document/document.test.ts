@@ -13,6 +13,7 @@ import { createSession } from "@/modules/account/auth/auth.service";
 import { users } from "@/modules/account/users/schema";
 import { items } from "@/modules/item/schema";
 import { loadNamespaces } from "@/modules/policy/namespace-config";
+import { relationTuples } from "@/modules/policy/schema";
 import { nanoid } from "@/shared/lib/id";
 import { errorHandler } from "@/shared/middleware/error-handler";
 import { documentAccess } from "./document.permission";
@@ -170,6 +171,17 @@ describe("createDocument", () => {
     expect(doc.parentId).toBeNull();
     expect(doc.version).toBe(1);
     expect(doc.creatorId).toBe(userId);
+  });
+
+  test("writes the creator's owner tuple and the parent edge", async () => {
+    const userId = await seedUser("Alice");
+    const parent = await createDocument(db, { title: "P", creatorId: userId });
+    const child = await createDocument(db, { title: "C", creatorId: userId, parentId: parent.id });
+    const [parentItem, childItem] = await Promise.all([parent, child].map(async d =>
+      (await db.select().from(items).where(eq(items.shortId, d.id)).get())!));
+    const tuples = await db.select().from(relationTuples).where(eq(relationTuples.objectId, childItem!.id)).all();
+    expect(tuples.map(t => `${t.relation}@${t.subjectNamespace}:${t.subjectId}`).sort())
+      .toEqual([`owner@user:${userId}`, `parent_item@item:${parentItem!.id}`]);
   });
 
   test("listDocuments matches % and _ in the title and tag search literally", async () => {
