@@ -1,3 +1,4 @@
+import type { SQL } from "drizzle-orm";
 import type { AppDatabase } from "@/db";
 import { and, count, desc, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { items } from "@/modules/item/schema";
@@ -266,36 +267,7 @@ export async function listItemsByIds(
   if (ids.length === 0) {
     return { data: [], total: 0 };
   }
-  const { type, status, search } = filter;
-  const page = Math.max(1, filter.page ?? 1);
-  const limit = Math.min(100, Math.max(1, filter.limit ?? 20));
-
-  const conditions = [inArray(items.id, [...ids]), isNull(items.deletedAt)];
-  if (type)
-    conditions.push(eq(items.type, type));
-  if (status)
-    conditions.push(eq(items.status, status));
-  if (search && search.length > 0) {
-    // TODO(fts): swap LIKE for items_fts MATCH once the FTS5 virtual-table
-    // gap is closed (see plan §G "FTS gap"). LIKE on title is fine for the
-    // current row count.
-    conditions.push(likeEscaped(items.title, `%${escapeLike(search)}%`));
-  }
-
-  const where = and(...conditions);
-  const totalRow = await db.select({ value: count() }).from(items).where(where).get();
-  const total = totalRow?.value ?? 0;
-
-  const data = await db
-    .select()
-    .from(items)
-    .where(where)
-    .orderBy(desc(items.id))
-    .limit(limit)
-    .offset((page - 1) * limit)
-    .all();
-
-  return { data, total };
+  return await queryItems(db, filter, inArray(items.id, [...ids]));
 }
 
 /**
@@ -308,14 +280,28 @@ export async function listItemsByType(
   db: AppDatabase,
   filter: ListItemsFilter & { type: string },
 ): Promise<{ data: readonly ItemRow[]; total: number }> {
+  return await queryItems(db, filter);
+}
+
+/** One page of live items matching `filter`, narrowed by `scope` when given. */
+async function queryItems(
+  db: AppDatabase,
+  filter: ListItemsFilter,
+  scope?: SQL,
+): Promise<{ data: readonly ItemRow[]; total: number }> {
   const { type, status, search } = filter;
   const page = Math.max(1, filter.page ?? 1);
   const limit = Math.min(100, Math.max(1, filter.limit ?? 20));
 
-  const conditions = [eq(items.type, type), isNull(items.deletedAt)];
+  const conditions = [scope, isNull(items.deletedAt)];
+  if (type)
+    conditions.push(eq(items.type, type));
   if (status)
     conditions.push(eq(items.status, status));
   if (search && search.length > 0) {
+    // TODO(fts): swap LIKE for items_fts MATCH once the FTS5 virtual-table
+    // gap is closed (see plan §G "FTS gap"). LIKE on title is fine for the
+    // current row count.
     conditions.push(likeEscaped(items.title, `%${escapeLike(search)}%`));
   }
 

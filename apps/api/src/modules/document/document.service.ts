@@ -1,3 +1,4 @@
+import type { SQL } from "drizzle-orm";
 import type { AppDatabase } from "@/db";
 import type { PolicyContext } from "@/modules/policy";
 import { and, count, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
@@ -348,40 +349,20 @@ async function listVisibleItemIds(db: AppDatabase, userId: string): Promise<read
 }
 
 export async function listDocuments(db: AppDatabase, params: ListDocumentsParams = {}) {
-  const conditions = await buildDocumentConditions(params);
-  let where = and(...conditions);
-  if (params.tag) {
-    const ids = await db.select({ itemId: documentDetails.itemId })
-      .from(documentDetails)
-      .where(likeEscaped(documentDetails.tags, `%"${escapeLike(params.tag)}"%`))
-      .all();
-    if (ids.length === 0)
-      return { data: [] as DocumentRow[], total: 0 };
-    where = and(where, inArray(items.id, ids.map(r => r.itemId)));
-  }
-
-  const page = Math.max(1, params.page ?? 1);
-  const limit = Math.min(100, Math.max(1, params.limit ?? 20));
-
-  const totalRow = await db.select({ value: count() }).from(items).where(where).get();
-  const total = totalRow?.value ?? 0;
-  const rows = await db.select().from(items).where(where).orderBy(desc(items.updatedAt), desc(items.id)).limit(limit).offset((page - 1) * limit).all();
-  const data: DocumentRow[] = [];
-  for (const r of rows)
-    data.push(await composeDocument(db, r));
-  return { data, total };
+  return await queryDocuments(db, params);
 }
 
 export async function listMyDocuments(db: AppDatabase, params: ListDocumentsParams & { userId: string }) {
   const visibleIds = await listVisibleItemIds(db, params.userId);
   const creatorClause = eq(items.creatorId, params.userId);
+  return await queryDocuments(db, params, visibleIds.length > 0
+    ? or(creatorClause, inArray(items.id, [...visibleIds]))
+    : creatorClause);
+}
 
-  const conditions = await buildDocumentConditions(params);
-  let where = and(...conditions);
-  where = visibleIds.length > 0
-    ? and(where, or(creatorClause, inArray(items.id, [...visibleIds])))
-    : and(where, creatorClause);
-
+/** One page of documents matching `params`, narrowed by `scope` when given. */
+async function queryDocuments(db: AppDatabase, params: ListDocumentsParams, scope?: SQL) {
+  let where = and(...await buildDocumentConditions(params), scope);
   if (params.tag) {
     const ids = await db.select({ itemId: documentDetails.itemId })
       .from(documentDetails)
