@@ -8,7 +8,7 @@ import { AppError } from "@/shared/lib/errors";
 import { describeRoute, errors, jsonOk, raw, SECURITY, TAGS, validator } from "@/shared/lib/openapi";
 import { adminRequired, authRequired } from "@/shared/middleware/auth";
 import { serviceTokenRequired } from "@/shared/middleware/service-token";
-import { streamJsonBackup, verifyDek } from "./export.service";
+import { streamJsonBackup, verifyDekChallenge } from "./export.service";
 import { getDataModules, getModuleNames } from "./registry";
 
 const exportBodySchema = z.object({
@@ -219,36 +219,7 @@ export function backupExportRoutes() {
         throw new AppError(`Unknown modules: ${invalidModules.join(", ")}`, 400, "INVALID_MODULES");
       }
 
-      const enc = c.get("encryption");
-      if (!enc.isEncryptionDisabled()) {
-        if (!body.challengeId || !body.encryptedDek) {
-          throw new AppError("Encryption verification required", 400, "ENCRYPTION_REQUIRED");
-        }
-
-        const { eciesDecrypt, hexToBytes } = await import("@app/shared");
-
-        const ephPrivKey = enc.consumeChallenge(body.challengeId);
-        if (!ephPrivKey) {
-          throw new AppError("Challenge expired or invalid. Refresh and try again.", 400, "INVALID_CHALLENGE");
-        }
-
-        const encryptedBytes = hexToBytes(body.encryptedDek);
-        let dekHex: string;
-        try {
-          const dekBytes = await eciesDecrypt(ephPrivKey, encryptedBytes);
-          dekHex = Array.from(dekBytes, b => b.toString(16).padStart(2, "0")).join("");
-        }
-        catch {
-          throw new AppError("Invalid decryption key", 403, "INVALID_KEY");
-        }
-
-        try {
-          await verifyDek(config.DB_PATH, dekHex);
-        }
-        catch {
-          throw new AppError("Invalid decryption key", 403, "INVALID_KEY");
-        }
-      }
+      await verifyDekChallenge(c.get("encryption"), config.DB_PATH, body.challengeId, body.encryptedDek);
 
       const { modules, body: stream } = streamJsonBackup(db, body.modules);
       const timestamp = new Date().toISOString().replace(RE_TIMESTAMP_CHARS, "-").slice(0, 19);
