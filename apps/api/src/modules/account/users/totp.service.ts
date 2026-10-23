@@ -3,7 +3,7 @@ import type { LockoutPolicy, LockoutState } from "@/modules/account/auth/lockout
 import { randomBytes } from "node:crypto";
 import { and, eq, lte } from "drizzle-orm";
 import { Secret, TOTP } from "otpauth";
-import * as QRCode from "qrcode";
+import { renderSVG } from "uqr";
 import { clearAllLockouts, clearFailures, isLocked, recordFailure } from "@/modules/account/auth/lockout.service";
 import { totpChallenges, userTotpDevices } from "@/modules/account/users/schema";
 import { getPlatform } from "@/platform";
@@ -58,7 +58,7 @@ export async function createTotpDevice(db: AppDatabase, userId: string, name: st
 
   const totp = createTotpInstance(secret.base32, username, issuer);
   const uri = totp.toString();
-  const qrCode = await QRCode.toDataURL(uri);
+  const qrCode = `data:image/svg+xml;base64,${btoa(renderSVG(uri))}`;
 
   return { id, name, secret: secret.base32, uri, qrCode };
 }

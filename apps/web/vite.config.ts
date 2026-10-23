@@ -76,7 +76,7 @@ export default defineConfig({
             return "vendor-react";
           if (/node_modules[\\/]@tanstack[\\/]/.test(id))
             return "vendor-tanstack";
-          if (/node_modules[\\/](?:i18next|react-i18next|i18next-browser-languagedetector)[\\/]/.test(id))
+          if (/node_modules[\\/](?:i18next|react-i18next)[\\/]/.test(id))
             return "vendor-i18n";
           if (/node_modules[\\/](?:@base-ui|lucide-react|sonner|class-variance-authority|tailwind-merge|clsx|tw-animate-css)[\\/]/.test(id))
             return "vendor-ui";

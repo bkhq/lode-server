@@ -1,9 +1,8 @@
 import type { BackendModule } from "i18next";
-import type { CustomDetector } from "i18next-browser-languagedetector";
 import i18n from "i18next";
-import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
 import { storageKey } from "@/shared/lib/branding";
+import { languageDetector } from "@/shared/lib/language-detector";
 
 // Lazy-load each namespace as its own chunk via Vite's `import.meta.glob`.
 // Vite resolves the pattern at build time, so each `(locale, namespace)` ships
@@ -63,39 +62,6 @@ const lazyBackend: BackendModule = {
   },
 };
 
-// The built-in `localStorage` cache detector feature-probes storage once
-// and caches the result, but its actual `setItem(lng)` write is NOT
-// wrapped — a later quota-exceeded error or Safari private-mode toggle
-// throws uncaught during `languageChanged`. Override the same-named
-// detector with a try/catch'd write (no-op on failure); reads stay
-// best-effort too. Registered by name so it shadows the built-in.
-const guardedLocalStorageDetector: CustomDetector = {
-  name: "localStorage",
-  lookup({ lookupLocalStorage }) {
-    if (!lookupLocalStorage || typeof window === "undefined")
-      return undefined;
-    try {
-      return window.localStorage.getItem(lookupLocalStorage) || undefined;
-    }
-    catch {
-      return undefined;
-    }
-  },
-  cacheUserLanguage(lng, { lookupLocalStorage }) {
-    if (!lookupLocalStorage || typeof window === "undefined")
-      return;
-    try {
-      window.localStorage.setItem(lookupLocalStorage, lng);
-    }
-    catch {
-      // no-op: language still applied for this session.
-    }
-  },
-};
-
-const languageDetector = new LanguageDetector();
-languageDetector.addDetector(guardedLocalStorageDetector);
-
 // Map i18next language codes to BCP-47 codes for the document `lang`
 // attribute. Only locales that need a country-specific mapping live here
 // (e.g. `zh` -> `zh-CN`); every other locale code is returned as-is, so
@@ -120,7 +86,7 @@ function syncDocumentLang(lng: string): void {
  */
 export const i18nReady: Promise<unknown> = i18n
   .use(lazyBackend)
-  .use(languageDetector)
+  .use(languageDetector(storageKey("lang")))
   .use(initReactI18next)
   .init({
     fallbackLng: "en",
@@ -135,11 +101,6 @@ export const i18nReady: Promise<unknown> = i18n
     // language fall through to English without a second round-trip.
     load: "languageOnly",
     partialBundledLanguages: false,
-    detection: {
-      order: ["localStorage", "navigator"],
-      caches: ["localStorage"],
-      lookupLocalStorage: storageKey("lang"),
-    },
     interpolation: {
       escapeValue: false,
     },

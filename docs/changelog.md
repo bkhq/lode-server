@@ -458,6 +458,15 @@ each upstream tag; your fork's `Unreleased` block sits at the top.
 
 ### Removed
 
+- Dependencies trimmed, 1123 -> 837 packages in the lockfile. The `shadcn`
+  CLI is gone: its `tailwind.css` is vendored as `apps/web/src/shadcn.css`;
+  add components with `bunx shadcn@latest add`. `qrcode` is replaced by the
+  dependency-free `uqr`, so the TOTP QR code is now an SVG data URL
+  (`data:image/svg+xml;base64,...`). `i18next-browser-languagedetector` is
+  replaced by `shared/lib/language-detector.ts` (stored choice, then the
+  browser's languages). The unused `@fontsource-variable/geist` and the
+  undeclared-in-code `@hono/standard-validator` are dropped.
+
 - Orphaned code with no importers: `shared/lib/api-response.ts` and
   `shared/lib/pagination.ts` (a response-envelope layer superseded by the
   `openapi.ts` helpers), `shared/middleware/totp.ts` (a `requireTotp`
