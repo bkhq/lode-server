@@ -5,16 +5,16 @@ import type { AppEnv } from "@/shared/lib/types";
 import { z } from "zod";
 import { audit, auditMeta } from "@/modules/audit/audit.service";
 import {
-  buildDownloadResponse,
-  getFileById,
-  getReferenceById,
+  getOwnedReference,
   listAttachmentsByOwner,
   makeAttachmentView,
+  readUploadedFile,
   releaseReference,
+  sendAttachment,
   uploadAndReference,
 } from "@/modules/file";
 import { createComment, deleteComment, getCommentById, listComments } from "@/modules/item/comment.service";
-import { AppError, ForbiddenError, NotFoundError } from "@/shared/lib/errors";
+import { ForbiddenError, NotFoundError } from "@/shared/lib/errors";
 import { describeRoute, errors, jsonCreated, jsonOk, raw, SECURITY, TAGS, validator } from "@/shared/lib/openapi";
 
 const DEFAULT_COMMENT_MAX_LENGTH = 2000;
@@ -244,13 +244,7 @@ export function mountItemCommentRoutes<TResource>(
         throw new ForbiddenError();
 
       const config = c.get("config");
-      const contentLength = Number(c.req.header("content-length") ?? "0");
-      if (contentLength > config.MAX_UPLOAD_BYTES)
-        throw new AppError("Upload too large", 413, "UPLOAD_TOO_LARGE");
-      const formData = await c.req.formData();
-      const file = formData.get("file");
-      if (!(file instanceof File))
-        throw new AppError("No file provided", 400, "VALIDATION_ERROR");
+      const file = await readUploadedFile(c);
 
       const { reference, file: uploaded } = await uploadAndReference(db, config, {
         file,
@@ -296,14 +290,8 @@ export function mountItemCommentRoutes<TResource>(
       const comment = await getCommentById(db, subject.item.id, cid);
       if (!comment)
         throw new NotFoundError("Comment", cid);
-      const ref = await getReferenceById(db, aid);
-      if (!ref || ref.ownerType !== "item_comment_attachment" || ref.ownerId !== cid)
-        throw new NotFoundError("Attachment", aid);
-      const fileRow = await getFileById(db, ref.fileId);
-      if (!fileRow)
-        throw new NotFoundError("File", aid);
-      const wantInline = c.req.query("inline") === "true";
-      return await buildDownloadResponse(c.get("config"), fileRow, ref, { inline: wantInline });
+      const ref = await getOwnedReference(db, aid, "item_comment_attachment", cid);
+      return await sendAttachment(c, ref);
     },
   );
 
@@ -325,9 +313,7 @@ export function mountItemCommentRoutes<TResource>(
       const comment = await getCommentById(db, subject.item.id, cid);
       if (!comment)
         throw new NotFoundError("Comment", cid);
-      const ref = await getReferenceById(db, aid);
-      if (!ref || ref.ownerType !== "item_comment_attachment" || ref.ownerId !== cid)
-        throw new NotFoundError("Attachment", aid);
+      const ref = await getOwnedReference(db, aid, "item_comment_attachment", cid);
       if (user.role !== "admin" && ref.createdBy !== user.id)
         throw new ForbiddenError();
       await releaseReference(db, c.get("config"), { referenceId: aid });

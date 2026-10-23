@@ -5,13 +5,13 @@ import { z } from "zod";
 import { listActiveUsers } from "@/modules/account/users/users.service";
 import { audit, auditMeta } from "@/modules/audit/audit.service";
 import {
-  buildDownloadResponse,
-  getFileById,
-  getReferenceById,
+  getOwnedReference,
   listAttachmentsByOwner,
   makeAttachmentView,
+  readUploadedFile,
   releaseAllByOwner,
   releaseReference,
+  sendAttachment,
   uploadAndReference,
 } from "@/modules/file";
 import { mountItemCommentRoutes } from "@/modules/item/comment.routes";
@@ -496,16 +496,7 @@ export function documentRoutes() {
       await documentAccess.assert(policyContext(c)!, "document:upload", item.id);
 
       const config = c.get("config");
-      const contentLength = Number(c.req.header("content-length") ?? "0");
-      if (contentLength > config.MAX_UPLOAD_BYTES) {
-        throw new AppError("Upload too large", 413, "UPLOAD_TOO_LARGE");
-      }
-
-      const formData = await c.req.formData();
-      const file = formData.get("file");
-      if (!(file instanceof File)) {
-        throw new AppError("No file provided", 400, "VALIDATION_ERROR");
-      }
+      const file = await readUploadedFile(c);
       const { reference, file: uploaded } = await uploadAndReference(db, config, {
         file,
         ownerType: "item_attachment",
@@ -573,14 +564,8 @@ export function documentRoutes() {
       if (!item)
         throw new NotFoundError("Document", id);
       await documentAccess.assert(policyContext(c)!, "document:download", item.id);
-      const ref = await getReferenceById(db, aid);
-      if (!ref || ref.ownerType !== "item_attachment" || ref.ownerId !== item.id)
-        throw new NotFoundError("Attachment", aid);
-      const file = await getFileById(db, ref.fileId);
-      if (!file)
-        throw new NotFoundError("File", aid);
-      const wantInline = c.req.query("inline") === "true";
-      return await buildDownloadResponse(c.get("config"), file, ref, { inline: wantInline });
+      const ref = await getOwnedReference(db, aid, "item_attachment", item.id);
+      return await sendAttachment(c, ref);
     },
   );
 
@@ -608,9 +593,7 @@ export function documentRoutes() {
         throw new NotFoundError("Document", id);
       // Defense in depth (see GET /documents/:id).
       await documentAccess.assert(policyContext(c)!, "document:delete_attachment", item.id);
-      const ref = await getReferenceById(db, aid);
-      if (!ref || ref.ownerType !== "item_attachment" || ref.ownerId !== item.id)
-        throw new NotFoundError("Attachment", aid);
+      const ref = await getOwnedReference(db, aid, "item_attachment", item.id);
       await releaseReference(db, c.get("config"), { referenceId: aid });
       await audit(db, c.get("logger"), {
         actorId: user.id,
