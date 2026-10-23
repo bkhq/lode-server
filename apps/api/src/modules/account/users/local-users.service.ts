@@ -6,6 +6,7 @@ import { SINGLE_USER_OAUTH_SUB } from "@/modules/account/auth/auth.service";
 import { hashPassword } from "@/modules/account/auth/password";
 import { sessions } from "@/modules/account/auth/schema";
 import { users } from "@/modules/account/users/schema";
+import { userColumns } from "@/modules/account/users/users.service";
 import { getBootstrapAdmin } from "@/shared/lib/app-config";
 import { AppError, isUniqueViolation } from "@/shared/lib/errors";
 import { nanoid } from "@/shared/lib/id";
@@ -23,19 +24,6 @@ export interface LocalUserInput {
   readonly role: "admin" | "user";
   readonly password: string;
 }
-
-const publicColumns = {
-  id: users.id,
-  username: users.username,
-  name: users.name,
-  email: users.email,
-  avatar: users.avatar,
-  role: users.role,
-  status: users.status,
-  lastLoginAt: users.lastLoginAt,
-  createdAt: users.createdAt,
-  updatedAt: users.updatedAt,
-} as const;
 
 /**
  * Create an account that signs in with a password. Usernames are matched
@@ -67,7 +55,7 @@ export async function createLocalUser(db: AppDatabase, input: LocalUserInput) {
       throw new AppError("A user with this username or email already exists", 409, "CONFLICT");
     throw err;
   }
-  return (await db.select(publicColumns).from(users).where(eq(users.id, id)).get())!;
+  return (await db.select(userColumns).from(users).where(eq(users.id, id)).get())!;
 }
 
 /**

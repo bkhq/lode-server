@@ -16,18 +16,9 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Separator } from "@/shared/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
-import { formatDate } from "@/shared/lib/format";
+import { formatDate, getInitials } from "@/shared/lib/format";
 import { http } from "@/shared/lib/http";
 import { useAuthStore } from "@/shared/stores/auth";
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map(n => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
 
 export function SettingsDialog({
   open,

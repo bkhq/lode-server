@@ -26,6 +26,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import process from "node:process";
 import { parseArgs } from "node:util";
+import { nslGet } from "./lib/nsl";
 
 const { values: cli } = parseArgs({
   args: process.argv.slice(2),
@@ -52,14 +53,6 @@ const APP_NAME = process.env.APP_NAME ?? "app";
 // URI that dex will whitelist.
 const trimmedBase = (process.env.BASE_PATH ?? "").replace(/^\/+|\/+$/g, "");
 const BASE_PATH = trimmedBase ? `/${trimmedBase}` : "";
-
-// `nsl get` answers based on the daemon's port regardless of whether the
-// route is registered yet, so this works before our own `nsl run` call.
-function nslGet(name: string): string | null {
-  const result = Bun.spawnSync(["nsl", "get", name]);
-  const url = result.stdout.toString().trim();
-  return result.exitCode === 0 && url.startsWith("http") ? url : null;
-}
 
 // App is served as `${APP_NAME}.localhost`; dex is a sibling single-label
 // subdomain `dex-${APP_NAME}.localhost`. The hyphen (rather than a dot)

@@ -7,7 +7,7 @@ import { createClient } from "@libsql/client";
 import { drizzle, LibSQLPreparedQuery } from "drizzle-orm/libsql";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { AppError } from "@/shared/lib/errors";
-import { ROOT_DIR } from "../root";
+import { resolveMigrationsFolder } from "./migrations-folder";
 import * as schema from "./schema";
 import { validateEncryptionKey } from "./validate";
 
@@ -300,16 +300,4 @@ async function runMigrations(db: ReturnType<typeof drizzle>) {
   }
 
   await migrate(db, { migrationsFolder: fsMigrationsFolder });
-}
-
-/**
- * Locate the Drizzle migrations folder for both layouts: a packaged lode
- * artifact ships `drizzle/` at ROOT_DIR (next to index.js); the dev/source
- * tree keeps it under `apps/api/drizzle`.
- */
-function resolveMigrationsFolder(): string {
-  const packaged = resolve(ROOT_DIR, "drizzle");
-  if (existsSync(resolve(packaged, "meta/_journal.json")))
-    return packaged;
-  return resolve(ROOT_DIR, "apps/api/drizzle");
 }

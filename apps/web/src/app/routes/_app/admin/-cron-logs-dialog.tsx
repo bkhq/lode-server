@@ -25,8 +25,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { formatDateTime } from "@/shared/lib/format";
 import { http } from "@/shared/lib/http";
+import { errorMessage, formatTime } from "./-cron-form";
 
 // Shape mirrored from `apps/api/src/modules/cron/serialize.ts`. Duplicated
 // here to keep this sibling component self-contained; the parent route
@@ -67,12 +67,6 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   failed: "destructive",
 };
 
-function errorMessage(err: unknown, fallback: string): string {
-  if (err instanceof Error)
-    return err.message || fallback;
-  return fallback;
-}
-
 function formatDuration(ms: number | null | undefined): string {
   if (ms == null)
     return "—";
@@ -81,17 +75,6 @@ function formatDuration(ms: number | null | undefined): string {
   if (ms < 60_000)
     return `${(ms / 1000).toFixed(2)} s`;
   return `${(ms / 60_000).toFixed(2)} min`;
-}
-
-function formatTime(value: string | null | undefined): string {
-  if (!value)
-    return "—";
-  try {
-    return formatDateTime(value) || value;
-  }
-  catch {
-    return value;
-  }
 }
 
 export function LogsDialog({

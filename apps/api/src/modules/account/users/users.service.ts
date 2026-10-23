@@ -12,7 +12,8 @@ import { escapeLike, likeEscaped } from "@/shared/lib/like";
 type UserRole = "admin" | "user";
 type UserStatus = "active" | "disabled";
 
-const userColumns = {
+/** The columns of a user that API responses may carry. */
+export const userColumns = {
   id: users.id,
   username: users.username,
   name: users.name,

@@ -14,7 +14,7 @@ import { extname, resolve } from "node:path";
 
 export const FALLBACK_NS = "common";
 
-function isObject(v: unknown): v is Record<string, unknown> {
+export function isObject(v: unknown): v is Record<string, unknown> {
   return v !== null && typeof v === "object" && !Array.isArray(v);
 }
 

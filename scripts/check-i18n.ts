@@ -30,7 +30,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
-import { findMissing, findUnused } from "./lib/i18n-scan";
+import { findMissing, findUnused, isObject } from "./lib/i18n-scan";
 
 const ROOT = resolve(import.meta.dir, "..");
 const LOCALES_DIR = resolve(ROOT, "apps/web/src/locales");
@@ -41,10 +41,6 @@ interface LeafEntry {
   readonly value: string;
   readonly tokens: ReadonlySet<string>;
   readonly empty: boolean;
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function extractTokens(value: string): Set<string> {

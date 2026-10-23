@@ -15,7 +15,7 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
-import { findUnused } from "./lib/i18n-scan";
+import { findUnused, isObject } from "./lib/i18n-scan";
 
 const ROOT = resolve(import.meta.dir, "..");
 const LOCALES_DIR = resolve(ROOT, "apps/web/src/locales");
@@ -26,10 +26,6 @@ const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
 const idx = args.indexOf("--ns");
 const nsFilter = idx >= 0 ? args[idx + 1] : undefined;
-
-function isObject(v: unknown): v is Record<string, unknown> {
-  return v !== null && typeof v === "object" && !Array.isArray(v);
-}
 
 interface Leaf {
   readonly parent: Record<string, unknown>;
