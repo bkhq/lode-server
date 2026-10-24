@@ -4,7 +4,7 @@ import type { Config } from "@/config";
 import type { AppDatabase } from "@/db";
 import type { Logger } from "@/shared/lib/logger";
 import type { AppEnv } from "@/shared/lib/types";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -21,6 +21,7 @@ import { __resetRateLimitForTests } from "@/shared/middleware/rate-limit";
 import { registryFeedRoutes, registryRoutes } from ".";
 import { __resetBlobStoresForTests } from "./blob";
 import { bytesOf, sha256Hex } from "./blob/testing";
+import * as delegation from "./delegation.service";
 import { registryManifestSignatures, registryNamespaces, registryVersions } from "./schema";
 import { artifactMessage, canonicalCatalog, encodeBase64Url, manifestCommitMessage, manifestExpiryMessage, manifestMessage, verifyEd25519 } from "./signature";
 import fixture from "./testdata/vectors.json";
@@ -965,6 +966,47 @@ describe("manifest commits", () => {
     const signer = await registerSigner(alice);
     return { alice, signer };
   }
+
+  test("a draft a commit names cannot change while the commit is checked", async () => {
+    const { alice, signer } = await seed();
+    const asset = await signedDraft(alice, signer, "1.0.0");
+    const first = await commitOn(alice, signer, {
+      versions: {
+        "1.0.0": {
+          assets: [asset],
+        },
+      },
+      channels: { stable: "1.0.0" },
+    });
+
+    // Hold the commit inside its signature check, then try to replace the asset it names.
+    let resume!: () => void;
+    const paused = new Promise<void>((r) => {
+      resume = r;
+    });
+    let entered!: () => void;
+    const inCheck = new Promise<void>((r) => {
+      entered = r;
+    });
+    const original = delegation.signingKeys;
+    const spy = spyOn(delegation, "signingKeys").mockImplementationOnce(async (...args) => {
+      entered();
+      await paused;
+      return await original(...args);
+    });
+    try {
+      const committing = post(alice, first);
+      await inCheck;
+      const replaced = await alice.put("/packages/alice/demo/versions/1.0.0/assets/tool", bytesOf(64, 9));
+      resume();
+      expect(`${replaced.status} ${await code(replaced)}`).toBe("409 VERSION_BUSY");
+      expect((await committing).status).toBe(201);
+    }
+    finally {
+      spy.mockRestore();
+    }
+    expect((await manifestOf("alice/demo")).versions["1.0.0"]!.assets[0]!.sha256).toBe(asset.sha256);
+  });
 
   test("a commit publishes its drafts, moves the channels and is served as signed", async () => {
     const { alice, signer } = await seed();

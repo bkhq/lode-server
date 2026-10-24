@@ -82,9 +82,9 @@ python3 + tar) into `tests/e2e/.cache/dex` and reused.
 the test host. It is looked for in this order:
 
 1. `E2E_LODE_BIN` — path to a `lode` binary;
-2. `tests/e2e/.cache/lode-v0.3.0/lode` — left by an earlier run;
-3. extraction from the local image `bkhq/lode:v0.3.0-mini` into that cache path.
-   Pull it once with `docker pull docker.io/bkhq/lode:v0.3.0-mini`; the container
+2. `tests/e2e/.cache/lode-v0.4.0/lode` — left by an earlier run;
+3. extraction from the local image `bkhq/lode:v0.4.0-mini` into that cache path.
+   Pull it once with `docker pull docker.io/bkhq/lode:v0.4.0-mini`; the container
    is created, never started, and removed.
 
 With none of them the real-client cases are **skipped with a message**

@@ -13,6 +13,21 @@ This repository is a fork: the dated entries directly below are Lode
 Server's own, and everything from `Unreleased` down is the upstream
 template's history, kept unchanged.
 
+## 2026-10-24 21:30 [api] [ci] [examples] [docs]
+
+### Fixed
+
+- A commit upload now holds the drafts it names before it checks their
+  assets. An asset upload that replaced one of them while the commit was being
+  checked could publish a commit whose signed `sha256` no longer matched the
+  stored asset; it now answers 409 `VERSION_BUSY`. A failed claim no longer
+  leaves the drafts claimed before it held.
+
+### Changed
+
+- lode pins move to `v0.4.0-mini`, the release with manifest commits and
+  per-asset runtimes; the e2e suite passes on it.
+
 ## 2026-10-24 16:50 [api] [web] [ci] [deps] [examples] [docs]
 
 ### Changed

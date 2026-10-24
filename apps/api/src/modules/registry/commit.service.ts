@@ -312,13 +312,23 @@ export async function uploadCommit(db: AppDatabase, pkg: RegistryPackage, body: 
       ? `The head is commit ${head.generation} (${head.id}); build on it`
       : "The package has no commits yet: the first is generation 1 without a parent");
   }
-  if (!(await verifyCommit(db, pkg.id, body, commitMessage)))
-    throw new AppError("The commit's signatures do not verify under any signing key of the package", 400, "INVALID_SIGNATURE");
-  const { manifest, versions } = await checkCommit(db, pkg, body);
 
-  const drafts = versions.filter(v => v.status === "draft");
-  const releases = drafts.map(v => claim(v.id));
+  // Hold the drafts the commit names before reading their assets, so an
+  // upload cannot replace one between the check and the publish.
+  const named = Object.keys(body.versions);
+  const drafts = named.length === 0
+    ? []
+    : await db.select({ id: registryVersions.id }).from(registryVersions).where(and(eq(registryVersions.packageId, pkg.id), inArray(registryVersions.version, named), eq(registryVersions.status, "draft"))).all();
+  const releases: (() => void)[] = [];
   try {
+    for (const draft of drafts)
+      releases.push(claim(draft.id));
+    if (!(await verifyCommit(db, pkg.id, body, commitMessage)))
+      throw new AppError("The commit's signatures do not verify under any signing key of the package", 400, "INVALID_SIGNATURE");
+    const { manifest, versions } = await checkCommit(db, pkg, body);
+    const published = versions.filter(v => v.status === "draft").map(v => v.id);
+    if (published.some(versionId => !drafts.some(d => d.id === versionId)))
+      throw conflict("A version the commit names became a draft while it was checked; upload the commit again");
     const row = {
       packageId: pkg.id,
       id,
@@ -331,11 +341,11 @@ export async function uploadCommit(db: AppDatabase, pkg: RegistryPackage, body: 
     };
     const commit = await db.transaction(async (tx) => {
       const inserted = await tx.insert(registryCommits).values(row).returning().get();
-      if (drafts.length > 0) {
+      if (published.length > 0) {
         await tx.update(registryVersions).set({
           status: "published",
           publishedAt: new Date().toISOString(),
-        }).where(and(inArray(registryVersions.id, drafts.map(v => v.id)), eq(registryVersions.status, "draft"))).run();
+        }).where(and(inArray(registryVersions.id, published), eq(registryVersions.status, "draft"))).run();
       }
       const channels = Object.entries(manifest.channels);
       await tx.delete(registryChannels).where(and(eq(registryChannels.packageId, pkg.id), notInArray(registryChannels.name, channels.map(([name]) => name)))).run();
