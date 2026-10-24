@@ -37,7 +37,9 @@ export function useSettingsByPrefix(prefix: string) {
       setSettings(res.data);
     }
     catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load settings");
+      setError(err instanceof Error
+        ? err.message
+        : "Failed to load settings");
     }
     finally {
       setLoading(false);
@@ -48,7 +50,13 @@ export function useSettingsByPrefix(prefix: string) {
     void fetch_();
   }, [fetch_]);
 
-  return { settings, loading, error, setError, refetch: fetch_ };
+  return {
+    settings,
+    loading,
+    error,
+    setError,
+    refetch: fetch_,
+  };
 }
 
 export async function saveSetting(key: string, value: string) {
@@ -91,7 +99,9 @@ export function SettingsCard({
   const initialValues = useMemo(() => {
     const initial: Record<string, string> = {};
     for (const field of fields) {
-      const fullKey = prefix ? `${prefix}${field.key}` : field.key;
+      const fullKey = prefix
+        ? `${prefix}${field.key}`
+        : field.key;
       const setting = settings.find(s => s.key === fullKey);
       initial[field.key] = setting?.value ?? "";
     }
@@ -117,14 +127,18 @@ export function SettingsCard({
           // Skip saving sensitive fields that still hold the masked placeholder
           if (field.sensitive && val === "******")
             continue;
-          const fullKey = prefix ? `${prefix}${field.key}` : field.key;
+          const fullKey = prefix
+            ? `${prefix}${field.key}`
+            : field.key;
           await saveSetting(fullKey, val);
         }
       }
       onSaved();
     }
     catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error.saveFailed"));
+      setError(err instanceof Error
+        ? err.message
+        : t("common.error.saveFailed"));
     }
     finally {
       setSaving(false);
@@ -162,7 +176,9 @@ export function SettingsCard({
       <div className="flex justify-end">
         <Button size="sm" disabled={saving} onClick={() => void handleSave()}>
           <Save className="mr-1 size-3" />
-          {saving ? t("settings:saving") : t("common.save")}
+          {saving
+            ? t("settings:saving")
+            : t("common.save")}
         </Button>
       </div>
     </div>

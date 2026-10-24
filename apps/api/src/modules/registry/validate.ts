@@ -20,7 +20,9 @@ export const MAX_ID_LENGTH = 128;
 
 /** Why `id` is not a valid id, or undefined when it is. `kind` names the field. */
 export function idError(kind: string, id: string): string | undefined {
-  const shown = quote(id.length > MAX_ID_LENGTH ? `${id.slice(0, MAX_ID_LENGTH)}...` : id);
+  const shown = quote(id.length > MAX_ID_LENGTH
+    ? `${id.slice(0, MAX_ID_LENGTH)}...`
+    : id);
   if (id === "")
     return `invalid ${kind} ${shown}: must not be empty`;
   if (id.startsWith(".") || id.startsWith("-"))
@@ -39,7 +41,9 @@ const RE_PACKAGE_SLUG = /^[a-z0-9-]+$/;
 
 /** Why `slug` cannot be a package slug, or undefined when it can. */
 export function packageSlugError(slug: string): string | undefined {
-  const shown = quote(slug.length > MAX_ID_LENGTH ? `${slug.slice(0, MAX_ID_LENGTH)}...` : slug);
+  const shown = quote(slug.length > MAX_ID_LENGTH
+    ? `${slug.slice(0, MAX_ID_LENGTH)}...`
+    : slug);
   if (slug === "")
     return `invalid package slug ${shown}: must not be empty`;
   if (slug.startsWith("-"))
@@ -75,7 +79,17 @@ function isControl(cp: number): boolean {
   return cp <= 0x1F || (cp >= 0x7F && cp <= 0x9F);
 }
 
-const WHITESPACE = new Set([0x20, 0x85, 0xA0, 0x1680, 0x2028, 0x2029, 0x202F, 0x205F, 0x3000]);
+const WHITESPACE = new Set([
+  0x20,
+  0x85,
+  0xA0,
+  0x1680,
+  0x2028,
+  0x2029,
+  0x202F,
+  0x205F,
+  0x3000,
+]);
 
 function isWhitespace(cp: number): boolean {
   return (cp >= 0x09 && cp <= 0x0D) || (cp >= 0x2000 && cp <= 0x200A) || WHITESPACE.has(cp);
@@ -92,7 +106,9 @@ function codePoints(value: string): number[] {
 function quote(value: string): string {
   return Array.from(JSON.stringify(value), (ch) => {
     const cp = ch.codePointAt(0)!;
-    return isControl(cp) ? `\\u${cp.toString(16).padStart(4, "0")}` : ch;
+    return isControl(cp)
+      ? `\\u${cp.toString(16).padStart(4, "0")}`
+      : ch;
   }).join("");
 }
 

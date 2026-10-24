@@ -38,7 +38,9 @@ function parseLimit(raw: string, factor = 1): number | null | undefined {
   if (!RE_DIGITS.test(text))
     return undefined;
   const n = Number(text) * factor;
-  return Number.isSafeInteger(n) ? n : undefined;
+  return Number.isSafeInteger(n)
+    ? n
+    : undefined;
 }
 
 export function toOverride(form: QuotaFormValues): ToOverrideResult {
@@ -47,17 +49,26 @@ export function toOverride(form: QuotaFormValues): ToOverrideResult {
   const asset = parseLimit(form.maxAsset.value, UNIT_BYTES[form.maxAsset.unit]);
 
   const errors: QuotaFormErrors = {
-    ...(packages === undefined ? { maxPackages: "invalid" } : {}),
-    ...(storage === undefined ? { maxStorage: "invalid" } : {}),
+    ...(packages === undefined
+      ? { maxPackages: "invalid" }
+      : {}),
+    ...(storage === undefined
+      ? { maxStorage: "invalid" }
+      : {}),
     // The asset limit has to be positive: no asset fits under a limit of zero.
     ...(asset === undefined || asset === 0
       ? { maxAsset: "invalid" }
-      : asset !== null && asset > MAX_ASSET_BYTES_CEILING ? { maxAsset: "assetTooLarge" } : {}),
+      : asset !== null && asset > MAX_ASSET_BYTES_CEILING
+        ? { maxAsset: "assetTooLarge" }
+        : {}),
   };
   if (packages === undefined || storage === undefined || asset === undefined || Object.keys(errors).length > 0)
     return { ok: false, errors };
 
-  return { ok: true, override: { max_packages: packages, max_storage_bytes: storage, max_asset_bytes: asset } };
+  return {
+    ok: true,
+    override: { max_packages: packages, max_storage_bytes: storage, max_asset_bytes: asset },
+  };
 }
 
 function fromBytes(bytes: number | null, fallback: SizeUnit): SizeValue {
@@ -66,12 +77,17 @@ function fromBytes(bytes: number | null, fallback: SizeUnit): SizeValue {
   if (bytes === 0)
     return { value: "0", unit: fallback };
   const unit = (["GiB", "MiB"] as const).find(u => bytes % UNIT_BYTES[u] === 0) ?? "B";
-  return { value: String(bytes / UNIT_BYTES[unit]), unit };
+  return {
+    value: String(bytes / UNIT_BYTES[unit]),
+    unit,
+  };
 }
 
 export function fromOverride(override: QuotaOverride): QuotaFormValues {
   return {
-    maxPackages: override.max_packages === null ? "" : String(override.max_packages),
+    maxPackages: override.max_packages === null
+      ? ""
+      : String(override.max_packages),
     maxStorage: fromBytes(override.max_storage_bytes, "GiB"),
     maxAsset: fromBytes(override.max_asset_bytes, "MiB"),
   };

@@ -134,7 +134,9 @@ export function streamJsonBackup(db: AppDatabase, selectedModules: string[]): {
                 // `.all()` call, which we narrow to a record map.
                 const baseQuery = db.select().from(table).$dynamic();
 
-                const filtered = cursor === undefined ? baseQuery : baseQuery.where(gt(idColumn, cursor));
+                const filtered = cursor === undefined
+                  ? baseQuery
+                  : baseQuery.where(gt(idColumn, cursor));
                 const rows = await filtered.orderBy(asc(idColumn)).limit(STREAM_BATCH_SIZE).all() as Record<string, unknown>[];
                 if (rows.length === 0)
                   break;

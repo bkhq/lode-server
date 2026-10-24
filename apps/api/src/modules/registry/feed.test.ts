@@ -33,7 +33,14 @@ function vector(id: string): Vector {
   return vectors.find(v => v.id === id)!;
 }
 
-const noop = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
+const noop = {
+  debug() {},
+  info() {},
+  warn() {},
+  error() {},
+  fatal() {},
+  flush() {},
+} as unknown as Logger;
 
 const ORIGIN = "https://pkg.example.test";
 
@@ -46,7 +53,11 @@ beforeEach(async () => {
   await __resetRateLimitForTests();
   dir = mkdtempSync(resolve(tmpdir(), "registry-feed-"));
   db = await createDb(resolve(dir, "app.db"));
-  config = configSchema.parse({ NODE_ENV: "test", APP_URL: ORIGIN, REGISTRY_BLOB_LOCAL_ROOT: join(dir, "blobs") });
+  config = configSchema.parse({
+    NODE_ENV: "test",
+    APP_URL: ORIGIN,
+    REGISTRY_BLOB_LOCAL_ROOT: join(dir, "blobs"),
+  });
 });
 
 afterEach(() => {
@@ -62,7 +73,10 @@ afterEach(() => {
  * sub-app is marked, so a feed request that reached it shows.
  */
 function app(overrides: Partial<Config> = {}) {
-  const cfg = { ...config, ...overrides } as Config;
+  const cfg = {
+    ...config,
+    ...overrides,
+  } as Config;
   const api = new Hono<AppEnv>();
   api.use("*", async (c, next) => {
     c.header("x-api-stack", "ran");
@@ -74,7 +88,14 @@ function app(overrides: Partial<Config> = {}) {
   api.use("*", policyMiddleware({ basePath: `${cfg.BASE_PATH}/api` }));
   api.route("/", registryRoutes());
   api.onError(errorHandler);
-  const deps: AppDeps = { config: cfg, db, logger: noop, encryption: { isSystemLocked: () => false } as unknown as AppDeps["encryption"] };
+  const deps: AppDeps = {
+    config: cfg,
+    db,
+    logger: noop,
+    encryption: {
+      isSystemLocked: () => false,
+    } as unknown as AppDeps["encryption"],
+  };
   return buildOuterApp(api, cfg, undefined, undefined, buildRawApp(deps, registryFeedRoutes()));
 }
 
@@ -88,7 +109,17 @@ interface Publisher {
 /** A signed-in user whose namespace slug is their id, owning `packages` (by slug). */
 async function seedPublisher(id: string, packages: readonly { slug: string; visibility?: "public" | "private" }[] = []): Promise<Publisher> {
   const now = new Date().toISOString();
-  await db.insert(users).values({ id, oauthSub: `sub-${id}`, username: id, name: id, email: `${id}@t.io`, role: "user", status: "active", createdAt: now, updatedAt: now }).run();
+  await db.insert(users).values({
+    id,
+    oauthSub: `sub-${id}`,
+    username: id,
+    name: id,
+    email: `${id}@t.io`,
+    role: "user",
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  }).run();
   await db.insert(registryNamespaces).values({ id: `ns-${id}`, slug: id, ownerUserId: id }).run();
   const cookie = `session_id=${await createSession(db, id, "access", undefined, 3600)}`;
   const publisher: Publisher = {
@@ -97,11 +128,19 @@ async function seedPublisher(id: string, packages: readonly { slug: string; visi
     call: async (method, path, body) => await app().request(`/api/registry${path}`, {
       method,
       headers: { "Cookie": cookie, "Content-Type": "application/json" },
-      ...(body !== undefined && { body: JSON.stringify(body) }),
+      ...(body !== undefined && {
+        body: JSON.stringify(body),
+      }),
     }),
-    put: async (path, body, query = {}) => await app().request(`/api/registry${path}?${new URLSearchParams({ sha256: sha256Hex(body), ...query })}`, {
+    put: async (path, body, query = {}) => await app().request(`/api/registry${path}?${new URLSearchParams({
+      sha256: sha256Hex(body),
+      ...query,
+    })}`, {
       method: "PUT",
-      headers: { "Cookie": cookie, "Content-Length": String(body.length) },
+      headers: {
+        "Cookie": cookie,
+        "Content-Length": String(body.length),
+      },
       body,
     } as RequestInit),
   };
@@ -117,7 +156,10 @@ async function token(owner: Publisher, grants: unknown): Promise<string> {
 }
 
 async function draft(who: Publisher, pkg: string, version: string, notes?: string): Promise<void> {
-  expect((await who.call("POST", `/packages/${pkg}/versions`, { version, ...(notes !== undefined && { notes }) })).status).toBe(201);
+  expect((await who.call("POST", `/packages/${pkg}/versions`, {
+    version,
+    ...(notes !== undefined && { notes }),
+  })).status).toBe(201);
 }
 
 async function upload(who: Publisher, pkg: string, version: string, asset: string, bytes: Uint8Array, query?: Record<string, string>): Promise<void> {
@@ -175,18 +217,42 @@ async function expectNotFound(res: Response): Promise<void> {
   expect(res.status).toBe(404);
   // One body for every refusal: an unknown package and one the caller may
   // not see are indistinguishable.
-  expect(await res.json()).toEqual({ success: false, error: { code: "NOT_FOUND", message: "Not found" } });
+  expect(await res.json()).toEqual({
+    success: false,
+    error: { code: "NOT_FOUND", message: "Not found" },
+  });
 }
 
 describe("read feed: manifest", () => {
   // The fields of `lode/v1` as lode's `manifest.rs` reads them and
   // `docs/manifest.example.json` shows them; the manifest must stay inside.
-  const MANIFEST_KEYS = ["schema", "name", "key_id", "alg", "sig", "channels", "versions"];
+  const MANIFEST_KEYS = [
+    "schema",
+    "name",
+    "key_id",
+    "alg",
+    "sig",
+    "channels",
+    "versions",
+  ];
   const VERSION_KEYS = ["notes", "assets"];
-  const ASSET_KEYS = ["name", "url", "sha256", "size", "sig", "key_id", "alg", "run", "exec", "auth"];
+  const ASSET_KEYS = [
+    "name",
+    "url",
+    "sha256",
+    "size",
+    "sig",
+    "key_id",
+    "alg",
+    "run",
+    "exec",
+    "auth",
+  ];
 
   test("is the lode/v1 document of the package's published versions", async () => {
-    const alice = await seedPublisher("alice", [{ slug: "tool" }]);
+    const alice = await seedPublisher("alice", [
+      { slug: "tool" },
+    ]);
     expect((await alice.call("POST", "/packages/alice/tool/keys", { public_key: signer.publicKey, name: "ci" })).status).toBe(201);
     const both = vector("run-exec");
     const rc = vector("version");
@@ -217,15 +283,17 @@ describe("read feed: manifest", () => {
       },
       versions: {
         [rc.version]: {
-          assets: [{
-            name: rc.name,
-            url: `${ORIGIN}/r/alice/tool/${rc.version}/${rc.name}`,
-            sha256: rc.sha256,
-            size: rc.content.length,
-            sig: rc.sig,
-            key_id: signer.keyId,
-            alg: "ed25519",
-          }],
+          assets: [
+            {
+              name: rc.name,
+              url: `${ORIGIN}/r/alice/tool/${rc.version}/${rc.name}`,
+              sha256: rc.sha256,
+              size: rc.content.length,
+              sig: rc.sig,
+              key_id: signer.keyId,
+              alg: "ed25519",
+            },
+          ],
         },
         [both.version]: {
           notes: "First stable.",
@@ -270,7 +338,9 @@ describe("read feed: manifest", () => {
   });
 
   test("asset urls follow APP_URL without BASE_PATH, or the request when APP_URL is unset", async () => {
-    const alice = await seedPublisher("alice", [{ slug: "demo" }]);
+    const alice = await seedPublisher("alice", [
+      { slug: "demo" },
+    ]);
     await release(alice, "alice/demo", "1.0.0");
 
     const based = await feed("/alice/demo/manifest.json", {}, { APP_URL: "https://pkg.example.test/", BASE_PATH: "/app" });
@@ -281,7 +351,9 @@ describe("read feed: manifest", () => {
   });
 
   test("lists neither drafts nor yanked versions, and does not serve their assets", async () => {
-    const alice = await seedPublisher("alice", [{ slug: "demo" }]);
+    const alice = await seedPublisher("alice", [
+      { slug: "demo" },
+    ]);
     await release(alice, "alice/demo", "1.0.0");
     await release(alice, "alice/demo", "1.1.0");
     await draft(alice, "alice/demo", "2.0.0");
@@ -290,7 +362,9 @@ describe("read feed: manifest", () => {
 
     const manifest = await manifestOf("alice/demo");
     expect(Object.keys(manifest.versions)).toEqual(["1.1.0"]);
-    expect(manifest.channels).toEqual({ stable: { latest: "1.1.0" } });
+    expect(manifest.channels).toEqual({
+      stable: { latest: "1.1.0" },
+    });
 
     expect((await feed("/alice/demo/1.1.0/tool")).status).toBe(200);
     await expectNotFound(await feed("/alice/demo/1.0.0/tool"));
@@ -298,23 +372,43 @@ describe("read feed: manifest", () => {
   });
 
   test("a package with nothing published still has a manifest", async () => {
-    await seedPublisher("alice", [{ slug: "demo" }]);
-    expect(await manifestOf("alice/demo")).toEqual({ schema: "lode/v1", name: "demo", channels: {}, versions: {} });
+    await seedPublisher("alice", [
+      { slug: "demo" },
+    ]);
+    expect(await manifestOf("alice/demo")).toEqual({
+      schema: "lode/v1",
+      name: "demo",
+      channels: {},
+      versions: {},
+    });
   });
 
   test("is capped at the newest versions, plus every channel target", async () => {
-    const alice = await seedPublisher("alice", [{ slug: "demo" }]);
-    const order = ["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0"];
+    const alice = await seedPublisher("alice", [
+      { slug: "demo" },
+    ]);
+    const order = [
+      "1.0.0",
+      "1.1.0",
+      "1.2.0",
+      "1.3.0",
+      "1.4.0",
+    ];
     for (const [i, version] of order.entries()) {
       await release(alice, "alice/demo", version);
-      await db.update(registryVersions).set({ publishedAt: new Date(Date.UTC(2026, 0, 1 + i)).toISOString() }).where(eq(registryVersions.version, version)).run();
+      await db.update(registryVersions).set({
+        publishedAt: new Date(Date.UTC(2026, 0, 1 + i)).toISOString(),
+      }).where(eq(registryVersions.version, version)).run();
     }
     expect((await alice.call("PUT", "/packages/alice/demo/channels/lts", { version: "1.0.0" })).status).toBe(200);
 
     const res = await feed("/alice/demo/manifest.json", {}, { REGISTRY_MANIFEST_MAX_VERSIONS: 2 });
     const manifest = (await res.json()) as Manifest;
     expect(Object.keys(manifest.versions)).toEqual(["1.4.0", "1.3.0", "1.0.0"]);
-    expect(manifest.channels).toEqual({ lts: { latest: "1.0.0" }, stable: { latest: "1.4.0" } });
+    expect(manifest.channels).toEqual({
+      lts: { latest: "1.0.0" },
+      stable: { latest: "1.4.0" },
+    });
     expect(manifest.versions["1.0.0"]!.assets).toHaveLength(1);
 
     // A version the cap dropped is still downloadable.
@@ -324,7 +418,9 @@ describe("read feed: manifest", () => {
 
 describe("read feed: caching", () => {
   test("a public manifest carries a strong ETag and a short max-age, and honours If-None-Match", async () => {
-    const alice = await seedPublisher("alice", [{ slug: "demo" }]);
+    const alice = await seedPublisher("alice", [
+      { slug: "demo" },
+    ]);
     await release(alice, "alice/demo", "1.0.0");
 
     const first = await feed("/alice/demo/manifest.json");
@@ -333,7 +429,12 @@ describe("read feed: caching", () => {
     const etag = first.headers.get("etag")!;
     expect(etag).toBe(`"${sha256Hex(new TextEncoder().encode(body))}"`);
 
-    for (const sent of [etag, `"other", ${etag}`, `W/${etag}`, "*"]) {
+    for (const sent of [
+      etag,
+      `"other", ${etag}`,
+      `W/${etag}`,
+      "*",
+    ]) {
       const res = await feed("/alice/demo/manifest.json", { "If-None-Match": sent });
       expect(res.status).toBe(304);
       expect(await res.text()).toBe("");
@@ -350,7 +451,9 @@ describe("read feed: caching", () => {
   });
 
   test("a public asset is immutable", async () => {
-    const alice = await seedPublisher("alice", [{ slug: "demo" }]);
+    const alice = await seedPublisher("alice", [
+      { slug: "demo" },
+    ]);
     await release(alice, "alice/demo", "1.0.0");
     const res = await feed("/alice/demo/1.0.0/tool");
     expect(res.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
@@ -359,7 +462,9 @@ describe("read feed: caching", () => {
 
 describe("read feed: assets", () => {
   test("streams the bytes that were uploaded", async () => {
-    const alice = await seedPublisher("alice", [{ slug: "demo" }]);
+    const alice = await seedPublisher("alice", [
+      { slug: "demo" },
+    ]);
     const bytes = bytesOf(70_000, 7);
     await draft(alice, "alice/demo", "1.0.0");
     await upload(alice, "alice/demo", "1.0.0", "demo-linux-x86_64.tar.gz", bytes);
@@ -378,7 +483,9 @@ describe("read feed: assets", () => {
   });
 
   test("HEAD answers the headers without a body", async () => {
-    const alice = await seedPublisher("alice", [{ slug: "demo" }]);
+    const alice = await seedPublisher("alice", [
+      { slug: "demo" },
+    ]);
     await release(alice, "alice/demo", "1.0.0");
     const res = await app().request("/r/alice/demo/1.0.0/tool", { method: "HEAD" });
     expect(res.status).toBe(200);
@@ -387,7 +494,9 @@ describe("read feed: assets", () => {
   });
 
   test("unknown namespace, package, version and asset are 404", async () => {
-    const alice = await seedPublisher("alice", [{ slug: "demo" }]);
+    const alice = await seedPublisher("alice", [
+      { slug: "demo" },
+    ]);
     await release(alice, "alice/demo", "1.0.0");
     for (const path of [
       "/nobody/demo/manifest.json",
@@ -405,11 +514,18 @@ describe("read feed: assets", () => {
 
 describe("read feed: private packages", () => {
   test("need a token with a read grant on the package; anything else is 404", async () => {
-    const alice = await seedPublisher("alice", [{ slug: "secret", visibility: "private" }, { slug: "other", visibility: "private" }]);
+    const alice = await seedPublisher("alice", [
+      { slug: "secret", visibility: "private" },
+      { slug: "other", visibility: "private" },
+    ]);
     const bob = await seedPublisher("bob");
     const bytes = await release(alice, "alice/secret", "1.0.0");
-    const granted = await token(alice, [{ package: "alice/secret", access: "read" }]);
-    const elsewhere = await token(alice, [{ package: "alice/other", access: "admin" }]);
+    const granted = await token(alice, [
+      { package: "alice/secret", access: "read" },
+    ]);
+    const elsewhere = await token(alice, [
+      { package: "alice/other", access: "admin" },
+    ]);
     const foreign = await token(bob, { all: "admin" });
 
     const refused: Record<string, string>[] = [
@@ -442,7 +558,9 @@ describe("read feed: private packages", () => {
   });
 
   test("an 'all my packages' read grant covers them", async () => {
-    const alice = await seedPublisher("alice", [{ slug: "secret", visibility: "private" }]);
+    const alice = await seedPublisher("alice", [
+      { slug: "secret", visibility: "private" },
+    ]);
     await release(alice, "alice/secret", "1.0.0");
     const all = await token(alice, { all: "read" });
     expect((await feed("/alice/secret/manifest.json", { Authorization: `Bearer ${all}` })).status).toBe(200);
@@ -451,7 +569,10 @@ describe("read feed: private packages", () => {
 
 describe("read feed: suspended namespace", () => {
   test("serves nothing, public or private", async () => {
-    const alice = await seedPublisher("alice", [{ slug: "demo" }, { slug: "secret", visibility: "private" }]);
+    const alice = await seedPublisher("alice", [
+      { slug: "demo" },
+      { slug: "secret", visibility: "private" },
+    ]);
     await release(alice, "alice/demo", "1.0.0");
     await release(alice, "alice/secret", "1.0.0");
     const auth = { Authorization: `Bearer ${await token(alice, { all: "read" })}` };
@@ -459,7 +580,12 @@ describe("read feed: suspended namespace", () => {
 
     await db.update(registryNamespaces).set({ status: "suspended" }).run();
     for (const headers of [{}, auth]) {
-      for (const path of ["/alice/demo/manifest.json", "/alice/demo/1.0.0/tool", "/alice/secret/manifest.json", "/alice/secret/1.0.0/tool"])
+      for (const path of [
+        "/alice/demo/manifest.json",
+        "/alice/demo/1.0.0/tool",
+        "/alice/secret/manifest.json",
+        "/alice/secret/1.0.0/tool",
+      ])
         await expectNotFound(await feed(path, headers));
     }
   });
@@ -467,7 +593,9 @@ describe("read feed: suspended namespace", () => {
 
 describe("read feed: mount", () => {
   test("needs no session or CSRF headers and sets no cookie", async () => {
-    const alice = await seedPublisher("alice", [{ slug: "demo" }]);
+    const alice = await seedPublisher("alice", [
+      { slug: "demo" },
+    ]);
     await release(alice, "alice/demo", "1.0.0");
     for (const path of ["/alice/demo/manifest.json", "/alice/demo/1.0.0/tool"]) {
       // No Origin, no X-Requested-With, no cookie.
@@ -484,8 +612,18 @@ describe("read feed: mount", () => {
   });
 
   test("an unknown path under /r is answered by the feed, not by /api or the SPA", async () => {
-    await seedPublisher("alice", [{ slug: "demo" }]);
-    for (const path of ["", "/", "/alice", "/alice/demo", "/alice/demo/1.0.0", "/alice/demo/1.0.0/tool/extra", "/api/registry/namespace"]) {
+    await seedPublisher("alice", [
+      { slug: "demo" },
+    ]);
+    for (const path of [
+      "",
+      "/",
+      "/alice",
+      "/alice/demo",
+      "/alice/demo/1.0.0",
+      "/alice/demo/1.0.0/tool/extra",
+      "/api/registry/namespace",
+    ]) {
       const res = await feed(path);
       expect(res.headers.get("content-type")).toContain("application/json");
       expect(res.headers.get("x-api-stack")).toBeNull();
@@ -494,7 +632,9 @@ describe("read feed: mount", () => {
   });
 
   test("only reads are served", async () => {
-    const alice = await seedPublisher("alice", [{ slug: "demo" }]);
+    const alice = await seedPublisher("alice", [
+      { slug: "demo" },
+    ]);
     await release(alice, "alice/demo", "1.0.0");
     for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
       for (const path of ["/r/alice/demo/manifest.json", "/r/alice/demo/1.0.0/tool"])
@@ -504,7 +644,9 @@ describe("read feed: mount", () => {
   });
 
   test("stays at the origin root when the app is under BASE_PATH", async () => {
-    const alice = await seedPublisher("alice", [{ slug: "demo" }]);
+    const alice = await seedPublisher("alice", [
+      { slug: "demo" },
+    ]);
     await release(alice, "alice/demo", "1.0.0");
     expect((await feed("/alice/demo/manifest.json", {}, { BASE_PATH: "/app" })).status).toBe(200);
     // Under the prefix there is no feed: whatever answers (the SPA fallback
@@ -514,7 +656,9 @@ describe("read feed: mount", () => {
   });
 
   test("the per-client raw rate limit applies", async () => {
-    const alice = await seedPublisher("alice", [{ slug: "demo" }]);
+    const alice = await seedPublisher("alice", [
+      { slug: "demo" },
+    ]);
     await release(alice, "alice/demo", "1.0.0");
     const limited = { RAW_API_RATE_LIMIT_PER_MINUTE: 2 };
     expect((await feed("/alice/demo/manifest.json", {}, limited)).status).toBe(200);
@@ -567,7 +711,9 @@ describe("read feed: publisher-signed manifest", () => {
   }
 
   async function seed() {
-    const alice = await seedPublisher("alice", [{ slug: "demo" }]);
+    const alice = await seedPublisher("alice", [
+      { slug: "demo" },
+    ]);
     const signer = await registerSigner(alice);
     await release(alice, "alice/demo", "1.0.0");
     return { alice, signer };
@@ -577,7 +723,12 @@ describe("read feed: publisher-signed manifest", () => {
     const { alice } = await seed();
     expect(await stateOf(alice)).toBeNull();
     const manifest = await manifestOf("alice/demo");
-    expect(Object.keys(manifest)).toEqual(["schema", "name", "channels", "versions"]);
+    expect(Object.keys(manifest)).toEqual([
+      "schema",
+      "name",
+      "channels",
+      "versions",
+    ]);
   });
 
   test("a signature over the downloaded manifest is served with it, and verifies over what is served", async () => {
@@ -629,7 +780,9 @@ describe("read feed: publisher-signed manifest", () => {
     const { alice, signer } = await seed();
     expect((await alice.call("PUT", SIGNATURE, await signatureOf(signer, await manifestOf("alice/demo"), IN_30_DAYS))).status).toBe(200);
 
-    await db.update(registryManifestSignatures).set({ expires: Math.floor(Date.now() / 1000) }).run();
+    await db.update(registryManifestSignatures).set({
+      expires: Math.floor(Date.now() / 1000),
+    }).run();
     expect((await stateOf(alice))!.status).toBe("expired");
     expect((await manifestOf("alice/demo")).sig).toBeUndefined();
 
@@ -652,12 +805,21 @@ describe("read feed: publisher-signed manifest", () => {
     // The expiry signed is not the one sent.
     expect(await refusal(await alice.call("PUT", SIGNATURE, { ...good, expires: IN_30_DAYS + 1 }))).toBe("409 MANIFEST_CHANGED");
     // Signed over another catalog.
-    const other = await signatureOf(signer, { ...manifest, channels: { stable: { latest: "9.9.9" } } });
+    const other = await signatureOf(signer, {
+      ...manifest,
+      channels: {
+        stable: { latest: "9.9.9" },
+      },
+    });
     expect(await refusal(await alice.call("PUT", SIGNATURE, other))).toBe("409 MANIFEST_CHANGED");
     // Signed by a key that is not the package's.
     const stranger = { ...signer, sign: (await registerStranger()).sign };
     expect(await refusal(await alice.call("PUT", SIGNATURE, await signatureOf(stranger, manifest)))).toBe("409 MANIFEST_CHANGED");
-    for (const body of [{ key_id: good.key_id, sig: good.sig, expires: IN_30_DAYS }, { key_id: good.key_id, sig: good.sig, expires_sig: good.expires_sig }, { ...good, alg: "ed25519" }])
+    for (const body of [
+      { key_id: good.key_id, sig: good.sig, expires: IN_30_DAYS },
+      { key_id: good.key_id, sig: good.sig, expires_sig: good.expires_sig },
+      { ...good, alg: "ed25519" },
+    ])
       expect((await alice.call("PUT", SIGNATURE, body)).status).toBe(422);
 
     expect(await stateOf(alice)).toBeNull();
@@ -665,7 +827,9 @@ describe("read feed: publisher-signed manifest", () => {
 
     async function registerStranger() {
       const pair = await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]) as CryptoKeyPair;
-      return { sign: async (message: Uint8Array<ArrayBuffer>) => encodeBase64Url(new Uint8Array(await crypto.subtle.sign({ name: "Ed25519" }, pair.privateKey, message))) };
+      return {
+        sign: async (message: Uint8Array<ArrayBuffer>) => encodeBase64Url(new Uint8Array(await crypto.subtle.sign({ name: "Ed25519" }, pair.privateKey, message))),
+      };
     }
   });
 
@@ -675,10 +839,16 @@ describe("read feed: publisher-signed manifest", () => {
     const withToken = async (bearer: string, method: string, json?: unknown) => await app().request(`/api/registry${SIGNATURE}`, {
       method,
       headers: { "Authorization": `Bearer ${bearer}`, "Content-Type": "application/json" },
-      ...(json !== undefined && { body: JSON.stringify(json) }),
+      ...(json !== undefined && {
+        body: JSON.stringify(json),
+      }),
     });
-    const reader = await token(alice, [{ package: "alice/demo", access: "read" }]);
-    const writer = await token(alice, [{ package: "alice/demo", access: "write" }]);
+    const reader = await token(alice, [
+      { package: "alice/demo", access: "read" },
+    ]);
+    const writer = await token(alice, [
+      { package: "alice/demo", access: "write" },
+    ]);
 
     expect((await withToken(reader, "PUT", body)).status).toBe(403);
     expect((await withToken(writer, "PUT", body)).status).toBe(200);
@@ -709,29 +879,59 @@ describe("manifest commits", () => {
     const res = await alice.call("POST", "/packages/alice/demo/keys", { public_key: publicKey, name: "ci" });
     expect(res.status).toBe(201);
     const { key_id: keyId } = ((await res.json()) as { data: { key_id: string } }).data;
-    return { keyId, sign: async message => encodeBase64Url(new Uint8Array(await crypto.subtle.sign({ name: "Ed25519" }, pair.privateKey, message))) };
+    return {
+      keyId,
+      sign: async message => encodeBase64Url(new Uint8Array(await crypto.subtle.sign({ name: "Ed25519" }, pair.privateKey, message))),
+    };
   }
 
   /** A draft with one signed asset `tool`, optionally with a runtime: what `lode-cli publish` uploads. */
   async function signedDraft(alice: Publisher, signer: Signer, version: string, runtime?: RuntimeSpec) {
     const bytes = bytesOf(64, version.charCodeAt(0));
     const sha256 = sha256Hex(bytes);
-    const sig = await signer.sign(artifactMessage({ app: "demo", name: "tool", version, sha256, runtime }));
+    const sig = await signer.sign(artifactMessage({
+      app: "demo",
+      name: "tool",
+      version,
+      sha256,
+      runtime,
+    }));
     await draft(alice, "alice/demo", version);
     await upload(alice, "alice/demo", version, "tool", bytes, {
       sig,
-      ...(runtime && { runtime: runtime.runtime, runtime_version: runtime.version!, runtime_download: runtime.download!, runtime_sha256: runtime.sha256! }),
+      ...(runtime && {
+        runtime: runtime.runtime,
+        runtime_version: runtime.version!,
+        runtime_download: runtime.download!,
+        runtime_sha256: runtime.sha256!,
+      }),
     });
-    return { name: "tool", url: "", sha256, sig, key_id: signer.keyId, ...(runtime && { runtime }) };
+    return {
+      name: "tool",
+      url: "",
+      sha256,
+      sig,
+      key_id: signer.keyId,
+      ...(runtime && { runtime }),
+    };
   }
 
   /** `head` with `versions` and `channels` changed, signed as the next commit: what `lode-cli` sends. */
   async function commitOn(alice: Publisher, signer: Signer, change: { versions?: Record<string, unknown>; drop?: string; channels?: Record<string, string> }, created = "2026-10-24T00:00:00Z") {
     const head = ((await (await alice.call("GET", `${COMMITS}/head`)).json()) as { data: { commit: string | null; generation: number; manifest: Manifest } }).data;
-    const versions = { ...head.manifest.versions, ...change.versions } as Manifest["versions"];
+    const versions = {
+      ...head.manifest.versions,
+      ...change.versions,
+    } as Manifest["versions"];
     if (change.drop)
       delete versions[change.drop];
-    const channels = { ...head.manifest.channels, ...Object.fromEntries(Object.entries(change.channels ?? {}).map(([c, v]) => [c, { latest: v }])) };
+    const channels = {
+      ...head.manifest.channels,
+      ...Object.fromEntries(Object.entries(change.channels ?? {}).map(([c, v]) => [
+        c,
+        { latest: v },
+      ])),
+    };
     const body = {
       schema: "lode/v1",
       name: "demo",
@@ -759,7 +959,9 @@ describe("manifest commits", () => {
   }
 
   async function seed() {
-    const alice = await seedPublisher("alice", [{ slug: "demo" }]);
+    const alice = await seedPublisher("alice", [
+      { slug: "demo" },
+    ]);
     const signer = await registerSigner(alice);
     return { alice, signer };
   }
@@ -767,20 +969,50 @@ describe("manifest commits", () => {
   test("a commit publishes its drafts, moves the channels and is served as signed", async () => {
     const { alice, signer } = await seed();
     const asset = await signedDraft(alice, signer, "1.0.0");
-    const first = await commitOn(alice, signer, { versions: { "1.0.0": { notes: "first", assets: [asset] } }, channels: { stable: "1.0.0" } });
+    const first = await commitOn(alice, signer, {
+      versions: {
+        "1.0.0": {
+          notes: "first",
+          assets: [asset],
+        },
+      },
+      channels: { stable: "1.0.0" },
+    });
 
     const res = await post(alice, first);
     expect(res.status).toBe(201);
     const commit = ((await res.json()) as { data: Commit }).data;
-    expect(commit).toMatchObject({ parent: null, generation: 1, versions: ["1.0.0"], added: ["1.0.0"], dropped: [], channels: { stable: "1.0.0" }, head: true });
+    expect(commit).toMatchObject({
+      parent: null,
+      generation: 1,
+      versions: ["1.0.0"],
+      added: ["1.0.0"],
+      dropped: [],
+      channels: { stable: "1.0.0" },
+      head: true,
+    });
     // The same commit again is stored once.
     const again = await post(alice, first);
     expect(again.status).toBe(200);
     expect(((await again.json()) as { data: Commit }).data.id).toBe(commit.id);
 
     const served = await manifestOf("alice/demo");
-    expect(served).toMatchObject({ generation: 1, created: first.created, sig: first.sig, commit_sig: first.commit_sig, channels: { stable: { latest: "1.0.0" } } });
-    expect(served.versions["1.0.0"]!.assets[0]).toMatchObject({ name: "tool", sha256: asset.sha256, sig: asset.sig, size: 64, url: `${ORIGIN}/r/alice/demo/1.0.0/tool` });
+    expect(served).toMatchObject({
+      generation: 1,
+      created: first.created,
+      sig: first.sig,
+      commit_sig: first.commit_sig,
+      channels: {
+        stable: { latest: "1.0.0" },
+      },
+    });
+    expect(served.versions["1.0.0"]!.assets[0]).toMatchObject({
+      name: "tool",
+      sha256: asset.sha256,
+      sig: asset.sig,
+      size: 64,
+      url: `${ORIGIN}/r/alice/demo/1.0.0/tool`,
+    });
     expect(served.versions["1.0.0"]!.notes).toBe("first");
     expect((await feed("/alice/demo/1.0.0/tool")).status).toBe(200);
 
@@ -789,14 +1021,37 @@ describe("manifest commits", () => {
     expect(commit.id).toBe(sha256Hex(manifestCommitMessage("demo", signer.keyId, 1, "", first.created, catalog)));
 
     // The next commit builds on it.
-    const runtime = { runtime: "node", version: "v22.", download: "https://x/node.tar.gz", sha256: "c".repeat(64) };
-    const second = await commitOn(alice, signer, { versions: { "2.0.0": { assets: [await signedDraft(alice, signer, "2.0.0", runtime)] } }, channels: { beta: "2.0.0" } });
+    const runtime = {
+      runtime: "node",
+      version: "v22.",
+      download: "https://x/node.tar.gz",
+      sha256: "c".repeat(64),
+    };
+    const second = await commitOn(alice, signer, {
+      versions: {
+        "2.0.0": {
+          assets: [await signedDraft(alice, signer, "2.0.0", runtime)],
+        },
+      },
+      channels: { beta: "2.0.0" },
+    });
     expect(second.parent).toBe(commit.id);
     expect((await post(alice, second)).status).toBe(201);
     const served2 = await manifestOf("alice/demo");
     expect(served2.versions["2.0.0"]!.assets[0]!.runtime).toEqual(runtime);
     const listed = ((await (await alice.call("GET", COMMITS)).json()) as { data: { commits: Commit[] } }).data.commits;
-    expect(listed.map(c => [c.generation, c.head, c.added])).toEqual([[2, true, ["2.0.0"]], [1, false, ["1.0.0"]]]);
+    expect(listed.map(c => [c.generation, c.head, c.added])).toEqual([
+      [
+        2,
+        true,
+        ["2.0.0"],
+      ],
+      [
+        1,
+        false,
+        ["1.0.0"],
+      ],
+    ]);
 
     const channels = ((await (await alice.call("GET", "/packages/alice/demo/versions")).json()) as { data: { channels: { name: string; version: string }[] } }).data.channels;
     expect(channels.map(c => `${c.name}=${c.version}`)).toEqual(["beta=2.0.0", "stable=1.0.0"]);
@@ -805,7 +1060,14 @@ describe("manifest commits", () => {
   test("only a commit on the head lands", async () => {
     const { alice, signer } = await seed();
     const asset = await signedDraft(alice, signer, "1.0.0");
-    const base = { versions: { "1.0.0": { assets: [asset] } }, channels: { stable: "1.0.0" } };
+    const base = {
+      versions: {
+        "1.0.0": {
+          assets: [asset],
+        },
+      },
+      channels: { stable: "1.0.0" },
+    };
     const first = await commitOn(alice, signer, base);
     const rival = await commitOn(alice, signer, base, "2026-10-25T00:00:00Z");
     expect((await post(alice, first)).status).toBe(201);
@@ -818,11 +1080,67 @@ describe("manifest commits", () => {
     const { alice, signer } = await seed();
     const asset = await signedDraft(alice, signer, "1.0.0");
     const cases: [Record<string, unknown>, number, string][] = [
-      [await commitOn(alice, signer, { versions: { "1.0.0": { assets: [{ ...asset, sha256: "0".repeat(64) }] } }, channels: { stable: "1.0.0" } }), 400, "INVALID_COMMIT"],
-      [await commitOn(alice, signer, { versions: { "1.0.0": { assets: [{ ...asset, run: "./tool" }] } }, channels: { stable: "1.0.0" } }), 400, "INVALID_COMMIT"],
-      [await commitOn(alice, signer, { versions: { "9.0.0": { assets: [asset] } }, channels: { stable: "9.0.0" } }), 400, "INVALID_COMMIT"],
-      [{ ...(await commitOn(alice, signer, { versions: { "1.0.0": { assets: [asset] } }, channels: { stable: "1.0.0" } })), name: "other" }, 400, "INVALID_COMMIT"],
-      [{ ...(await commitOn(alice, signer, { versions: { "1.0.0": { assets: [asset] } }, channels: { stable: "1.0.0" } })), created: "2027-01-01T00:00:00Z" }, 400, "INVALID_SIGNATURE"],
+      [await commitOn(alice, signer, {
+        versions: {
+          "1.0.0": {
+            assets: [
+              {
+                ...asset,
+                sha256: "0".repeat(64),
+              },
+            ],
+          },
+        },
+        channels: { stable: "1.0.0" },
+      }), 400, "INVALID_COMMIT"],
+      [await commitOn(alice, signer, {
+        versions: {
+          "1.0.0": {
+            assets: [
+              { ...asset, run: "./tool" },
+            ],
+          },
+        },
+        channels: { stable: "1.0.0" },
+      }), 400, "INVALID_COMMIT"],
+      [await commitOn(alice, signer, {
+        versions: {
+          "9.0.0": {
+            assets: [asset],
+          },
+        },
+        channels: { stable: "9.0.0" },
+      }), 400, "INVALID_COMMIT"],
+      [
+        {
+          ...(await commitOn(alice, signer, {
+            versions: {
+              "1.0.0": {
+                assets: [asset],
+              },
+            },
+            channels: { stable: "1.0.0" },
+          })),
+          name: "other",
+        },
+        400,
+        "INVALID_COMMIT",
+      ],
+      [
+        {
+          ...(await commitOn(alice, signer, {
+            versions: {
+              "1.0.0": {
+                assets: [asset],
+              },
+            },
+            channels: { stable: "1.0.0" },
+          })),
+          created: "2027-01-01T00:00:00Z",
+        },
+        400,
+        "INVALID_SIGNATURE",
+      ],
     ];
     for (const [body, status, expected] of cases) {
       const res = await post(alice, body);
@@ -834,30 +1152,63 @@ describe("manifest commits", () => {
   test("a re-signed asset is served with its new signature, and the next commit builds on it", async () => {
     const { alice, signer } = await seed();
     const asset = await signedDraft(alice, signer, "1.0.0");
-    expect((await post(alice, await commitOn(alice, signer, { versions: { "1.0.0": { assets: [asset] } }, channels: { stable: "1.0.0" } }))).status).toBe(201);
+    expect((await post(alice, await commitOn(alice, signer, {
+      versions: {
+        "1.0.0": {
+          assets: [asset],
+        },
+      },
+      channels: { stable: "1.0.0" },
+    }))).status).toBe(201);
 
     const rotated = await registerSigner(alice);
-    const sig = await rotated.sign(artifactMessage({ app: "demo", name: "tool", version: "1.0.0", sha256: asset.sha256 }));
+    const sig = await rotated.sign(artifactMessage({
+      app: "demo",
+      name: "tool",
+      version: "1.0.0",
+      sha256: asset.sha256,
+    }));
     expect((await alice.call("PUT", "/packages/alice/demo/versions/1.0.0/assets/tool/signature", { sig })).status).toBe(200);
 
     const resigned = { sig, key_id: rotated.keyId };
     expect((await manifestOf("alice/demo")).versions["1.0.0"]!.assets[0]).toMatchObject(resigned);
     const head = ((await (await alice.call("GET", `${COMMITS}/head`)).json()) as { data: { manifest: Manifest } }).data;
     expect(head.manifest.versions["1.0.0"]!.assets[0]).toMatchObject(resigned);
-    expect((await post(alice, await commitOn(alice, signer, { channels: { beta: "1.0.0" } }))).status).toBe(201);
+    expect((await post(alice, await commitOn(alice, signer, {
+      channels: { beta: "1.0.0" },
+    }))).status).toBe(201);
   });
 
   test("a commit package refuses the generated-manifest operations, and a yank is an emergency stop", async () => {
     const { alice, signer } = await seed();
     const asset = await signedDraft(alice, signer, "1.0.0");
-    expect((await post(alice, await commitOn(alice, signer, { versions: { "1.0.0": { assets: [asset] } }, channels: { stable: "1.0.0" } }))).status).toBe(201);
+    expect((await post(alice, await commitOn(alice, signer, {
+      versions: {
+        "1.0.0": {
+          assets: [asset],
+        },
+      },
+      channels: { stable: "1.0.0" },
+    }))).status).toBe(201);
     await draft(alice, "alice/demo", "2.0.0");
     await upload(alice, "alice/demo", "2.0.0", "tool", bytesOf(64, 9));
 
     for (const [method, path, body] of [
-      ["POST", "/packages/alice/demo/versions/2.0.0/publish", { channel: "stable" }],
-      ["PUT", "/packages/alice/demo/channels/beta", { version: "1.0.0" }],
-      ["PUT", "/packages/alice/demo/manifest-signature", { key_id: signer.keyId, sig: "c2ln" }],
+      [
+        "POST",
+        "/packages/alice/demo/versions/2.0.0/publish",
+        { channel: "stable" },
+      ],
+      [
+        "PUT",
+        "/packages/alice/demo/channels/beta",
+        { version: "1.0.0" },
+      ],
+      [
+        "PUT",
+        "/packages/alice/demo/manifest-signature",
+        { key_id: signer.keyId, sig: "c2ln" },
+      ],
     ] as const) {
       const res = await alice.call(method, path, body);
       expect({ path, status: res.status, code: await code(res) }).toEqual({ path, status: 409, code: "PACKAGE_USES_COMMITS" });

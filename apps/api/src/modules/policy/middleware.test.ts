@@ -53,7 +53,12 @@ describe("policyMiddleware — binding without a registered resource", () => {
   // resetting the registry.
   const resourceName = `orphan-${nanoid()}`;
   const path = `/${resourceName}/:id`;
-  registerRouteBinding({ resourceName, method: "GET", path, action: "read" });
+  registerRouteBinding({
+    resourceName,
+    method: "GET",
+    path,
+    action: "read",
+  });
 
   function buildApp(user: Awaited<ReturnType<typeof seedUser>>): Hono<AppEnv> {
     const app = new Hono<AppEnv>();

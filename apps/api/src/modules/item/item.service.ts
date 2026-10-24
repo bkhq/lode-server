@@ -293,7 +293,10 @@ async function queryItems(
   const page = Math.max(1, filter.page ?? 1);
   const limit = Math.min(100, Math.max(1, filter.limit ?? 20));
 
-  const conditions = [scope, isNull(items.deletedAt)];
+  const conditions = [
+    scope,
+    isNull(items.deletedAt),
+  ];
   if (type)
     conditions.push(eq(items.type, type));
   if (status)
@@ -306,7 +309,9 @@ async function queryItems(
   }
 
   const where = and(...conditions);
-  const totalRow = await db.select({ value: count() }).from(items).where(where).get();
+  const totalRow = await db.select({
+    value: count(),
+  }).from(items).where(where).get();
   const total = totalRow?.value ?? 0;
 
   const data = await db

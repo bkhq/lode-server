@@ -13,6 +13,24 @@ This repository is a fork: the dated entries directly below are Lode
 Server's own, and everything from `Unreleased` down is the upstream
 template's history, kept unchanged.
 
+## 2026-10-24 16:50 [api] [web] [ci] [deps] [examples] [docs]
+
+### Changed
+
+Merged the upstream template from `a5ee9e1` to `5d92201`:
+
+- TypeScript 7.0 runs the typechecks (TS 6 stays for typescript-eslint),
+  `@antfu/eslint-config` 10 with its `reasonable-newline` fix applied to the
+  registry code, and minor dependency updates. The `dompurify`, `hono`,
+  `ip-address`, `qs` and other overrides are gone: the locked versions no
+  longer need them.
+- The vendored lode SDK is v0.3.0: `/system/version` reports the supervising
+  lode, `POST /system/lode/check` asks it to check for updates, and the About
+  tab shows both.
+- lode pins move to `v0.3.0-mini` (Dockerfile, CI, release signing, e2e,
+  examples, `llms.txt`). lode 0.2 and 0.3 change nothing the registry relies
+  on; the delegated-signing e2e case passes on 0.3.0.
+
 ## 2026-10-24 16:18 [api] [web] [db] [docs]
 
 ### Added
@@ -1253,8 +1271,22 @@ exists yet.
   cron gate exists because the scheduler holds its own per-job timers and a
   host that evicts the app when idle would drop jobs silently; such
   deployments drive jobs through `POST /api/cron/jobs/:id/trigger` instead.
+- The About tab's lode card names the supervising lode (version, commit and
+  the app-contract features it supports) and gains **Check for updates**,
+  backed by `POST /api/system/lode/check`: lode checks the update source now,
+  whatever `[update].policy` says, and the card polls until it answers, then
+  says whether a newer version is available. lode's check error is not passed
+  on. `/api/system/version` reports `lode.supervisor`, `canCheck` and
+  `checkPending`. A lode older than 0.3 does not report itself; the button is
+  hidden and the route answers 409 `LODE_CHECK_UNSUPPORTED`.
 
 ### Changed
+
+- The vendored lode SDK (`apps/api/src/lode/sdk.ts`) is v0.3.0 from
+  `bkhq/lode`, where lode now lives, and the image and CI signing step pull
+  `docker.io/bkhq/lode`. The SDK only adds to the state.json contract, so
+  existing readiness, prepare, restart, update, rollback and hold calls are
+  unchanged.
 
 - `/api/docs` no longer serves an API reference page. It redirects to an
   external viewer (`https://client.scalar.com/?url=`, set in `DOCS_VIEWER`)
@@ -1627,6 +1659,16 @@ exists yet.
   `fast-uri`, `js-yaml`, `nanoid` (transitive 3.x/5.x), `postcss`, `qs`,
   `dompurify`, `ip-address`, `body-parser`. Lockfile only; no direct
   dependency ranges changed.
+
+- Dependency overrides trimmed from ten to two. `qs`, `ip-address`,
+  `body-parser`, `fast-uri` and `@modelcontextprotocol/sdk` are no longer in
+  the tree, and `dompurify`, `source-map-js` and `hono` resolve to fixed
+  releases on their own. `esbuild` moved from ^0.25 to ^0.28, the line
+  `wrangler`, `tsx` and `vite` ask for (the old override held them back);
+  it still lifts `@esbuild-kit/core-utils`' 0.18 and `drizzle-kit`'s 0.25.
+  `undici` moved from ^7.30.1 to ^8, overriding `miniflare`'s pinned 7.29.1.
+  Verified with `drizzle-kit generate`, `workers:build` and the Workers smoke
+  test.
 
 ## v0.1.0 — 2026-05-14
 

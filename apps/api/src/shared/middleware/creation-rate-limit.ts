@@ -40,7 +40,9 @@ function resourceFromPattern(pattern: string): string {
 function compile(basePath: string, pattern: string): RegExp {
   const body = `${basePath}${pattern}`
     .split("/")
-    .map(s => (RE_PARAM.test(s) ? "[^/]+" : s.replace(RE_ESCAPE, "\\$&")))
+    .map(s => (RE_PARAM.test(s)
+      ? "[^/]+"
+      : s.replace(RE_ESCAPE, "\\$&")))
     .join("/");
   return new RegExp(`^${body}$`);
 }
@@ -67,7 +69,10 @@ export function discoverCreationRoutes(app: Hono<AppEnv>, basePath = ""): Candid
     if (route.method !== "POST" || !listPaths.has(route.path) || seen.has(route.path))
       continue;
     seen.add(route.path);
-    out.push({ regex: compile(basePath, route.path), resource: resourceFromPattern(route.path) });
+    out.push({
+      regex: compile(basePath, route.path),
+      resource: resourceFromPattern(route.path),
+    });
   }
   return out;
 }
@@ -174,7 +179,10 @@ export function creationRateLimit(options: CreationRateLimitOptions) {
     if (retryAfter > 0) {
       c.header("Retry-After", String(Math.max(1, retryAfter)));
       return c.json(
-        { success: false, error: { code: "RATE_LIMITED", message: "Too many requests. Try again later." } },
+        {
+          success: false,
+          error: { code: "RATE_LIMITED", message: "Too many requests. Try again later." },
+        },
         429,
       );
     }

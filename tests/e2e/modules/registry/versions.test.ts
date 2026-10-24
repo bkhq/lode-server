@@ -29,13 +29,34 @@ describe("/api/registry/packages/:ns/:pkg/versions — drafts, uploads, publish"
     const base = packagePath(pkg);
 
     const draft = await createDraft(user, pkg, "1.0.0", "first release");
-    expect(draft).toMatchObject({ version: "1.0.0", status: "draft", notes: "first release", assets: [] });
-    expect(await refusal(await user.raw(`${base}/versions`, { method: "POST", body: { version: "1.0.0" } }))).toEqual({ status: 409, code: "VERSION_EXISTS" });
-    for (const version of ["", ".hidden", "-flag", "has space", "a/b"])
-      expect((await user.raw(`${base}/versions`, { method: "POST", body: { version } })).status).toBe(422);
+    expect(draft).toMatchObject({
+      version: "1.0.0",
+      status: "draft",
+      notes: "first release",
+      assets: [],
+    });
+    expect(await refusal(await user.raw(`${base}/versions`, {
+      method: "POST",
+      body: { version: "1.0.0" },
+    }))).toEqual({ status: 409, code: "VERSION_EXISTS" });
+    for (const version of [
+      "",
+      ".hidden",
+      "-flag",
+      "has space",
+      "a/b",
+    ]) {
+      expect((await user.raw(`${base}/versions`, {
+        method: "POST",
+        body: { version },
+      })).status).toBe(422);
+    }
 
     // Nothing to publish yet.
-    expect(await refusal(await user.raw(`${base}/versions/1.0.0/publish`, { method: "POST", body: { channel: "stable" } }))).toEqual({ status: 409, code: "VERSION_EMPTY" });
+    expect(await refusal(await user.raw(`${base}/versions/1.0.0/publish`, {
+      method: "POST",
+      body: { channel: "stable" },
+    }))).toEqual({ status: 409, code: "VERSION_EMPTY" });
 
     // 201 for a new asset, 200 when the same name is uploaded again.
     const first = await putAsset(user, pkg, "1.0.0", "app-linux-x64.tar.gz", text("first bytes"));
@@ -66,7 +87,9 @@ describe("/api/registry/packages/:ns/:pkg/versions — drafts, uploads, publish"
 
     const one = await user.json<Envelope<{ version: VersionView; channels: VersionList["channels"] }>>(`${base}/versions/1.0.0`);
     expect(one.data.version.status).toBe("published");
-    expect(one.data.channels.map(c => [c.name, c.version])).toEqual([["stable", "1.0.0"]]);
+    expect(one.data.channels.map(c => [c.name, c.version])).toEqual([
+      ["stable", "1.0.0"],
+    ]);
     const all = await user.json<Envelope<VersionList>>(`${base}/versions`);
     expect(all.data.versions.map(v => v.version)).toEqual(["1.0.0"]);
 
@@ -74,7 +97,10 @@ describe("/api/registry/packages/:ns/:pkg/versions — drafts, uploads, publish"
     expect(await refusal(await putAsset(user, pkg, "1.0.0", "app-linux-x64.tar.gz", text("tampered")))).toEqual({ status: 409, code: "VERSION_NOT_DRAFT" });
     expect(await refusal(await putAsset(user, pkg, "1.0.0", "new.bin", text("late")))).toEqual({ status: 409, code: "VERSION_NOT_DRAFT" });
     expect(await refusal(await user.raw(`${base}/versions/1.0.0/assets/app-linux-x64.tar.gz`, { method: "DELETE" }))).toEqual({ status: 409, code: "VERSION_NOT_DRAFT" });
-    expect(await refusal(await user.raw(`${base}/versions/1.0.0/publish`, { method: "POST", body: { channel: "stable" } }))).toEqual({ status: 409, code: "VERSION_NOT_DRAFT" });
+    expect(await refusal(await user.raw(`${base}/versions/1.0.0/publish`, {
+      method: "POST",
+      body: { channel: "stable" },
+    }))).toEqual({ status: 409, code: "VERSION_NOT_DRAFT" });
 
     await deletePackage(user, pkg);
   });
@@ -91,7 +117,9 @@ describe("/api/registry/packages/:ns/:pkg/versions — drafts, uploads, publish"
     // The digest: required, lowercase hex, and the one of the body.
     expect((await send(user, "PUT", `${base}/versions/1.0.0/assets/app.bin`, bytes as Uint8Array<ArrayBuffer>)).status).toBe(422);
     expect((await send(user, "PUT", url("app.bin", `sha256=${sha256.toUpperCase()}`), bytes as Uint8Array<ArrayBuffer>)).status).toBe(422);
-    expect(await refusal(await putAsset(user, pkg, "1.0.0", "app.bin", bytes, { sha256: "0".repeat(64) }))).toEqual({ status: 422, code: "DIGEST_MISMATCH" });
+    expect(await refusal(await putAsset(user, pkg, "1.0.0", "app.bin", bytes, {
+      sha256: "0".repeat(64),
+    }))).toEqual({ status: 422, code: "DIGEST_MISMATCH" });
 
     // The body: not empty, and of a declared length.
     expect((await send(user, "PUT", url("app.bin"), new Uint8Array(0))).status).toBe(422);
@@ -126,9 +154,20 @@ describe("/api/registry/packages/:ns/:pkg/versions — drafts, uploads, publish"
     const sha256 = await sha256Hex(bytes);
 
     // The signature names the package slug as the app, and the asset filename.
-    const sig = await key.sign({ app: pkg.slug, name: "app.bin", version: "1.0.0", sha256, run: "./app serve" });
+    const sig = await key.sign({
+      app: pkg.slug,
+      name: "app.bin",
+      version: "1.0.0",
+      sha256,
+      run: "./app serve",
+    });
     const asset = await uploadAsset(user, pkg, "1.0.0", "app.bin", bytes, { sig, run: "./app serve" });
-    expect(asset).toMatchObject({ sig, key_id: key.keyId, alg: "ed25519", run: "./app serve" });
+    expect(asset).toMatchObject({
+      sig,
+      key_id: key.keyId,
+      alg: "ed25519",
+      run: "./app serve",
+    });
 
     // Anything the signature binds, changed: the name, the version's digest, `run`, `exec`.
     expect(await refusal(await putAsset(user, pkg, "1.0.0", "other.bin", bytes, { sig, run: "./app serve" }))).toEqual({ status: 400, code: "INVALID_SIGNATURE" });
@@ -137,7 +176,12 @@ describe("/api/registry/packages/:ns/:pkg/versions — drafts, uploads, publish"
     expect(await refusal(await putAsset(user, pkg, "1.0.0", "app.bin", bytes, { sig, run: "./app serve", exec: "./app" }))).toEqual({ status: 400, code: "INVALID_SIGNATURE" });
     // A signature by a key the owner never registered.
     const stranger = await generateSigningKey();
-    const foreign = await stranger.sign({ app: pkg.slug, name: "app.bin", version: "1.0.0", sha256 });
+    const foreign = await stranger.sign({
+      app: pkg.slug,
+      name: "app.bin",
+      version: "1.0.0",
+      sha256,
+    });
     expect(await refusal(await putAsset(user, pkg, "1.0.0", "app.bin", bytes, { sig: foreign }))).toEqual({ status: 400, code: "INVALID_SIGNATURE" });
     // This package takes no unsigned asset.
     expect(await refusal(await putAsset(user, pkg, "1.0.0", "unsigned.bin", bytes))).toEqual({ status: 400, code: "SIGNATURE_REQUIRED" });
@@ -145,13 +189,27 @@ describe("/api/registry/packages/:ns/:pkg/versions — drafts, uploads, publish"
     // The manifest serves the signature as it was uploaded.
     await publish(user, pkg, "1.0.0");
     expect((await manifestOf(pkg)).versions["1.0.0"]?.assets).toEqual([
-      { name: "app.bin", url: expect.stringContaining(`/r/${pkg.namespace}/${pkg.slug}/1.0.0/app.bin`), sha256, size: bytes.length, sig, key_id: key.keyId, alg: "ed25519", run: "./app serve" },
+      {
+        name: "app.bin",
+        url: expect.stringContaining(`/r/${pkg.namespace}/${pkg.slug}/1.0.0/app.bin`),
+        sha256,
+        size: bytes.length,
+        sig,
+        key_id: key.keyId,
+        alg: "ed25519",
+        run: "./app serve",
+      },
     ]);
 
     // A revoked key verifies nothing new.
     await user.json(`${packagePath(pkg)}/keys/${registered.id}`, { method: "DELETE" });
     await createDraft(user, pkg, "2.0.0");
-    const later = await key.sign({ app: pkg.slug, name: "app.bin", version: "2.0.0", sha256 });
+    const later = await key.sign({
+      app: pkg.slug,
+      name: "app.bin",
+      version: "2.0.0",
+      sha256,
+    });
     expect(await refusal(await putAsset(user, pkg, "2.0.0", "app.bin", bytes, { sig: later }))).toEqual({ status: 400, code: "INVALID_SIGNATURE" });
 
     await deletePackage(user, pkg);
@@ -161,8 +219,14 @@ describe("/api/registry/packages/:ns/:pkg/versions — drafts, uploads, publish"
     const user = await getClient("user@example.com");
     const pkg = await createPackage(user);
     const base = packagePath(pkg);
-    await release(user, pkg, "1.0.0", { name: "app.bin", bytes: text("one") });
-    await release(user, pkg, "2.0.0", { name: "app.bin", bytes: text("two") });
+    await release(user, pkg, "1.0.0", {
+      name: "app.bin",
+      bytes: text("one"),
+    });
+    await release(user, pkg, "2.0.0", {
+      name: "app.bin",
+      bytes: text("two"),
+    });
     await createDraft(user, pkg, "3.0.0");
 
     // A pointer is created on first use and only takes a published version.
@@ -193,7 +257,10 @@ describe("/api/registry/packages/:ns/:pkg/versions — drafts, uploads, publish"
     expect((await user.raw(`${base}/versions/2.0.0`)).status).toBe(404);
     const left = await user.json<Envelope<VersionList>>(`${base}/versions`);
     expect(left.data.versions.map(v => v.version)).toEqual(["1.0.0"]);
-    expect(left.data.channels.map(c => [c.name, c.version])).toEqual([["beta", "1.0.0"], ["stable", "1.0.0"]]);
+    expect(left.data.channels.map(c => [c.name, c.version])).toEqual([
+      ["beta", "1.0.0"],
+      ["stable", "1.0.0"],
+    ]);
 
     await deletePackage(user, pkg);
   });

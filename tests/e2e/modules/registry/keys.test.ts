@@ -16,16 +16,27 @@ describe("/api/registry/packages/:ns/:pkg/keys — a package's signing keys", ()
     const registered = await registerKey(user, pkg, `0000000000000000:${key.publicKey}`);
     expect(registered.key_id).toBe(key.keyId);
 
-    const again = await user.raw(keys, { method: "POST", body: { public_key: key.publicKey, name: "again" } });
+    const again = await user.raw(keys, {
+      method: "POST",
+      body: { public_key: key.publicKey, name: "again" },
+    });
     expect(await refusal(again)).toEqual({ status: 409, code: "KEY_EXISTS" });
 
     const listed = (await user.json<Envelope<KeyView[]>>(keys)).data.find(k => k.id === registered.id);
-    expect(listed).toMatchObject({ key_id: key.keyId, alg: "ed25519", public_key: key.publicKey, revoked_at: null });
+    expect(listed).toMatchObject({
+      key_id: key.keyId,
+      alg: "ed25519",
+      public_key: key.publicKey,
+      revoked_at: null,
+    });
 
     const revoked = await user.json<Envelope<KeyView>>(`${keys}/${registered.id}`, { method: "DELETE" });
     expect(revoked.data.revoked_at).not.toBeNull();
     // Revocation is final: the key cannot come back.
-    const back = await user.raw(keys, { method: "POST", body: { public_key: key.publicKey, name: "back" } });
+    const back = await user.raw(keys, {
+      method: "POST",
+      body: { public_key: key.publicKey, name: "back" },
+    });
     expect(await refusal(back)).toEqual({ status: 409, code: "KEY_EXISTS" });
 
     // The same key is free on another package.
@@ -40,10 +51,16 @@ describe("/api/registry/packages/:ns/:pkg/keys — a package's signing keys", ()
     const pkg = await createPackage(user);
     const keys = `${packagePath(pkg)}/keys`;
     for (const public_key of ["not base64 !!", "AAAA", `ecdsa-p256:${"A".repeat(44)}`]) {
-      const res = await user.raw(keys, { method: "POST", body: { public_key, name: "bad" } });
+      const res = await user.raw(keys, {
+        method: "POST",
+        body: { public_key, name: "bad" },
+      });
       expect(await refusal(res)).toEqual({ status: 400, code: "INVALID_PUBLIC_KEY" });
     }
-    const empty = await user.raw(keys, { method: "POST", body: { public_key: "", name: "bad" } });
+    const empty = await user.raw(keys, {
+      method: "POST",
+      body: { public_key: "", name: "bad" },
+    });
     expect(empty.status).toBe(422);
     await deletePackage(user, pkg);
   });
@@ -63,11 +80,15 @@ describe("/api/registry/packages/:ns/:pkg/keys — a package's signing keys", ()
       body: JSON.stringify({ public_key: (await generateSigningKey()).publicKey, name: "ci" }),
     });
 
-    const reader = await createToken(user, [{ package: ref, access: "read" }]);
+    const reader = await createToken(user, [
+      { package: ref, access: "read" },
+    ]);
     expect((await withToken(reader.token, keys)).status).toBe(200);
     expect((await post(reader.token, keys)).status).toBe(403);
 
-    const writer = await createToken(user, [{ package: ref, access: "write" }]);
+    const writer = await createToken(user, [
+      { package: ref, access: "write" },
+    ]);
     expect((await withToken(writer.token, keys)).status).toBe(200);
     expect((await post(writer.token, keys)).status).toBe(201);
     // Its grant names one package: the other one is private and does not exist to it.

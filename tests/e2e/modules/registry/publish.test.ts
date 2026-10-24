@@ -25,9 +25,9 @@ const BIG_SIZE = SINGLE_REQUEST_MAX + 1024 * 1024;
 
 // The signing case needs `lode-cli`; it is looked for the way lode.test.ts
 // does it: `E2E_LODE_BIN`, the cached binary of an earlier run, or the local
-// image `bkhq/lode:v0.1.0-mini`. With none of them that one case is skipped.
-const LODE_DIR = join(CACHE_DIR, "lode-v0.1.0");
-const LODE_IMAGE = "bkhq/lode:v0.1.0-mini";
+// image `bkhq/lode:v0.3.0-mini`. With none of them that one case is skipped.
+const LODE_DIR = join(CACHE_DIR, "lode-v0.3.0");
+const LODE_IMAGE = "bkhq/lode:v0.3.0-mini";
 
 function runs(bin: string): boolean {
   try {
@@ -65,8 +65,11 @@ function extractFromImage(target: string): boolean {
 
 function locateLode(): string | undefined {
   const fromEnv = process.env.E2E_LODE_BIN;
-  if (fromEnv)
-    return runs(fromEnv) ? resolve(fromEnv) : undefined;
+  if (fromEnv) {
+    return runs(fromEnv)
+      ? resolve(fromEnv)
+      : undefined;
+  }
   const cached = join(LODE_DIR, "lode");
   if (runs(cached) || (extractFromImage(cached) && runs(cached)))
     return cached;
@@ -96,7 +99,10 @@ async function digestOf(stream: ReadableStream<Uint8Array>): Promise<{ sha256: s
     hasher.update(chunk);
     size += chunk.length;
   }
-  return { sha256: hasher.digest("hex"), size };
+  return {
+    sha256: hasher.digest("hex"),
+    size,
+  };
 }
 
 interface Run { exitCode: number; stdout: string; stderr: string; output: string }
@@ -105,14 +111,31 @@ interface Run { exitCode: number; stdout: string; stderr: string; output: string
 async function publishSh(args: string[], env: Record<string, string> = {}, shellFlags: string[] = []): Promise<Run> {
   // Whatever the developer's shell exports must not leak into the case.
   const { LODE_REGISTRY_TOKEN: _token, LODE_SIGNING_KEY: _key, ...inherited } = process.env;
-  const proc = Bun.spawn([BASH, ...shellFlags, SCRIPT, ...args], {
+  const proc = Bun.spawn([
+    BASH,
+    ...shellFlags,
+    SCRIPT,
+    ...args,
+  ], {
     stdin: "ignore",
     stdout: "pipe",
     stderr: "pipe",
-    env: { ...inherited, ...env },
+    env: {
+      ...inherited,
+      ...env,
+    },
   });
-  const [stdout, stderr, exitCode] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);
-  return { exitCode, stdout, stderr, output: `${stdout}${stderr}` };
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]);
+  return {
+    exitCode,
+    stdout,
+    stderr,
+    output: `${stdout}${stderr}`,
+  };
 }
 
 /** Run `lode-cli publish` the way a CI step does: arguments on the command line, secrets in the environment only. */
@@ -122,10 +145,23 @@ async function lodeCliPublish(args: string[], env: Record<string, string> = {}):
     stdin: "ignore",
     stdout: "pipe",
     stderr: "pipe",
-    env: { ...inherited, NO_COLOR: "1", ...env },
+    env: {
+      ...inherited,
+      NO_COLOR: "1",
+      ...env,
+    },
   });
-  const [stdout, stderr, exitCode] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);
-  return { exitCode, stdout, stderr, output: `${stdout}${stderr}` };
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]);
+  return {
+    exitCode,
+    stdout,
+    stderr,
+    output: `${stdout}${stderr}`,
+  };
 }
 
 describe("scripts/publish.sh against the live registry", () => {
@@ -138,7 +174,9 @@ describe("scripts/publish.sh against the live registry", () => {
     packages.push(pkg);
     const ref = `${pkg.namespace}/${pkg.slug}`;
     // What a publisher stores as the CI secret: `write` on this one package.
-    const { token } = await createToken(user, [{ package: ref, access: "write" }]);
+    const { token } = await createToken(user, [
+      { package: ref, access: "write" },
+    ]);
     return { pkg, ref, token };
   }
 
@@ -192,7 +230,20 @@ describe("scripts/publish.sh against the live registry", () => {
     expect(big.size).toBe(BIG_SIZE);
 
     const run = await publishSh(
-      ["--registry", API_BASE, "--package", ref, "--version", "1.0.0", "--channel", "beta", "--notes", "First release", smallFile, bigFile],
+      [
+        "--registry",
+        API_BASE,
+        "--package",
+        ref,
+        "--version",
+        "1.0.0",
+        "--channel",
+        "beta",
+        "--notes",
+        "First release",
+        smallFile,
+        bigFile,
+      ],
       { LODE_REGISTRY_TOKEN: token },
     );
     expect(run.output).not.toContain(token);
@@ -205,14 +256,31 @@ describe("scripts/publish.sh against the live registry", () => {
     // Management API: published, both assets as sent, unsigned.
     const version = await versionOf(pkg, "1.0.0");
     expect(version).toMatchObject({ version: "1.0.0", status: "published", notes: "First release" });
-    expect(version.assets.map(asset => ({ name: asset.name, size: asset.size, sha256: asset.sha256, sig: asset.sig })).toSorted((a, b) => a.name.localeCompare(b.name))).toEqual([
-      { name: "demo-linux-x64.tar.gz", size: BIG_SIZE, sha256: big.sha256, sig: null },
-      { name: "demo.sh", size: small.length, sha256: await sha256Hex(small), sig: null },
+    expect(version.assets.map(asset => ({
+      name: asset.name,
+      size: asset.size,
+      sha256: asset.sha256,
+      sig: asset.sig,
+    })).toSorted((a, b) => a.name.localeCompare(b.name))).toEqual([
+      {
+        name: "demo-linux-x64.tar.gz",
+        size: BIG_SIZE,
+        sha256: big.sha256,
+        sig: null,
+      },
+      {
+        name: "demo.sh",
+        size: small.length,
+        sha256: await sha256Hex(small),
+        sig: null,
+      },
     ]);
 
     // Read feed: the channel asked for points at the version, and only that channel.
     const manifest = await manifestOf(pkg);
-    expect(manifest.channels).toEqual({ beta: { latest: "1.0.0" } });
+    expect(manifest.channels).toEqual({
+      beta: { latest: "1.0.0" },
+    });
     const listed = manifest.versions["1.0.0"]!.assets;
     expect(listed.find(asset => asset.name === "demo.sh")).toMatchObject({ size: small.length, sha256: await sha256Hex(small) });
     const bigListed = listed.find(asset => asset.name === "demo-linux-x64.tar.gz")!;
@@ -222,11 +290,21 @@ describe("scripts/publish.sh against the live registry", () => {
     expect(await digestOf(download.body!)).toEqual(big);
 
     // A published version is immutable: the same release again is refused, clearly.
-    const again = await publishSh(["--registry", API_BASE, "--package", ref, "--version", "1.0.0", smallFile], { LODE_REGISTRY_TOKEN: token });
+    const again = await publishSh([
+      "--registry",
+      API_BASE,
+      "--package",
+      ref,
+      "--version",
+      "1.0.0",
+      smallFile,
+    ], { LODE_REGISTRY_TOKEN: token });
     expect(again.exitCode).not.toBe(0);
     expect(again.stderr).toContain("already published");
     expect(again.output).not.toContain(token);
-    expect((await manifestOf(pkg)).channels).toEqual({ beta: { latest: "1.0.0" } });
+    expect((await manifestOf(pkg)).channels).toEqual({
+      beta: { latest: "1.0.0" },
+    });
   }, 180_000);
 
   it("continues into an existing draft, replacing a same-named asset, and defaults to the stable channel", async () => {
@@ -234,24 +312,50 @@ describe("scripts/publish.sh against the live registry", () => {
     // What a failed CI job leaves behind: the draft and a stale asset.
     await createDraft(token, pkg, "2.0.0");
     const stale = file("retry-stale", "demo.sh", text("stale\n"));
-    const first = await publishSh(["--registry", API_BASE, "--package", ref, "--version", "2.0.0", stale, join(work, "retry-stale", "missing.bin")], { LODE_REGISTRY_TOKEN: token });
+    const first = await publishSh([
+      "--registry",
+      API_BASE,
+      "--package",
+      ref,
+      "--version",
+      "2.0.0",
+      stale,
+      join(work, "retry-stale", "missing.bin"),
+    ], { LODE_REGISTRY_TOKEN: token });
     // A file that does not exist stops the run before anything is sent.
     expect(first.exitCode).not.toBe(0);
     expect((await versionOf(pkg, "2.0.0")).assets).toEqual([]);
 
     const fresh = text("fresh\n");
-    const run = await publishSh(["--registry", `${API_BASE}/`, "--package", ref, "--version", "2.0.0", file("retry", "demo.sh", fresh)], { LODE_REGISTRY_TOKEN: token });
+    const run = await publishSh([
+      "--registry",
+      `${API_BASE}/`,
+      "--package",
+      ref,
+      "--version",
+      "2.0.0",
+      file("retry", "demo.sh", fresh),
+    ], { LODE_REGISTRY_TOKEN: token });
     expect(run.stderr).toBe("");
     expect(run.exitCode).toBe(0);
 
     const manifest = await manifestOf(pkg);
-    expect(manifest.channels).toEqual({ stable: { latest: "2.0.0" } });
-    expect(manifest.versions["2.0.0"]!.assets).toMatchObject([{ name: "demo.sh", size: fresh.length, sha256: await sha256Hex(fresh) }]);
+    expect(manifest.channels).toEqual({
+      stable: { latest: "2.0.0" },
+    });
+    expect(manifest.versions["2.0.0"]!.assets).toMatchObject([
+      { name: "demo.sh", size: fresh.length, sha256: await sha256Hex(fresh) },
+    ]);
   }, 60_000);
 
   it.skipIf(!LODE)("signs every asset with lode-cli when LODE_SIGNING_KEY is set", async () => {
     // Publisher side: a key from `lode-cli keygen`, its public half registered.
-    const keygen = Bun.spawnSync([LODE_CLI, "keygen", "--out", join(work, "publisher")], { stdout: "pipe", stderr: "pipe" });
+    const keygen = Bun.spawnSync([
+      LODE_CLI,
+      "keygen",
+      "--out",
+      join(work, "publisher"),
+    ], { stdout: "pipe", stderr: "pipe" });
     expect(keygen.exitCode).toBe(0);
     const trustedKey = /^trustedKeys:\s+(\S+)/m.exec(keygen.stdout.toString())![1]!;
     // The seed is what a publisher stores as the LODE_SIGNING_KEY secret.
@@ -262,7 +366,16 @@ describe("scripts/publish.sh against the live registry", () => {
     const { key_id: keyId } = await registerKey(user, pkg, trustedKey);
     const bytes = text("#!/bin/sh\necho signed\n");
     const run = await publishSh(
-      ["--registry", API_BASE, "--package", ref, "--version", "1.0.0", file("signed", "demo.sh", bytes), file("signed", "demo.txt", text("notes\n"))],
+      [
+        "--registry",
+        API_BASE,
+        "--package",
+        ref,
+        "--version",
+        "1.0.0",
+        file("signed", "demo.sh", bytes),
+        file("signed", "demo.txt", text("notes\n")),
+      ],
       { LODE_REGISTRY_TOKEN: token, LODE_SIGNING_KEY: seed, PATH: `${LODE_DIR}${delimiter}${process.env.PATH}` },
     );
     expect(run.output).not.toContain(token);
@@ -280,13 +393,35 @@ describe("scripts/publish.sh against the live registry", () => {
     // The key is set but lode-cli is not installed: an error, not an unsigned upload.
     const bare = join(work, "bare-bin");
     mkdirSync(bare);
-    for (const tool of ["bash", "env", "curl", "jq", "sha256sum", "dd", "wc", "tr", "cut", "awk", "mktemp", "rm", "basename"]) {
+    for (const tool of [
+      "bash",
+      "env",
+      "curl",
+      "jq",
+      "sha256sum",
+      "dd",
+      "wc",
+      "tr",
+      "cut",
+      "awk",
+      "mktemp",
+      "rm",
+      "basename",
+    ]) {
       const found = Bun.which(tool);
       if (found)
         symlinkSync(found, join(bare, tool));
     }
     const unsigned = await publishSh(
-      ["--registry", API_BASE, "--package", ref, "--version", "2.0.0", file("signed", "demo.sh", bytes)],
+      [
+        "--registry",
+        API_BASE,
+        "--package",
+        ref,
+        "--version",
+        "2.0.0",
+        file("signed", "demo.sh", bytes),
+      ],
       { LODE_REGISTRY_TOKEN: token, LODE_SIGNING_KEY: seed, PATH: bare },
     );
     expect(unsigned.exitCode).not.toBe(0);
@@ -297,36 +432,68 @@ describe("scripts/publish.sh against the live registry", () => {
 
   it.skipIf(!LODE)("derives the public key from the seed and registers it for the package", async () => {
     // Nothing is registered by hand and the pipeline holds the seed only.
-    const keygen = Bun.spawnSync([LODE_CLI, "keygen", "--out", join(work, "pipeline")], { stdout: "pipe", stderr: "pipe" });
+    const keygen = Bun.spawnSync([
+      LODE_CLI,
+      "keygen",
+      "--out",
+      join(work, "pipeline"),
+    ], { stdout: "pipe", stderr: "pipe" });
     expect(keygen.exitCode).toBe(0);
     const trustedKey = /^trustedKeys:\s+(\S+)/m.exec(keygen.stdout.toString())![1]!;
     const seed = readFileSync(join(work, "pipeline.key"), "utf-8").trim();
 
     const { pkg, ref, token } = await newPackage({ require_signature: true });
     const env = { LODE_REGISTRY_TOKEN: token, LODE_SIGNING_KEY: seed, PATH: `${LODE_DIR}${delimiter}${process.env.PATH}` };
-    const first = await publishSh(["--registry", API_BASE, "--package", ref, "--version", "1.0.0", file("selfkey", "demo.sh", text("one\n"))], env);
+    const first = await publishSh([
+      "--registry",
+      API_BASE,
+      "--package",
+      ref,
+      "--version",
+      "1.0.0",
+      file("selfkey", "demo.sh", text("one\n")),
+    ], env);
     expect(first.stderr).toBe("");
     expect(first.exitCode).toBe(0);
     expect(first.stdout).toContain("registered signing key");
     expect(first.output).not.toContain(seed);
 
     // The next release finds the key in place.
-    const second = await publishSh(["--registry", API_BASE, "--package", ref, "--version", "2.0.0", file("selfkey2", "demo.sh", text("two\n"))], env);
+    const second = await publishSh([
+      "--registry",
+      API_BASE,
+      "--package",
+      ref,
+      "--version",
+      "2.0.0",
+      file("selfkey2", "demo.sh", text("two\n")),
+    ], env);
     expect(second.stderr).toBe("");
     expect(second.exitCode).toBe(0);
     expect(second.stdout).toContain("signing key already registered");
 
     const manifest = await manifestOf(pkg);
     const keyId = trustedKey.split(":")[0]!;
-    for (const version of ["1.0.0", "2.0.0"])
-      expect(manifest.versions[version]!.assets).toMatchObject([{ name: "demo.sh", key_id: keyId, alg: "ed25519" }]);
+    for (const version of ["1.0.0", "2.0.0"]) {
+      expect(manifest.versions[version]!.assets).toMatchObject([
+        { name: "demo.sh", key_id: keyId, alg: "ed25519" },
+      ]);
+    }
   }, 60_000);
 
   it("fails without creating anything when the token is missing or has no grant on the package, and never prints it", async () => {
     const { pkg, ref } = await newPackage();
     const { token: stranger } = await newPackage();
     const asset = file("refused", "demo.sh", text("refused\n"));
-    const args = ["--registry", API_BASE, "--package", ref, "--version", "1.0.0", asset];
+    const args = [
+      "--registry",
+      API_BASE,
+      "--package",
+      ref,
+      "--version",
+      "1.0.0",
+      asset,
+    ];
 
     const missing = await publishSh(args);
     expect(missing.exitCode).not.toBe(0);
@@ -370,7 +537,20 @@ describe("scripts/publish.sh against the live registry", () => {
     const big = await digestOf(Bun.file(bigFile).stream());
 
     const run = await lodeCliPublish(
-      ["--registry", API_BASE, "--package", ref, "--version", "1.0.0", "--channel", "beta", "--notes", "First release", smallFile, bigFile],
+      [
+        "--registry",
+        API_BASE,
+        "--package",
+        ref,
+        "--version",
+        "1.0.0",
+        "--channel",
+        "beta",
+        "--notes",
+        "First release",
+        smallFile,
+        bigFile,
+      ],
       { LODE_REGISTRY_TOKEN: token },
     );
     expect(run.output).not.toContain(token);
@@ -379,44 +559,96 @@ describe("scripts/publish.sh against the live registry", () => {
 
     const version = await versionOf(pkg, "1.0.0");
     expect(version).toMatchObject({ version: "1.0.0", status: "published", notes: "First release" });
-    expect(version.assets.map(asset => ({ name: asset.name, size: asset.size, sha256: asset.sha256, sig: asset.sig })).toSorted((a, b) => a.name.localeCompare(b.name))).toEqual([
-      { name: "demo-linux-x64.tar.gz", size: BIG_SIZE, sha256: big.sha256, sig: null },
-      { name: "demo.sh", size: small.length, sha256: await sha256Hex(small), sig: null },
+    expect(version.assets.map(asset => ({
+      name: asset.name,
+      size: asset.size,
+      sha256: asset.sha256,
+      sig: asset.sig,
+    })).toSorted((a, b) => a.name.localeCompare(b.name))).toEqual([
+      {
+        name: "demo-linux-x64.tar.gz",
+        size: BIG_SIZE,
+        sha256: big.sha256,
+        sig: null,
+      },
+      {
+        name: "demo.sh",
+        size: small.length,
+        sha256: await sha256Hex(small),
+        sig: null,
+      },
     ]);
 
     const manifest = await manifestOf(pkg);
-    expect(manifest.channels).toEqual({ beta: { latest: "1.0.0" } });
+    expect(manifest.channels).toEqual({
+      beta: { latest: "1.0.0" },
+    });
     const bigListed = manifest.versions["1.0.0"]!.assets.find(asset => asset.name === "demo-linux-x64.tar.gz")!;
     const download = await fetch(bigListed.url);
     expect(download.status).toBe(200);
     expect(await digestOf(download.body!)).toEqual(big);
 
-    const again = await lodeCliPublish(["--registry", API_BASE, "--package", ref, "--version", "1.0.0", smallFile], { LODE_REGISTRY_TOKEN: token });
+    const again = await lodeCliPublish([
+      "--registry",
+      API_BASE,
+      "--package",
+      ref,
+      "--version",
+      "1.0.0",
+      smallFile,
+    ], { LODE_REGISTRY_TOKEN: token });
     expect(again.exitCode).not.toBe(0);
     expect(again.output).not.toContain(token);
-    expect((await manifestOf(pkg)).channels).toEqual({ beta: { latest: "1.0.0" } });
+    expect((await manifestOf(pkg)).channels).toEqual({
+      beta: { latest: "1.0.0" },
+    });
   }, 180_000);
 
   it.skipIf(!LODE)("lode-cli publish: continues into an existing draft and defaults to the stable channel", async () => {
     const { pkg, ref, token } = await newPackage();
     await createDraft(token, pkg, "2.0.0");
 
-    const missing = await lodeCliPublish(["--registry", API_BASE, "--package", ref, "--version", "2.0.0", join(work, "cli-retry", "missing.bin")], { LODE_REGISTRY_TOKEN: token });
+    const missing = await lodeCliPublish([
+      "--registry",
+      API_BASE,
+      "--package",
+      ref,
+      "--version",
+      "2.0.0",
+      join(work, "cli-retry", "missing.bin"),
+    ], { LODE_REGISTRY_TOKEN: token });
     expect(missing.exitCode).not.toBe(0);
     expect((await versionOf(pkg, "2.0.0")).assets).toEqual([]);
 
     const fresh = text("fresh from the cli\n");
-    const run = await lodeCliPublish(["--registry", `${API_BASE}/`, "--package", ref, "--version", "2.0.0", file("cli-retry", "demo.sh", fresh)], { LODE_REGISTRY_TOKEN: token });
+    const run = await lodeCliPublish([
+      "--registry",
+      `${API_BASE}/`,
+      "--package",
+      ref,
+      "--version",
+      "2.0.0",
+      file("cli-retry", "demo.sh", fresh),
+    ], { LODE_REGISTRY_TOKEN: token });
     expect(run.stderr).toBe("");
     expect(run.exitCode).toBe(0);
 
     const manifest = await manifestOf(pkg);
-    expect(manifest.channels).toEqual({ stable: { latest: "2.0.0" } });
-    expect(manifest.versions["2.0.0"]!.assets).toMatchObject([{ name: "demo.sh", size: fresh.length, sha256: await sha256Hex(fresh) }]);
+    expect(manifest.channels).toEqual({
+      stable: { latest: "2.0.0" },
+    });
+    expect(manifest.versions["2.0.0"]!.assets).toMatchObject([
+      { name: "demo.sh", size: fresh.length, sha256: await sha256Hex(fresh) },
+    ]);
   }, 60_000);
 
   it.skipIf(!LODE)("lode-cli publish: signs with --key-env and registers the public key for the package itself", async () => {
-    const keygen = Bun.spawnSync([LODE_CLI, "keygen", "--out", join(work, "cli-pipeline")], { stdout: "pipe", stderr: "pipe" });
+    const keygen = Bun.spawnSync([
+      LODE_CLI,
+      "keygen",
+      "--out",
+      join(work, "cli-pipeline"),
+    ], { stdout: "pipe", stderr: "pipe" });
     expect(keygen.exitCode).toBe(0);
     const trustedKey = /^trustedKeys:\s+(\S+)/m.exec(keygen.stdout.toString())![1]!;
     const seed = readFileSync(join(work, "cli-pipeline.key"), "utf-8").trim();
@@ -425,12 +657,33 @@ describe("scripts/publish.sh against the live registry", () => {
     const { pkg, ref, token } = await newPackage({ require_signature: true });
     const env = { LODE_REGISTRY_TOKEN: token, LODE_SIGNING_KEY: seed };
 
-    const unsigned = await lodeCliPublish(["--registry", API_BASE, "--package", ref, "--version", "0.9.0", file("cli-unsigned", "demo.sh", text("zero\n"))], { LODE_REGISTRY_TOKEN: token });
+    const unsigned = await lodeCliPublish([
+      "--registry",
+      API_BASE,
+      "--package",
+      ref,
+      "--version",
+      "0.9.0",
+      file("cli-unsigned", "demo.sh", text("zero\n")),
+    ], { LODE_REGISTRY_TOKEN: token });
     expect(unsigned.exitCode).not.toBe(0);
     expect(unsigned.stderr).toContain("SIGNATURE_REQUIRED");
 
-    for (const [version, body] of [["1.0.0", "one\n"], ["2.0.0", "two\n"]] as const) {
-      const run = await lodeCliPublish(["--registry", API_BASE, "--package", ref, "--version", version, "--key-env", "LODE_SIGNING_KEY", file(`cli-signed-${version}`, "demo.sh", text(body))], env);
+    for (const [version, body] of [
+      ["1.0.0", "one\n"],
+      ["2.0.0", "two\n"],
+    ] as const) {
+      const run = await lodeCliPublish([
+        "--registry",
+        API_BASE,
+        "--package",
+        ref,
+        "--version",
+        version,
+        "--key-env",
+        "LODE_SIGNING_KEY",
+        file(`cli-signed-${version}`, "demo.sh", text(body)),
+      ], env);
       expect(run.output).not.toContain(seed);
       expect(run.output).not.toContain(token);
       expect(run.stderr).toBe("");
@@ -444,7 +697,9 @@ describe("scripts/publish.sh against the live registry", () => {
     const keyId = trustedKey.split(":")[0]!;
     for (const version of ["1.0.0", "2.0.0"]) {
       const assets = manifest.versions[version]!.assets;
-      expect(assets).toMatchObject([{ name: "demo.sh", key_id: keyId, alg: "ed25519" }]);
+      expect(assets).toMatchObject([
+        { name: "demo.sh", key_id: keyId, alg: "ed25519" },
+      ]);
       expect(assets[0]!.sig).toEqual(expect.any(String));
     }
     expect(Object.keys(manifest.versions).toSorted()).toEqual(["1.0.0", "2.0.0"]);
@@ -453,7 +708,15 @@ describe("scripts/publish.sh against the live registry", () => {
   it.skipIf(!LODE)("lode-cli publish: fails without creating anything when the token is missing or has no grant, and never prints it", async () => {
     const { pkg, ref } = await newPackage();
     const { token: stranger } = await newPackage();
-    const args = ["--registry", API_BASE, "--package", ref, "--version", "1.0.0", file("cli-refused", "demo.sh", text("refused\n"))];
+    const args = [
+      "--registry",
+      API_BASE,
+      "--package",
+      ref,
+      "--version",
+      "1.0.0",
+      file("cli-refused", "demo.sh", text("refused\n")),
+    ];
 
     const missing = await lodeCliPublish(args);
     expect(missing.exitCode).not.toBe(0);

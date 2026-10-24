@@ -6,7 +6,7 @@
 # update / rollback. The app's writable state lives on the /srv/lode volume,
 # separate from the swappable version directories.
 ARG BUN_IMAGE=docker.io/oven/bun:1.4.2-debian
-ARG LODE_IMAGE=docker.io/bkhq/lode:v0.1.0-mini
+ARG LODE_IMAGE=docker.io/bkhq/lode:v0.3.0-mini
 
 FROM ${LODE_IMAGE} AS lode
 
@@ -42,8 +42,8 @@ ENV LODE_CONFIG=/srv/lode/lode.toml
 
 USER bun
 
-# lode's own healthcheck inspects the supervised app's state.json (app-agnostic,
-# no curl in the image required).
+# `lode healthcheck` passes through to the release's `bun run healthcheck`, an
+# in-process probe of /api/health (no curl in the image required).
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD ["lode", "healthcheck"]
 

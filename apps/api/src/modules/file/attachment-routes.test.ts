@@ -45,7 +45,10 @@ describe("readUploadedFile", () => {
   });
 
   test("rejects a body over the upload limit before parsing it", async () => {
-    const res = await upload({ body: "x".repeat(64), headers: { "content-length": "64" } });
+    const res = await upload({
+      body: "x".repeat(64),
+      headers: { "content-length": "64" },
+    });
     expect(res.status).toBe(413);
   });
 
@@ -60,9 +63,35 @@ describe("readUploadedFile", () => {
 describe("getOwnedReference", () => {
   beforeEach(async () => {
     const now = new Date().toISOString();
-    await db.insert(users).values({ id: "u1", oauthSub: "s1", username: "u1", name: "u1", email: "u1@t.io", role: "user", status: "active", createdAt: now, updatedAt: now }).run();
-    await db.insert(files).values({ id: "f1", sha256: "00", size: 1, mimetype: "text/plain", storageDriver: "local", storageKey: "k", refCount: 1, uploadedBy: "u1" }).run();
-    await db.insert(fileReferences).values({ id: "r1", fileId: "f1", ownerType: "item_attachment", ownerId: "item1", filename: "a.txt", createdBy: "u1" }).run();
+    await db.insert(users).values({
+      id: "u1",
+      oauthSub: "s1",
+      username: "u1",
+      name: "u1",
+      email: "u1@t.io",
+      role: "user",
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+    }).run();
+    await db.insert(files).values({
+      id: "f1",
+      sha256: "00",
+      size: 1,
+      mimetype: "text/plain",
+      storageDriver: "local",
+      storageKey: "k",
+      refCount: 1,
+      uploadedBy: "u1",
+    }).run();
+    await db.insert(fileReferences).values({
+      id: "r1",
+      fileId: "f1",
+      ownerType: "item_attachment",
+      ownerId: "item1",
+      filename: "a.txt",
+      createdBy: "u1",
+    }).run();
   });
 
   test("returns a reference held by the owner", async () => {
@@ -70,7 +99,10 @@ describe("getOwnedReference", () => {
   });
 
   test("treats another owner's or another kind's reference as missing", async () => {
-    for (const [type, id] of [["item_attachment", "item2"], ["item_comment_attachment", "item1"]] as const)
+    for (const [type, id] of [
+      ["item_attachment", "item2"],
+      ["item_comment_attachment", "item1"],
+    ] as const)
       await expect(getOwnedReference(db, "r1", type, id)).rejects.toMatchObject({ statusCode: 404 });
     await expect(getOwnedReference(db, "nope", "item_attachment", "item1")).rejects.toMatchObject({ statusCode: 404 });
   });

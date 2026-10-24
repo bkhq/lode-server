@@ -25,7 +25,9 @@ const REFERENCE_LANG = "en";
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
 const idx = args.indexOf("--ns");
-const nsFilter = idx >= 0 ? args[idx + 1] : undefined;
+const nsFilter = idx >= 0
+  ? args[idx + 1]
+  : undefined;
 
 interface Leaf {
   readonly parent: Record<string, unknown>;
@@ -39,16 +41,24 @@ function* walkLeaves(
 ): Generator<Leaf> {
   for (const [k, v] of Object.entries(obj)) {
     const segs = [...prefix, k];
-    if (typeof v === "string")
-      yield { parent: obj, key: k, path: segs.join(".") };
-    else if (isObject(v))
+    if (typeof v === "string") {
+      yield {
+        parent: obj,
+        key: k,
+        path: segs.join("."),
+      };
+    }
+    else if (isObject(v)) {
       yield* walkLeaves(v, segs);
+    }
   }
 }
 
 function deleteFlattenedPaths(obj: Record<string, unknown>, targets: ReadonlySet<string>): number {
   let removed = 0;
-  for (const leaf of [...walkLeaves(obj)]) {
+  for (const leaf of [
+    ...walkLeaves(obj),
+  ]) {
     if (targets.has(leaf.path)) {
       delete leaf.parent[leaf.key];
       removed++;
@@ -74,7 +84,10 @@ function deleteFlattenedPaths(obj: Record<string, unknown>, targets: ReadonlySet
 
 const { results } = findUnused(LOCALES_DIR, CODE_ROOT, REFERENCE_LANG, nsFilter);
 const unusedByNs = new Map(
-  results.filter(r => r.unused.length > 0).map(r => [r.ns, new Set(r.unused)]),
+  results.filter(r => r.unused.length > 0).map(r => [
+    r.ns,
+    new Set(r.unused),
+  ]),
 );
 
 if (unusedByNs.size === 0) {
@@ -111,9 +124,13 @@ for (const lang of locales) {
   }
 }
 
-const totalPaths = [...unusedByNs.values()].reduce((n, s) => n + s.size, 0);
+const totalPaths = [
+  ...unusedByNs.values(),
+].reduce((n, s) => n + s.size, 0);
 const verb = dryRun ? "would remove" : "removed";
 for (const [ns, s] of unusedByNs)
   console.log(`[clean-i18n] ${ns}: ${[...s].sort().join(", ")}`);
-console.log(`[clean-i18n] ${verb} ${removed} entr${removed === 1 ? "y" : "ies"} across ${touched} file(s)`);
+console.log(`[clean-i18n] ${verb} ${removed} entr${removed === 1
+  ? "y"
+  : "ies"} across ${touched} file(s)`);
 console.log(`[clean-i18n] ${totalPaths} unique path(s) × ${locales.length} locale(s)`);

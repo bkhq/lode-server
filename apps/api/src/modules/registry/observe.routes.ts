@@ -73,19 +73,28 @@ async function readExport(c: Context<AppEnv>) {
 
 function namespaceAttr(resource: Record<string, unknown>): string | undefined {
   const ns = resource["service.namespace"];
-  return typeof ns === "string" && ns !== "" ? ns : undefined;
+  return typeof ns === "string" && ns !== ""
+    ? ns
+    : undefined;
 }
 
 function nameAttr(resource: Record<string, unknown>): string | undefined {
   const name = resource["service.name"];
-  return typeof name === "string" && name !== "" ? name : undefined;
+  return typeof name === "string" && name !== ""
+    ? name
+    : undefined;
 }
 
 /** OTLP's answer: `{}`, or `partialSuccess` naming what was refused. */
 function exportAnswer(c: Context<AppEnv>, field: "rejectedDataPoints" | "rejectedLogRecords", rejected: number) {
   if (rejected === 0)
     return c.json({});
-  return c.json({ partialSuccess: { [field]: String(rejected), errorMessage: "Resources with no matching package, no granted package, no instance id, or past the instance limit were dropped" } });
+  return c.json({
+    partialSuccess: {
+      [field]: String(rejected),
+      errorMessage: "Resources with no matching package, no granted package, no instance id, or past the instance limit were dropped",
+    },
+  });
 }
 
 const INGEST_NOTE = [
@@ -107,7 +116,10 @@ export function registryOtlpRoutes() {
         "Served at `/r/otlp/v1/metrics`, outside `/api`: an OTLP `ExportMetricsServiceRequest`. Each resource refreshes its instance: version (`service.version`), host, lode version, the latest gauge and sum values, and the status a `lode.app.status` gauge names.",
         INGEST_NOTE,
       ].join("\n\n"),
-      responses: { 200: { description: "`{}` or `{ partialSuccess }`" }, ...errors(400, 401, 413, 415, 429) },
+      responses: {
+        200: { description: "`{}` or `{ partialSuccess }`" },
+        ...errors(400, 401, 413, 415, 429),
+      },
     }),
     async (c) => {
       const { token, body } = await readExport(c);
@@ -117,7 +129,9 @@ export function registryOtlpRoutes() {
       let rejected = 0;
       for (const entry of readMetrics(body)) {
         const name = nameAttr(entry.resource);
-        const pkg = name === undefined ? undefined : await findReportPackage(db, token, name, namespaceAttr(entry.resource));
+        const pkg = name === undefined
+          ? undefined
+          : await findReportPackage(db, token, name, namespaceAttr(entry.resource));
         if (!pkg || !(await recordMetrics(db, pkg.id, entry.resource, entry.metrics, now, max)))
           rejected += entry.points;
       }
@@ -134,7 +148,10 @@ export function registryOtlpRoutes() {
         "Served at `/r/otlp/v1/logs`, outside `/api`: an OTLP `ExportLogsServiceRequest`. Each log record becomes an event of the instance, named by its `eventName`, else its `event.name` attribute, else `log`; at most 100 per resource and export, the rest counted as rejected. The instance is refreshed as for metrics.",
         INGEST_NOTE,
       ].join("\n\n"),
-      responses: { 200: { description: "`{}` or `{ partialSuccess }`" }, ...errors(400, 401, 413, 415, 429) },
+      responses: {
+        200: { description: "`{}` or `{ partialSuccess }`" },
+        ...errors(400, 401, 413, 415, 429),
+      },
     }),
     async (c) => {
       const { token, body } = await readExport(c);
@@ -144,8 +161,12 @@ export function registryOtlpRoutes() {
       let rejected = 0;
       for (const entry of readLogs(body)) {
         const name = nameAttr(entry.resource);
-        const pkg = name === undefined ? undefined : await findReportPackage(db, token, name, namespaceAttr(entry.resource));
-        const stored = pkg ? await recordEvents(db, pkg.id, entry.resource, entry.events, now, max) : undefined;
+        const pkg = name === undefined
+          ? undefined
+          : await findReportPackage(db, token, name, namespaceAttr(entry.resource));
+        const stored = pkg
+          ? await recordEvents(db, pkg.id, entry.resource, entry.events, now, max)
+          : undefined;
         rejected += entry.events.length - (stored ?? 0);
       }
       return exportAnswer(c, "rejectedLogRecords", rejected);
@@ -155,7 +176,10 @@ export function registryOtlpRoutes() {
   return router;
 }
 
-const packageParamSchema = z.object({ ns: z.string(), pkg: z.string() });
+const packageParamSchema = z.object({
+  ns: z.string(),
+  pkg: z.string(),
+});
 
 const instanceSchema = z.object({
   instance_id: z.string(),
@@ -194,7 +218,10 @@ export function registryObserveRoutes() {
       summary: "List a package's reporting instances",
       description: "The instances that reported to `/r/otlp` for this package, most recently seen first, with their latest snapshot. `online` is false once an instance reported `stopped` or has been silent for three of its report intervals (`lode.report.interval`, default 300 s). For anyone who can read the package.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.array(instanceSchema)), ...errors(401, 403, 404) },
+      responses: {
+        ...jsonOk(z.array(instanceSchema)),
+        ...errors(401, 403, 404),
+      },
     }),
     validator("param", packageParamSchema),
     async (c) => {
@@ -210,10 +237,15 @@ export function registryObserveRoutes() {
       summary: "List a package's reported events",
       description: `Events reported to \`/r/otlp/v1/logs\` for this package, newest first, ${EVENTS_PAGE} at most; pass the last \`at\` as \`before\` for the next page. For anyone who can read the package.`,
       security: SECURITY.session,
-      responses: { ...jsonOk(z.array(eventSchema)), ...errors(401, 403, 404, 422) },
+      responses: {
+        ...jsonOk(z.array(eventSchema)),
+        ...errors(401, 403, 404, 422),
+      },
     }),
     validator("param", packageParamSchema),
-    validator("query", z.object({ before: z.string().datetime().optional() })),
+    validator("query", z.object({
+      before: z.string().datetime().optional(),
+    })),
     async (c) => {
       const { package: pkg } = await requirePackageAccess(c, "read");
       const { before } = c.req.valid("query");

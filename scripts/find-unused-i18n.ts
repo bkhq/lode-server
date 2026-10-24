@@ -22,7 +22,9 @@ const REFERENCE_LANG = "en";
 
 const args = process.argv.slice(2);
 const idx = args.indexOf("--ns");
-const nsFilter = idx >= 0 ? args[idx + 1] : undefined;
+const nsFilter = idx >= 0
+  ? args[idx + 1]
+  : undefined;
 
 const { results } = findUnused(LOCALES_DIR, CODE_ROOT, REFERENCE_LANG, nsFilter);
 

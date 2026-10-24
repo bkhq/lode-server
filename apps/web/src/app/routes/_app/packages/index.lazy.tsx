@@ -130,7 +130,10 @@ function PackagesPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
-                              <Badge variant={pkg.visibility === "public" ? "secondary" : "outline"}>
+                              <Badge variant={pkg.visibility === "public"
+                                ? "secondary"
+                                : "outline"}
+                              >
                                 {t(`packages:visibility.${pkg.visibility}`)}
                               </Badge>
                               {pkg.require_signature && (

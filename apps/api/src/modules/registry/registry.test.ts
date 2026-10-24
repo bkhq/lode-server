@@ -32,7 +32,14 @@ import { createPackage, ensureNamespace, generateNamespaceSlug, getEffectiveQuot
 import { registryAssets, registryChannels, registryCommits, registryDelegations, registryKeys, registryManifestSignatures, registryNamespaces, registryPackages, registryQuotas, registryRetiredVersions, registryRevocationLists, registryTokenGrants, registryUploads, registryVersions } from "./schema";
 import "@/modules/account";
 
-const noop = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
+const noop = {
+  debug() {},
+  info() {},
+  warn() {},
+  error() {},
+  fatal() {},
+  flush() {},
+} as unknown as Logger;
 
 // 32 bytes of 0x07 and 0xE0..0xFF. The second one differs between the two
 // base64 alphabets, which is what makes it a useful vector.
@@ -82,14 +89,26 @@ interface Client {
 
 async function seedUser(id: string, role: "user" | "admin" = "user", username = id): Promise<Client> {
   const now = new Date().toISOString();
-  await db.insert(users).values({ id, oauthSub: `sub-${id}`, username, name: id, email: `${id}@t.io`, role, status: "active", createdAt: now, updatedAt: now }).run();
+  await db.insert(users).values({
+    id,
+    oauthSub: `sub-${id}`,
+    username,
+    name: id,
+    email: `${id}@t.io`,
+    role,
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  }).run();
   const session = await createSession(db, id, "access", undefined, 3600);
   return {
     id,
     call: async (method, path, body) => await app().request(`/api/registry${path}`, {
       method,
       headers: { "Cookie": `session_id=${session}`, "Content-Type": "application/json" },
-      ...(body !== undefined && { body: JSON.stringify(body) }),
+      ...(body !== undefined && {
+        body: JSON.stringify(body),
+      }),
     }),
   };
 }
@@ -164,14 +183,23 @@ describe("registration", () => {
 
 describe("authentication", () => {
   test("every route needs a session", async () => {
-    for (const [method, path] of [["GET", "/namespace"], ["GET", "/packages/a/b/keys"], ["GET", "/packages"], ["GET", "/packages/a/b"]] as const)
+    for (const [method, path] of [
+      ["GET", "/namespace"],
+      ["GET", "/packages/a/b/keys"],
+      ["GET", "/packages"],
+      ["GET", "/packages/a/b"],
+    ] as const)
       expect((await app().request(`/api/registry${path}`, { method })).status).toBe(401);
   });
 
   test("a personal API token gets 403 on every route", async () => {
     const alice = await seedPublisher("alice");
     expect((await alice.call("POST", "/packages", { slug: "tool", name: "tool" })).status).toBe(201);
-    const { token } = await createApiToken(db, alice.id, { name: "ci", scopes: ["account:read"], expiresAt: null });
+    const { token } = await createApiToken(db, alice.id, {
+      name: "ci",
+      scopes: ["account:read"],
+      expiresAt: null,
+    });
 
     const routes: (readonly [string, string])[] = [
       ["GET", "/namespace"],
@@ -207,7 +235,9 @@ describe("namespace", () => {
     expect(first.namespace.status).toBe("active");
 
     expect(await data<unknown>(await alice.call("GET", "/namespace"))).toEqual(first);
-    expect(await db.select().from(registryNamespaces).all()).toMatchObject([{ slug: first.namespace.slug, ownerUserId: alice.id }]);
+    expect(await db.select().from(registryNamespaces).all()).toMatchObject([
+      { slug: first.namespace.slug, ownerUserId: alice.id },
+    ]);
   });
 
   test("says nothing about the user it belongs to", async () => {
@@ -231,11 +261,17 @@ describe("namespace", () => {
     await seedUser("alice");
     await seedUser("bob");
     const taken = await ensureNamespace(db, "alice", () => "aaaa1111");
-    expect(taken).toMatchObject({ assigned: true, namespace: { slug: "aaaa1111", ownerUserId: "alice" } });
+    expect(taken).toMatchObject({
+      assigned: true,
+      namespace: { slug: "aaaa1111", ownerUserId: "alice" },
+    });
 
     const ids = ["aaaa1111", "aaaa1111", "bbbb2222"];
     const second = await ensureNamespace(db, "bob", () => ids.shift()!);
-    expect(second).toMatchObject({ assigned: true, namespace: { slug: "bbbb2222", ownerUserId: "bob" } });
+    expect(second).toMatchObject({
+      assigned: true,
+      namespace: { slug: "bbbb2222", ownerUserId: "bob" },
+    });
     expect(ids).toEqual([]);
   });
 
@@ -277,7 +313,12 @@ describe("namespace", () => {
       expect([404, 405]).toContain(res.status);
     }
     // A body on package creation cannot smuggle one in either.
-    const pkg = await data<{ namespace: string }>(await alice.call("POST", "/packages", { slug: "tool", name: "Tool", namespace: "chosen", ns: "chosen" }));
+    const pkg = await data<{ namespace: string }>(await alice.call("POST", "/packages", {
+      slug: "tool",
+      name: "Tool",
+      namespace: "chosen",
+      ns: "chosen",
+    }));
     expect(pkg.namespace).toBe(namespace.slug);
     expect((await alice.call("PATCH", `/packages/${namespace.slug}/tool`, { namespace: "chosen" })).status).toBe(422);
     expect((await db.select().from(registryNamespaces).all()).map(n => n.slug)).toEqual([namespace.slug]);
@@ -289,7 +330,13 @@ describe("namespace", () => {
     await alice.call("GET", "/namespace");
     const events = await db.select().from(auditEvents).all();
     expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({ action: "registry.namespace.assigned", actorId: alice.id, resourceType: "registry_namespace", resourceName: namespace.slug, result: "success" });
+    expect(events[0]).toMatchObject({
+      action: "registry.namespace.assigned",
+      actorId: alice.id,
+      resourceType: "registry_namespace",
+      resourceName: namespace.slug,
+      result: "success",
+    });
   });
 });
 
@@ -298,7 +345,13 @@ describe("signing keys", () => {
     const alice = await seedOwner("alice");
     const res = await alice.call("POST", "/packages/alice/tool/keys", { public_key: KEY_B_STD, name: "release" });
     expect(res.status).toBe(201);
-    expect(await data(res)).toMatchObject({ key_id: KEY_B_ID, alg: "ed25519", public_key: KEY_B_URL, name: "release", revoked_at: null });
+    expect(await data(res)).toMatchObject({
+      key_id: KEY_B_ID,
+      alg: "ed25519",
+      public_key: KEY_B_URL,
+      name: "release",
+      revoked_at: null,
+    });
 
     const listed = await data<{ key_id: string }[]>(await alice.call("GET", "/packages/alice/tool/keys"));
     expect(listed.map(k => k.key_id)).toEqual([KEY_B_ID]);
@@ -397,7 +450,12 @@ describe("signing keys", () => {
     await alice.call("DELETE", `/packages/alice/tool/keys/${key.id}`);
     expect((await auditActions()).filter(action => action.startsWith("registry.key."))).toEqual(["registry.key.registered", "registry.key.revoked"]);
     const event = (await db.select().from(auditEvents).all()).find(e => e.action === "registry.key.registered")!;
-    expect(event).toMatchObject({ actorId: alice.id, resourceType: "registry_key", resourceId: key.id, resourceName: KEY_A_ID });
+    expect(event).toMatchObject({
+      actorId: alice.id,
+      resourceType: "registry_key",
+      resourceId: key.id,
+      resourceName: KEY_A_ID,
+    });
     expect(JSON.parse(event.detail!)).toMatchObject({ package: "alice/tool" });
   });
 });
@@ -412,7 +470,9 @@ describe("packages", () => {
     expect(await auditActions()).toEqual(["registry.namespace.assigned", "registry.package.created"]);
 
     // The same namespace from then on.
-    expect(await data<unknown>(await alice.call("GET", "/namespace"))).toMatchObject({ namespace: { slug: created.namespace } });
+    expect(await data<unknown>(await alice.call("GET", "/namespace"))).toMatchObject({
+      namespace: { slug: created.namespace },
+    });
     expect(await data(await alice.call("POST", "/packages", { slug: "lib", name: "Lib" }))).toMatchObject({ namespace: created.namespace });
     expect((await alice.call("GET", `/packages/${created.namespace}/tool`)).status).toBe(200);
     expect(await auditActions()).toHaveLength(3);
@@ -423,10 +483,33 @@ describe("packages", () => {
     const res = await alice.call("POST", "/packages", { slug: "tool", name: "  My Tool  " });
     expect(res.status).toBe(201);
     const created = await data(res);
-    expect(Object.keys(created).sort()).toEqual(["created_at", "description", "id", "name", "namespace", "require_signature", "slug", "updated_at", "visibility"]);
-    expect(created).toMatchObject({ namespace: "alice", slug: "tool", name: "My Tool", visibility: "public", description: null, require_signature: false });
+    expect(Object.keys(created).sort()).toEqual([
+      "created_at",
+      "description",
+      "id",
+      "name",
+      "namespace",
+      "require_signature",
+      "slug",
+      "updated_at",
+      "visibility",
+    ]);
+    expect(created).toMatchObject({
+      namespace: "alice",
+      slug: "tool",
+      name: "My Tool",
+      visibility: "public",
+      description: null,
+      require_signature: false,
+    });
 
-    expect((await alice.call("POST", "/packages", { slug: "secret", name: "A secret", visibility: "private", description: "internal", require_signature: true })).status).toBe(201);
+    expect((await alice.call("POST", "/packages", {
+      slug: "secret",
+      name: "A secret",
+      visibility: "private",
+      description: "internal",
+      require_signature: true,
+    })).status).toBe(201);
     const listed = await data<{ slug: string }[]>(await alice.call("GET", "/packages"));
     expect(listed.map(p => p.slug)).toEqual(["secret", "tool"]);
 
@@ -437,7 +520,9 @@ describe("packages", () => {
     const alice = await seedPublisher("alice");
     const pkg = await data<{ id: string }>(await alice.call("POST", "/packages", { slug: "tool", name: "tool" }));
     const tuples = () => db.select().from(relationTuples).where(and(eq(relationTuples.namespace, "package"), eq(relationTuples.objectId, pkg.id))).all();
-    expect(await tuples()).toMatchObject([{ relation: "owner", subjectNamespace: "user", subjectId: alice.id }]);
+    expect(await tuples()).toMatchObject([
+      { relation: "owner", subjectNamespace: "user", subjectId: alice.id },
+    ]);
 
     expect((await alice.call("DELETE", "/packages/alice/tool")).status).toBe(200);
     expect(await tuples()).toEqual([]);
@@ -447,7 +532,19 @@ describe("packages", () => {
 
   test("a slug holds only lowercase letters, digits and '-', and does not start with '-'", async () => {
     const alice = await seedPublisher("alice");
-    for (const slug of ["Tool", "TOOL", "my.tool", "my_tool", "-tool", "", "a".repeat(129), "a/b", "a b", "..", "caf\u00E9"]) {
+    for (const slug of [
+      "Tool",
+      "TOOL",
+      "my.tool",
+      "my_tool",
+      "-tool",
+      "",
+      "a".repeat(129),
+      "a/b",
+      "a b",
+      "..",
+      "caf\u00E9",
+    ]) {
       const res = await alice.call("POST", "/packages", { slug, name: "Tool" });
       expect(`${slug} ${res.status}`).toBe(`${slug} 422`);
     }
@@ -460,14 +557,23 @@ describe("packages", () => {
 
   test("a display name is free text of 1 to 100 characters without control characters", async () => {
     const alice = await seedPublisher("alice");
-    for (const name of ["", "   ", "a\u0000b", "line\nbreak", "tab\there", "x".repeat(101)]) {
+    for (const name of [
+      "",
+      "   ",
+      "a\u0000b",
+      "line\nbreak",
+      "tab\there",
+      "x".repeat(101),
+    ]) {
       const res = await alice.call("POST", "/packages", { slug: "tool", name });
       expect(`${JSON.stringify(name)} ${res.status}`).toBe(`${JSON.stringify(name)} 422`);
     }
     expect((await alice.call("POST", "/packages", { slug: "tool" })).status).toBe(422);
 
     expect(await data(await alice.call("POST", "/packages", { slug: "tool", name: "My Tool (v2) \u2014 \u5DE5\u5177 \u{1F527}" }))).toMatchObject({ name: "My Tool (v2) \u2014 \u5DE5\u5177 \u{1F527}" });
-    expect(await data(await alice.call("POST", "/packages", { slug: "long", name: ` ${"x".repeat(100)} ` }))).toMatchObject({ name: "x".repeat(100) });
+    expect(await data(await alice.call("POST", "/packages", { slug: "long", name: ` ${"x".repeat(100)} ` }))).toMatchObject({
+      name: "x".repeat(100),
+    });
   });
 
   test("a slug is unique within its namespace; a display name is not", async () => {
@@ -477,7 +583,12 @@ describe("packages", () => {
     expect(dup.status).toBe(409);
     expect(await errorCode(dup)).toBe("PACKAGE_EXISTS");
     expect((await alice.call("POST", "/packages", { slug: "tool-2", name: "Tool" })).status).toBe(201);
-    await expect(db.insert(registryPackages).values({ id: "dup", namespaceId: "ns-alice", slug: "tool", name: "x" }).run()).rejects.toThrow();
+    await expect(db.insert(registryPackages).values({
+      id: "dup",
+      namespaceId: "ns-alice",
+      slug: "tool",
+      name: "x",
+    }).run()).rejects.toThrow();
   });
 
   test("the same slug can exist in two namespaces", async () => {
@@ -522,7 +633,12 @@ describe("packages", () => {
     expect((await alice.call("PATCH", "/packages/alice/tool", {})).status).toBe(422);
 
     expect(await data(await alice.call("PATCH", "/packages/alice/tool", { name: "  Renamed  " }))).toMatchObject({ slug: "tool", name: "Renamed" });
-    for (const name of ["", "  ", "a\u0007b", "x".repeat(101)])
+    for (const name of [
+      "",
+      "  ",
+      "a\u0007b",
+      "x".repeat(101),
+    ])
       expect((await alice.call("PATCH", "/packages/alice/tool", { name })).status).toBe(422);
     expect((await alice.call("PATCH", "/packages/alice/tool", { slug: "moved" })).status).toBe(422);
     expect((await alice.call("PATCH", "/packages/alice/tool", { slug: "moved", name: "x" })).status).toBe(422);
@@ -535,25 +651,67 @@ describe("packages", () => {
   test("deleting cascades to everything that hangs off the package", async () => {
     const alice = await seedPublisher("alice");
     const pkg = await data<{ id: string }>(await alice.call("POST", "/packages", { slug: "tool", name: "tool" }));
-    const { record } = await createApiToken(db, alice.id, { name: "ci", scopes: ["account:read"], expiresAt: null });
-    await db.insert(registryVersions).values({ id: "v1", packageId: pkg.id, version: "1.0.0", status: "published" }).run();
-    await db.insert(registryAssets).values({ id: "a1", versionId: "v1", name: "tool.tar.gz", size: 1, sha256: "00", blobKey: "pkg/x" }).run();
+    const { record } = await createApiToken(db, alice.id, {
+      name: "ci",
+      scopes: ["account:read"],
+      expiresAt: null,
+    });
+    await db.insert(registryVersions).values({
+      id: "v1",
+      packageId: pkg.id,
+      version: "1.0.0",
+      status: "published",
+    }).run();
+    await db.insert(registryAssets).values({
+      id: "a1",
+      versionId: "v1",
+      name: "tool.tar.gz",
+      size: 1,
+      sha256: "00",
+      blobKey: "pkg/x",
+    }).run();
     await db.insert(registryChannels).values({ packageId: pkg.id, name: "stable", versionId: "v1" }).run();
-    await db.insert(registryUploads).values({ id: "up1", versionId: "v1", assetName: "big.tar.gz", size: 1, sha256: "00", r2UploadId: "r2", expiresAt: new Date().toISOString() }).run();
-    await db.insert(registryTokenGrants).values([{ tokenId: record.id, packageId: pkg.id, access: "write" }, { tokenId: record.id, packageId: null, access: "read" }]).run();
+    await db.insert(registryUploads).values({
+      id: "up1",
+      versionId: "v1",
+      assetName: "big.tar.gz",
+      size: 1,
+      sha256: "00",
+      r2UploadId: "r2",
+      expiresAt: new Date().toISOString(),
+    }).run();
+    await db.insert(registryTokenGrants).values([
+      { tokenId: record.id, packageId: pkg.id, access: "write" },
+      { tokenId: record.id, packageId: null, access: "read" },
+    ]).run();
 
     expect((await alice.call("DELETE", "/packages/alice/tool")).status).toBe(200);
-    for (const table of [registryPackages, registryVersions, registryAssets, registryChannels, registryUploads])
+    for (const table of [
+      registryPackages,
+      registryVersions,
+      registryAssets,
+      registryChannels,
+      registryUploads,
+    ])
       expect(await db.select().from(table).all()).toEqual([]);
     // The grant on this package goes; the "all my packages" grant stays.
-    expect(await db.select().from(registryTokenGrants).all()).toEqual([{ tokenId: record.id, packageId: null, access: "read" }]);
+    expect(await db.select().from(registryTokenGrants).all()).toEqual([
+      { tokenId: record.id, packageId: null, access: "read" },
+    ]);
   });
 
   test("a token holds at most one grant per package and one for all packages", async () => {
     const alice = await seedPublisher("alice");
     const pkg = await data<{ id: string }>(await alice.call("POST", "/packages", { slug: "tool", name: "tool" }));
-    const { record } = await createApiToken(db, alice.id, { name: "ci", scopes: ["account:read"], expiresAt: null });
-    await db.insert(registryTokenGrants).values([{ tokenId: record.id, packageId: pkg.id, access: "write" }, { tokenId: record.id, packageId: null, access: "read" }]).run();
+    const { record } = await createApiToken(db, alice.id, {
+      name: "ci",
+      scopes: ["account:read"],
+      expiresAt: null,
+    });
+    await db.insert(registryTokenGrants).values([
+      { tokenId: record.id, packageId: pkg.id, access: "write" },
+      { tokenId: record.id, packageId: null, access: "read" },
+    ]).run();
     await expect(db.insert(registryTokenGrants).values({ tokenId: record.id, packageId: pkg.id, access: "read" }).run()).rejects.toThrow();
     await expect(db.insert(registryTokenGrants).values({ tokenId: record.id, packageId: null, access: "admin" }).run()).rejects.toThrow();
   });
@@ -566,9 +724,18 @@ describe("packages", () => {
 
     const events = (await db.select().from(auditEvents).all()).filter(e => e.resourceType === "package");
     expect(events.map(e => e.action)).toEqual(["registry.package.created", "registry.package.updated", "registry.package.deleted"]);
-    for (const event of events)
-      expect(event).toMatchObject({ actorId: alice.id, resourceId: pkg.id, resourceName: "alice/tool", result: "success" });
-    expect(JSON.parse(events[1]!.detail!)).toMatchObject({ owner_user_id: alice.id, changes: { visibility: "private" } });
+    for (const event of events) {
+      expect(event).toMatchObject({
+        actorId: alice.id,
+        resourceId: pkg.id,
+        resourceName: "alice/tool",
+        result: "success",
+      });
+    }
+    expect(JSON.parse(events[1]!.detail!)).toMatchObject({
+      owner_user_id: alice.id,
+      changes: { visibility: "private" },
+    });
   });
 });
 
@@ -586,7 +753,14 @@ describe("package authorization", () => {
 
     // A private one answers exactly like a package that does not exist, so
     // its name cannot be found by probing.
-    for (const [method, body] of [["GET", undefined], ["PATCH", { visibility: "public" }], ["DELETE", undefined]] as const) {
+    for (const [method, body] of [
+      ["GET", undefined],
+      [
+        "PATCH",
+        { visibility: "public" },
+      ],
+      ["DELETE", undefined],
+    ] as const) {
       const hidden = await bob.call(method, "/packages/alice/secret", body);
       const missing = await bob.call(method, "/packages/alice/nope", body);
       expect(`${method} ${hidden.status}`).toBe(`${method} 404`);
@@ -642,9 +816,15 @@ describe("package policy resource", () => {
   test("a package whose owner tuple cannot be written is not kept", async () => {
     const alice = await seedPublisher("alice");
     // No `package` namespace: the grant is refused as an unknown relation.
-    loadNamespaces([{ name: "user" }]);
+    loadNamespaces([
+      { name: "user" },
+    ]);
     try {
-      const ctx = { db, logger: noop, actor: { id: alice.id, type: "user", role: "user" } };
+      const ctx = {
+        db,
+        logger: noop,
+        actor: { id: alice.id, type: "user", role: "user" },
+      };
       await expect(createPackage(ctx, config, { slug: "tool", name: "Tool" })).rejects.toThrow();
     }
     finally {
@@ -681,9 +861,25 @@ describe("backup", () => {
     const alice = await seedPublisher("alice");
     const pkg = await data<{ id: string }>(await alice.call("POST", "/packages", { slug: "tool", name: "tool" }));
     await alice.call("POST", "/packages/alice/tool/keys", { public_key: KEY_A, name: "release" });
-    const { record } = await createApiToken(db, alice.id, { name: "ci", scopes: ["account:read"], expiresAt: null });
-    await db.insert(registryVersions).values({ id: "v1", packageId: pkg.id, version: "1.0.0", status: "published" }).run();
-    await db.insert(registryAssets).values({ id: "a1", versionId: "v1", name: "tool.tar.gz", size: 1, sha256: "00", blobKey: "pkg/x" }).run();
+    const { record } = await createApiToken(db, alice.id, {
+      name: "ci",
+      scopes: ["account:read"],
+      expiresAt: null,
+    });
+    await db.insert(registryVersions).values({
+      id: "v1",
+      packageId: pkg.id,
+      version: "1.0.0",
+      status: "published",
+    }).run();
+    await db.insert(registryAssets).values({
+      id: "a1",
+      versionId: "v1",
+      name: "tool.tar.gz",
+      size: 1,
+      sha256: "00",
+      blobKey: "pkg/x",
+    }).run();
     await db.insert(registryChannels).values({ packageId: pkg.id, name: "stable", versionId: "v1" }).run();
     await db.insert(registryTokenGrants).values({ tokenId: record.id, packageId: pkg.id, access: "write" }).run();
     await db.insert(registryQuotas).values({ userId: alice.id, maxPackages: 5 }).run();

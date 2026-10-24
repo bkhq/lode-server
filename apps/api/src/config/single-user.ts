@@ -26,7 +26,9 @@ export function readPasswordHashFile(path: string): string {
     if (!line || line.startsWith("#"))
       continue;
     const colon = line.indexOf(":");
-    const hash = colon >= 0 ? line.slice(colon + 1).trim() : line;
+    const hash = colon >= 0
+      ? line.slice(colon + 1).trim()
+      : line;
     if (hash)
       return hash;
   }
@@ -60,7 +62,9 @@ export function resolveSingleUserConfig(
     }
     catch (err) {
       throw new ConfigError(
-        `SINGLE_USER_PASSWORD_HASH_FILE could not be read: ${err instanceof Error ? err.message : String(err)}`,
+        `SINGLE_USER_PASSWORD_HASH_FILE could not be read: ${err instanceof Error
+          ? err.message
+          : String(err)}`,
         { field: "SINGLE_USER_PASSWORD_HASH_FILE" },
       );
     }

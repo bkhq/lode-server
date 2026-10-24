@@ -9,7 +9,10 @@ import { auditRelease } from "./release.routes";
 
 const COMMIT_LIST_LIMIT = 100;
 
-const packageParamSchema = z.object({ ns: z.string(), pkg: z.string() });
+const packageParamSchema = z.object({
+  ns: z.string(),
+  pkg: z.string(),
+});
 
 const commitSchema = z.object({
   id: z.string(),
@@ -52,13 +55,23 @@ export function registryCommitRoutes() {
       summary: "List the manifest commits of a package",
       description: `The package's commits, newest first (at most ${COMMIT_LIST_LIMIT}): each with its parent, \`generation\`, the \`created\` date its publisher signed, the signing key, the channels with the versions they point at, its versions, and the versions it adds and drops against its parent. \`head\` marks the one the feed serves. Empty for a package without commits. A token needs a \`read\` grant on the package.`,
       security: SECURITY.session,
-      responses: { ...jsonOk(z.object({ commits: z.array(commitSchema) })), ...errors(401, 403, 404) },
+      responses: {
+        ...jsonOk(z.object({
+          commits: z.array(commitSchema),
+        })),
+        ...errors(401, 403, 404),
+      },
     }),
     validator("param", packageParamSchema),
     async (c) => {
       const { package: pkg } = await requirePackageAccess(c, "read");
       const commits = await listCommits(c.get("db"), pkg.id, COMMIT_LIST_LIMIT);
-      return c.json({ success: true, data: { commits: commits.map((commit, i) => commitView(commit, i === 0)) } });
+      return c.json({
+        success: true,
+        data: {
+          commits: commits.map((commit, i) => commitView(commit, i === 0)),
+        },
+      });
     },
   );
 
@@ -69,7 +82,14 @@ export function registryCommitRoutes() {
       summary: "The manifest to build the next commit on",
       description: "The head commit's id, `generation` and manifest (asset `url`s empty). A package without commits answers `commit: null`, `generation: 0` and the manifest the registry generates, which the first commit takes over. A token needs a `read` grant on the package.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.object({ commit: z.string().nullable(), generation: z.number(), manifest: z.record(z.string(), z.unknown()) })), ...errors(401, 403, 404) },
+      responses: {
+        ...jsonOk(z.object({
+          commit: z.string().nullable(),
+          generation: z.number(),
+          manifest: z.record(z.string(), z.unknown()),
+        })),
+        ...errors(401, 403, 404),
+      },
     }),
     validator("param", packageParamSchema),
     async (c) => {
@@ -90,7 +110,11 @@ export function registryCommitRoutes() {
         "A commit stored already answers 200 with it; a new one 201. Once a package has a commit, publishing a draft, moving a channel and signing the generated manifest are refused (409 `PACKAGE_USES_COMMITS`). Needs `write` access.",
       ].join("\n\n"),
       security: SECURITY.session,
-      responses: { ...jsonOk(commitSchema, "The commit was stored already"), ...jsonCreated(commitSchema), ...errors(400, 401, 403, 404, 409, 422) },
+      responses: {
+        ...jsonOk(commitSchema, "The commit was stored already"),
+        ...jsonCreated(commitSchema),
+        ...errors(400, 401, 403, 404, 409, 422),
+      },
     }),
     validator("param", packageParamSchema),
     validator("json", commitBodySchema),
@@ -106,7 +130,10 @@ export function registryCommitRoutes() {
         });
       }
       const head = await headCommit(db, access.package.id);
-      return c.json({ success: true, data: commitView(commit, head?.id === commit.id) }, created ? 201 : 200);
+      return c.json({
+        success: true,
+        data: commitView(commit, head?.id === commit.id),
+      }, created ? 201 : 200);
     },
   );
 

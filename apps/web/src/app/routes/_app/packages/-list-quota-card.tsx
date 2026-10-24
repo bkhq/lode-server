@@ -33,7 +33,9 @@ function UsageBar({ label, value, percent }: {
         className="h-2 overflow-hidden rounded-full bg-muted"
       >
         <div
-          className={cn("h-full rounded-full", percent >= NEARLY_FULL_PERCENT ? "bg-destructive" : "bg-primary")}
+          className={cn("h-full rounded-full", percent >= NEARLY_FULL_PERCENT
+            ? "bg-destructive"
+            : "bg-primary")}
           style={{ width: `${percent}%` }}
         />
       </div>
@@ -77,7 +79,9 @@ export function QuotaCard() {
                     percent={usagePercent(quota.data.usage.storage_bytes, quota.data.limits.max_storage_bytes)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    {t("packages:quota.maxAsset", { size: formatBytes(quota.data.limits.max_asset_bytes) })}
+                    {t("packages:quota.maxAsset", {
+                      size: formatBytes(quota.data.limits.max_asset_bytes),
+                    })}
                   </p>
                 </>
               )}

@@ -8,7 +8,14 @@ import { Hono } from "hono";
 import { __resetRateLimitForTests } from "@/shared/middleware/rate-limit";
 import { buildOuterApp, buildRawApp } from "./app";
 
-const noop = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
+const noop = {
+  debug() {},
+  info() {},
+  warn() {},
+  error() {},
+  fatal() {},
+  flush() {},
+} as unknown as Logger;
 
 function config(overrides: Partial<Config> = {}): Config {
   return {
@@ -27,7 +34,9 @@ function deps(cfg: Config): AppDeps {
     // No route under test touches the database.
     db: {} as AppDatabase,
     logger: noop,
-    encryption: { isSystemLocked: () => false } as unknown as AppDeps["encryption"],
+    encryption: {
+      isSystemLocked: () => false,
+    } as unknown as AppDeps["encryption"],
   };
 }
 
@@ -40,7 +49,10 @@ function guardedApi(): Hono<AppEnv> {
   const api = new Hono<AppEnv>();
   api.use("*", async (c) => {
     c.header("x-api-stack", "ran");
-    return c.json({ success: false, error: { code: "CSRF_REJECTED" } }, 403);
+    return c.json({
+      success: false,
+      error: { code: "CSRF_REJECTED" },
+    }, 403);
   });
   api.get("/ping", c => c.json({ ok: true }));
   return api;
@@ -53,7 +65,9 @@ function openApi(): Hono<AppEnv> {
 }
 
 function buildApp(cfg: Config, options: { api?: Hono<AppEnv>; routes?: Hono<AppEnv> } = {}) {
-  const raw = options.routes ? buildRawApp(deps(cfg), options.routes) : buildRawApp(deps(cfg));
+  const raw = options.routes
+    ? buildRawApp(deps(cfg), options.routes)
+    : buildRawApp(deps(cfg));
   return buildOuterApp(options.api ?? openApi(), cfg, raw);
 }
 
@@ -75,21 +89,27 @@ describe("raw API — isolation from the /api stack", () => {
   test("the /api sub-app's middleware never runs on a raw path", async () => {
     // The raw API shares the /api prefix. It is mounted first, so its
     // response ends the chain before anything the /api sub-app registered.
-    const app = buildApp(config(), { api: guardedApi() });
+    const app = buildApp(config(), {
+      api: guardedApi(),
+    });
     const res = await app.request("/api/raw/health");
     expect(res.status).toBe(200);
     expect(res.headers.get("x-api-stack")).toBeNull();
   });
 
   test("an unknown raw path is answered by the raw API, not the /api stack", async () => {
-    const app = buildApp(config(), { api: guardedApi() });
+    const app = buildApp(config(), {
+      api: guardedApi(),
+    });
     const res = await app.request("/api/raw/does-not-exist");
     expect(res.status).toBe(404);
     expect(res.headers.get("x-api-stack")).toBeNull();
   });
 
   test("the /api stack still guards everything else under /api", async () => {
-    const app = buildApp(config(), { api: guardedApi() });
+    const app = buildApp(config(), {
+      api: guardedApi(),
+    });
     const res = await app.request("/api/ping");
     expect(res.status).toBe(403);
     expect(res.headers.get("x-api-stack")).toBe("ran");
@@ -99,13 +119,18 @@ describe("raw API — isolation from the /api stack", () => {
     const routes = new Hono<AppEnv>();
     routes.post("/echo", async c => c.json({ got: await c.req.json() }));
     // No Origin, no X-Requested-With: the /api guard would refuse this.
-    const res = await buildApp(config(), { api: guardedApi(), routes }).request("/api/raw/echo", {
+    const res = await buildApp(config(), {
+      api: guardedApi(),
+      routes,
+    }).request("/api/raw/echo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ hello: "world" }),
     });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ got: { hello: "world" } });
+    expect(await res.json()).toEqual({
+      got: { hello: "world" },
+    });
   });
 });
 

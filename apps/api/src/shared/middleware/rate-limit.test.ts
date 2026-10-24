@@ -52,25 +52,40 @@ describe("rateLimit", () => {
 
   test("uses x-real-ip header to separate callers when TRUST_PROXY=true (anon fallback shares one bucket)", async () => {
     const app = buildApp({ windowMs: 60_000, max: 1, bucket: "iso-ip" }, true);
-    expect((await app.request("/p", { headers: { "x-real-ip": "1.1.1.1" } })).status).toBe(200);
-    expect((await app.request("/p", { headers: { "x-real-ip": "2.2.2.2" } })).status).toBe(200);
-    expect((await app.request("/p", { headers: { "x-real-ip": "1.1.1.1" } })).status).toBe(429);
+    expect((await app.request("/p", {
+      headers: { "x-real-ip": "1.1.1.1" },
+    })).status).toBe(200);
+    expect((await app.request("/p", {
+      headers: { "x-real-ip": "2.2.2.2" },
+    })).status).toBe(200);
+    expect((await app.request("/p", {
+      headers: { "x-real-ip": "1.1.1.1" },
+    })).status).toBe(429);
   });
 
   test("ignores x-real-ip when TRUST_PROXY=false; all attackers share the anon bucket", async () => {
     const app = buildApp({ windowMs: 60_000, max: 1, bucket: "iso-ip-locked" }, false);
-    expect((await app.request("/p", { headers: { "x-real-ip": "1.1.1.1" } })).status).toBe(200);
+    expect((await app.request("/p", {
+      headers: { "x-real-ip": "1.1.1.1" },
+    })).status).toBe(200);
     // Spoofed header must NOT split buckets when proxy is untrusted.
-    expect((await app.request("/p", { headers: { "x-real-ip": "2.2.2.2" } })).status).toBe(429);
+    expect((await app.request("/p", {
+      headers: { "x-real-ip": "2.2.2.2" },
+    })).status).toBe(429);
   });
 
   test("triggers the size-based GC sweep on the 201st bucket key", async () => {
     const app = buildApp({ windowMs: 1, max: 100, bucket: "gc" });
     // Burn 200 distinct keys. The 201st write triggers the prune; we just
     // assert the middleware keeps working after.
-    for (let i = 0; i < 201; i++)
-      await app.request("/p", { headers: { "x-real-ip": `10.0.${Math.floor(i / 256)}.${i % 256}` } });
-    const res = await app.request("/p", { headers: { "x-real-ip": "10.99.99.99" } });
+    for (let i = 0; i < 201; i++) {
+      await app.request("/p", {
+        headers: { "x-real-ip": `10.0.${Math.floor(i / 256)}.${i % 256}` },
+      });
+    }
+    const res = await app.request("/p", {
+      headers: { "x-real-ip": "10.99.99.99" },
+    });
     expect(res.status).toBe(200);
   });
 });
@@ -78,7 +93,12 @@ describe("rateLimit", () => {
 describe("consumeRateLimit", () => {
   // The shared counter behind both `rateLimit()` and the auth / encryption
   // route guards, so its semantics are pinned here rather than three times.
-  const opts = { bucket: "shared", key: "1.2.3.4", windowMs: 60_000, max: 2 };
+  const opts = {
+    bucket: "shared",
+    key: "1.2.3.4",
+    windowMs: 60_000,
+    max: 2,
+  };
 
   test("returns 0 while under the cap, then seconds until reset", async () => {
     expect(await consumeRateLimit(opts)).toBe(0);

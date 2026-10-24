@@ -14,7 +14,9 @@ export function isAllGrant(grants: Grants): grants is { readonly all: GrantLevel
 
 /** Number of grants a token carries: the all-packages grant is one, 0 means the token reaches no package. */
 export function grantCount(grants: Grants): number {
-  return isAllGrant(grants) ? 1 : grants.length;
+  return isAllGrant(grants)
+    ? 1
+    : grants.length;
 }
 
 export function describeGrants(grants: Grants): GrantSummary {

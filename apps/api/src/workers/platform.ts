@@ -80,7 +80,12 @@ export function createWorkersPlatform(opts: {
 
   const scheduler: PlatformScheduler = {
     every(name, { delayMs, intervalMs }, fn) {
-      const task: Task = { intervalMs, fn, nextAt: Date.now() + delayMs, inFlight: undefined };
+      const task: Task = {
+        intervalMs,
+        fn,
+        nextAt: Date.now() + delayMs,
+        inFlight: undefined,
+      };
       tasks.set(name, task);
       void ensureAlarm();
       const handle: ScheduledHandle = {
@@ -92,7 +97,9 @@ export function createWorkersPlatform(opts: {
       return handle;
     },
     async stopAll() {
-      const pending = [...tasks.values()].map(t => t.inFlight).filter((p): p is Promise<void> => p !== undefined);
+      const pending = [
+        ...tasks.values(),
+      ].map(t => t.inFlight).filter((p): p is Promise<void> => p !== undefined);
       tasks.clear();
       await Promise.all(pending);
     },
@@ -100,7 +107,9 @@ export function createWorkersPlatform(opts: {
 
   const readEnv = (name: string): string | undefined => {
     const value = env[name];
-    return typeof value === "string" ? value : undefined;
+    return typeof value === "string"
+      ? value
+      : undefined;
   };
 
   const platform: Platform = {

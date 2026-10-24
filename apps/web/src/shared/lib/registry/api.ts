@@ -34,7 +34,11 @@ import { http } from "@/shared/lib/http";
 async function request<T>(path: string, method = "GET", body?: unknown): Promise<T> {
   const res = await http<{ data: T }>(`/registry${path}`, {
     method,
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    ...(body === undefined
+      ? {}
+      : {
+          body: JSON.stringify(body),
+        }),
   });
   return res.data;
 }
@@ -201,7 +205,9 @@ export function adminSetUserQuota(userId: string, override: Partial<QuotaOverrid
 }
 
 export function adminListTokens(userId?: string): Promise<RegistryToken[]> {
-  return request(`/admin/tokens${userId ? `?user_id=${seg(userId)}` : ""}`);
+  return request(`/admin/tokens${userId
+    ? `?user_id=${seg(userId)}`
+    : ""}`);
 }
 
 export function adminRevokeToken(id: string): Promise<{ id: string }> {

@@ -158,12 +158,16 @@ export function policyRoutes() {
       // Auto-fill subjectRelation for group subjects
       const tupleInput = {
         ...body,
-        subjectRelation: body.subjectNamespace === "group" && !body.subjectRelation ? "member" : body.subjectRelation,
+        subjectRelation: body.subjectNamespace === "group" && !body.subjectRelation
+          ? "member"
+          : body.subjectRelation,
       };
 
       const tuple = await createTuple(db, tupleInput, user.id);
 
-      const tupleStr = `${tupleInput.namespace}:${tupleInput.objectId}#${tupleInput.relation}@${tupleInput.subjectNamespace}:${tupleInput.subjectId}${tupleInput.subjectRelation ? `#${tupleInput.subjectRelation}` : ""}`;
+      const tupleStr = `${tupleInput.namespace}:${tupleInput.objectId}#${tupleInput.relation}@${tupleInput.subjectNamespace}:${tupleInput.subjectId}${tupleInput.subjectRelation
+        ? `#${tupleInput.subjectRelation}`
+        : ""}`;
       await audit(db, c.get("logger"), {
         actorId: user.id,
         actorName: user.name,
@@ -234,7 +238,9 @@ export function policyRoutes() {
     }),
     authRequired,
     adminRequired,
-    validator("json", z.object({ relation: z.string().min(1) })),
+    validator("json", z.object({
+      relation: z.string().min(1),
+    })),
     async (c) => {
       const db = c.get("db");
       const user = c.get("user")!;
@@ -253,7 +259,9 @@ export function policyRoutes() {
         throw new NotFoundError("Tuple", id);
       }
 
-      const tupleStr = `${existing.namespace}:${existing.objectId}#${body.relation}@${existing.subjectNamespace}:${existing.subjectId}${existing.subjectRelation ? `#${existing.subjectRelation}` : ""}`;
+      const tupleStr = `${existing.namespace}:${existing.objectId}#${body.relation}@${existing.subjectNamespace}:${existing.subjectId}${existing.subjectRelation
+        ? `#${existing.subjectRelation}`
+        : ""}`;
       await audit(db, c.get("logger"), {
         actorId: user.id,
         actorName: user.name,
@@ -278,7 +286,10 @@ export function policyRoutes() {
       summary: "Batch create/delete tuples",
       security: SECURITY.session,
       responses: {
-        ...jsonOk(z.object({ created: z.array(tupleRowSchema), deletedCount: z.number() }), "Batch result"),
+        ...jsonOk(z.object({
+          created: z.array(tupleRowSchema),
+          deletedCount: z.number(),
+        }), "Batch result"),
         ...errors(401, 403, 422),
       },
     }),
@@ -296,8 +307,12 @@ export function policyRoutes() {
         }
       }
 
-      const created = body.create ? await batchCreateTuples(db, body.create, user.id) : [];
-      const deletedCount = body.delete ? await batchDeleteTuples(db, body.delete) : 0;
+      const created = body.create
+        ? await batchCreateTuples(db, body.create, user.id)
+        : [];
+      const deletedCount = body.delete
+        ? await batchDeleteTuples(db, body.delete)
+        : 0;
 
       const { ip, userAgent } = auditMeta(c);
       if (created.length > 0) {
@@ -309,7 +324,11 @@ export function policyRoutes() {
           resourceType: "tuple",
           resourceId: "batch",
           resourceName: "batch",
-          detail: { count: created.length, tuples: tuples.slice(0, 5), truncated: tuples.length > 5 },
+          detail: {
+            count: created.length,
+            tuples: tuples.slice(0, 5),
+            truncated: tuples.length > 5,
+          },
           ip,
           userAgent,
           result: "success",
@@ -323,7 +342,10 @@ export function policyRoutes() {
           resourceType: "tuple",
           resourceId: "batch",
           resourceName: "batch",
-          detail: { count: deletedCount, ids: body.delete?.slice(0, 5) },
+          detail: {
+            count: deletedCount,
+            ids: body.delete?.slice(0, 5),
+          },
           ip,
           userAgent,
           result: "success",
@@ -403,7 +425,9 @@ export function policyRoutes() {
       description: "All relation tuples where the user is the subject. Admin only.",
       security: SECURITY.session,
       responses: {
-        ...jsonOk(z.object({ tuples: z.array(tupleRowSchema) }), "User access"),
+        ...jsonOk(z.object({
+          tuples: z.array(tupleRowSchema),
+        }), "User access"),
         ...errors(401, 403),
       },
     }),
@@ -462,7 +486,10 @@ export function policyRoutes() {
     authRequired,
     adminRequired,
     async (c) => {
-      return c.json({ success: true, data: getPermissionManifest(getRouteBindingsForResource) });
+      return c.json({
+        success: true,
+        data: getPermissionManifest(getRouteBindingsForResource),
+      });
     },
   );
 

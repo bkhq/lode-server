@@ -26,7 +26,13 @@ const OUTLINE_LINK = `${LINK_BASE} h-10 border px-5 hover:bg-muted`;
 const NAV_LINK = "text-sm text-muted-foreground transition-colors hover:text-foreground";
 const TEXT_LINK = "font-mono text-xs text-primary underline-offset-4 hover:underline";
 
-const NAV = ["features", "how", "download", "publish", "install"] as const;
+const NAV = [
+  "features",
+  "how",
+  "download",
+  "publish",
+  "install",
+] as const;
 
 const FEATURES: readonly { readonly key: "packages" | "signed" | "ci" | "tokens"; readonly icon: LucideIcon }[] = [
   { key: "packages", icon: Package },
@@ -60,7 +66,13 @@ const LODE_DOCKERFILE = [
   `COPY --from=${LODE_IMAGE}:latest /usr/bin/lode /usr/bin/lode`,
   "ENTRYPOINT [\"/usr/bin/lode\"]",
 ].join("\n");
-const PUBLISH_STEPS = ["package", "token", "key", "publish", "ci"] as const;
+const PUBLISH_STEPS = [
+  "package",
+  "token",
+  "key",
+  "publish",
+  "ci",
+] as const;
 const INSTALL_STEPS = ["config", "trust", "private", "run"] as const;
 
 /** What a package looks like in the registry: versions newest first, channels pointing into them. */
@@ -167,13 +179,17 @@ function ReleaseStack() {
             <li
               key={version}
               className="flex items-center gap-3 border-b px-4 py-3 last:border-b-0"
-              style={channel === "stable" ? { boxShadow: `inset 3px 0 0 ${ORE}` } : undefined}
+              style={channel === "stable"
+                ? { boxShadow: `inset 3px 0 0 ${ORE}` }
+                : undefined}
             >
               <span className={cn("font-mono text-sm", channel !== "stable" && "text-muted-foreground")}>{version}</span>
               {channel && (
                 <span
                   className="rounded-full border px-2 py-0.5 text-xs"
-                  style={channel === "stable" ? { borderColor: ORE } : undefined}
+                  style={channel === "stable"
+                    ? { borderColor: ORE }
+                    : undefined}
                 >
                   {channel}
                 </span>
@@ -219,7 +235,9 @@ function Walkthrough<K extends string>({ group, steps, code }: {
 /** The public landing page: what the registry is, how to publish to it, how to install from it. */
 export function Landing() {
   const { t, i18n } = useTranslation("home");
-  const other = i18n.language.startsWith("zh") ? "en" : "zh";
+  const other = i18n.language.startsWith("zh")
+    ? "en"
+    : "zh";
   const origin = window.location.origin;
 
   return (
@@ -238,7 +256,9 @@ export function Landing() {
           <div className="ml-auto flex items-center gap-1">
             <Button variant="ghost" size="sm" onClick={() => void i18n.changeLanguage(other)} aria-label={t("nav.language")}>
               <Languages className="size-4" />
-              {other === "zh" ? "中文" : "English"}
+              {other === "zh"
+                ? "中文"
+                : "English"}
             </Button>
             <ModeToggle />
             <a href={CONSOLE} className={`${LINK_BASE} ml-1 h-8 bg-primary px-3 text-primary-foreground hover:bg-primary/90`}>{t("nav.console")}</a>
@@ -278,7 +298,13 @@ export function Landing() {
           <BandHeading title={t("steps.title")} lead={t("steps.lead")} />
           <ol className="mt-10 grid gap-8 sm:grid-cols-3">
             {STEPS.map((step, i) => (
-              <li key={step} className="space-y-2 border-t-2 pt-4" style={i === STEPS.length - 1 ? { borderColor: ORE } : undefined}>
+              <li
+                key={step}
+                className="space-y-2 border-t-2 pt-4"
+                style={i === STEPS.length - 1
+                  ? { borderColor: ORE }
+                  : undefined}
+              >
                 <p className="text-sm text-muted-foreground tabular-nums">{i + 1}</p>
                 <h3 className="font-semibold">{t(`steps.${step}.title`)}</h3>
                 <p className="text-muted-foreground">{t(`steps.${step}.body`)}</p>

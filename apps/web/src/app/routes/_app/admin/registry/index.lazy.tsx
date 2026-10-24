@@ -48,19 +48,25 @@ function RegistryNamespacesTab() {
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const rows = useMemo(() => {
-    const sorted = [...(data ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at));
+    const sorted = [
+      ...(data ?? []),
+    ].sort((a, b) => b.created_at.localeCompare(a.created_at));
     return filterRows(sorted, filter, n => [n.owner.name, n.owner.username, n.slug]);
   }, [data, filter]);
 
   const statusMutation = useMutation({
     mutationFn: (ns: AdminNamespace) =>
-      ns.status === "active" ? adminSuspendNamespace(ns.slug) : adminRestoreNamespace(ns.slug),
+      ns.status === "active"
+        ? adminSuspendNamespace(ns.slug)
+        : adminRestoreNamespace(ns.slug),
     onSuccess: (updated) => {
       toast.success(updated.status === "suspended"
         ? t("registry:namespaces.suspended", { namespace: updated.slug })
         : t("registry:namespaces.restored", { namespace: updated.slug }));
       setStatusTarget(null);
-      return queryClient.invalidateQueries({ queryKey: registryKeys.adminNamespaces() });
+      return queryClient.invalidateQueries({
+        queryKey: registryKeys.adminNamespaces(),
+      });
     },
     onError: (err) => {
       toast.error(registryErrorMessage(err, t, t("common.error.operationFailed")));
@@ -71,7 +77,10 @@ function RegistryNamespacesTab() {
 
   return (
     <div className="space-y-4">
-      <ErrorBanner message={error ? registryErrorMessage(error, t, t("common.error.loadFailed")) : null} />
+      <ErrorBanner message={error
+        ? registryErrorMessage(error, t, t("common.error.loadFailed"))
+        : null}
+      />
 
       <ListFilter value={filter} onChange={setFilter} shown={rows.length} total={data?.length ?? 0}>
         <Button variant="outline" size="sm" className="ml-auto" onClick={() => setPickerOpen(true)}>
@@ -98,7 +107,9 @@ function RegistryNamespacesTab() {
               : rows.length === 0
                 ? (
                     <MessageRow colSpan={COLUMNS}>
-                      {data.length === 0 ? t("registry:namespaces.empty") : t("registry:filter.noMatch")}
+                      {data.length === 0
+                        ? t("registry:namespaces.empty")
+                        : t("registry:filter.noMatch")}
                     </MessageRow>
                   )
                 : rows.map(ns => (
@@ -111,8 +122,13 @@ function RegistryNamespacesTab() {
                       </TableCell>
                       <TableCell><OwnerCell owner={ns.owner} /></TableCell>
                       <TableCell>
-                        <Badge variant={ns.status === "active" ? "secondary" : "destructive"}>
-                          {ns.status === "active" ? t("registry:status.active") : t("registry:status.suspended")}
+                        <Badge variant={ns.status === "active"
+                          ? "secondary"
+                          : "destructive"}
+                        >
+                          {ns.status === "active"
+                            ? t("registry:status.active")
+                            : t("registry:status.suspended")}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{ns.packages}</TableCell>
@@ -121,7 +137,9 @@ function RegistryNamespacesTab() {
                       <TableCell>
                         <div className="flex gap-1">
                           <Button variant="ghost" size="sm" onClick={() => setStatusTarget(ns)}>
-                            {ns.status === "active" ? t("registry:namespaces.suspend") : t("registry:namespaces.restore")}
+                            {ns.status === "active"
+                              ? t("registry:namespaces.suspend")
+                              : t("registry:namespaces.restore")}
                           </Button>
                           <Button variant="ghost" size="sm" onClick={() => setQuotaUser(ns.owner)}>
                             {t("registry:namespaces.quota")}
@@ -152,9 +170,15 @@ function RegistryNamespacesTab() {
           ? t("registry:namespaces.suspendTitle", { namespace: statusTarget?.slug })
           : t("registry:namespaces.restoreTitle", { namespace: statusTarget?.slug })}
         description={statusTarget && (suspending
-          ? t("registry:namespaces.suspendDescription", { owner: ownerLabel(statusTarget.owner) })
-          : t("registry:namespaces.restoreDescription", { owner: ownerLabel(statusTarget.owner) }))}
-        confirmLabel={suspending ? t("registry:namespaces.suspend") : t("registry:namespaces.restore")}
+          ? t("registry:namespaces.suspendDescription", {
+              owner: ownerLabel(statusTarget.owner),
+            })
+          : t("registry:namespaces.restoreDescription", {
+              owner: ownerLabel(statusTarget.owner),
+            }))}
+        confirmLabel={suspending
+          ? t("registry:namespaces.suspend")
+          : t("registry:namespaces.restore")}
         destructive={suspending}
         pending={statusMutation.isPending}
         onConfirm={() => {

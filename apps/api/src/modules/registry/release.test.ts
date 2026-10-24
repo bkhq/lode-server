@@ -29,7 +29,14 @@ import "@/modules/account";
 const { signer, other, vectors } = fixture;
 type Vector = (typeof vectors)[number];
 
-const noop = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
+const noop = {
+  debug() {},
+  info() {},
+  warn() {},
+  error() {},
+  fatal() {},
+  flush() {},
+} as unknown as Logger;
 
 let dir: string;
 let blobRoot: string;
@@ -88,17 +95,30 @@ function client(id: string, auth: Record<string, string>): Client {
     call: async (method, path, body) => await app().request(`/api/registry${path}`, {
       method,
       headers: { ...auth, "Content-Type": "application/json" },
-      ...(body !== undefined && { body: JSON.stringify(body) }),
+      ...(body !== undefined && {
+        body: JSON.stringify(body),
+      }),
     }),
     put: async (path, body, opts = {}) => {
       const query = new URLSearchParams({
-        ...(body instanceof Uint8Array && { sha256: sha256Hex(body) }),
+        ...(body instanceof Uint8Array && {
+          sha256: sha256Hex(body),
+        }),
         ...opts.query,
       });
-      const length = opts.length === undefined ? (body instanceof Uint8Array ? body.length : null) : opts.length;
+      const length = opts.length === undefined
+        ? (body instanceof Uint8Array
+            ? body.length
+            : null)
+        : opts.length;
       return await app().request(`/api/registry${path}?${query}`, {
         method: "PUT",
-        headers: { ...auth, ...(length !== null && { "Content-Length": String(length) }) },
+        headers: {
+          ...auth,
+          ...(length !== null && {
+            "Content-Length": String(length),
+          }),
+        },
         body,
         duplex: "half",
       } as RequestInit);
@@ -108,7 +128,17 @@ function client(id: string, auth: Record<string, string>): Client {
 
 async function seedUser(id: string, role: "user" | "admin" = "user"): Promise<Client> {
   const now = new Date().toISOString();
-  await db.insert(users).values({ id, oauthSub: `sub-${id}`, username: id, name: id, email: `${id}@t.io`, role, status: "active", createdAt: now, updatedAt: now }).run();
+  await db.insert(users).values({
+    id,
+    oauthSub: `sub-${id}`,
+    username: id,
+    name: id,
+    email: `${id}@t.io`,
+    role,
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  }).run();
   const session = await createSession(db, id, "access", undefined, 3600);
   return client(id, { Cookie: `session_id=${session}` });
 }
@@ -126,7 +156,10 @@ async function mint(owner: Client, grants: unknown): Promise<Client & { tokenId:
   const res = await owner.call("POST", "/tokens", { name: "ci", grants });
   expect(res.status).toBe(201);
   const created = await data<{ id: string; token: string }>(res);
-  return { ...client(owner.id, { Authorization: `Bearer ${created.token}` }), tokenId: created.id };
+  return {
+    ...client(owner.id, { Authorization: `Bearer ${created.token}` }),
+    tokenId: created.id,
+  };
 }
 
 async function data<T = Record<string, unknown>>(res: Response): Promise<T> {
@@ -215,7 +248,9 @@ async function putVector(who: Client, pkg: string, vector: Vector, changes: Reco
   return await who.put(
     `/packages/${pkg}/versions/${vector.version}/assets/${vector.name}`,
     new TextEncoder().encode(vector.content),
-    { query: signedQuery(vector, changes) },
+    {
+      query: signedQuery(vector, changes),
+    },
   );
 }
 
@@ -228,12 +263,29 @@ describe("draft versions", () => {
     const alice = await seedPublisher("alice", ["tool"]);
     const created = await alice.call("POST", "/packages/alice/tool/versions", { version: "1.0.0", notes: "First" });
     expect(created.status).toBe(201);
-    expect(await data(created)).toMatchObject({ version: "1.0.0", status: "draft", notes: "First", published_at: null, assets: [] });
+    expect(await data(created)).toMatchObject({
+      version: "1.0.0",
+      status: "draft",
+      notes: "First",
+      published_at: null,
+      assets: [],
+    });
 
     const bytes = bytesOf(5000);
-    const uploaded = await alice.put("/packages/alice/tool/versions/1.0.0/assets/tool-linux-x64.tar.gz", bytes, { query: { run: "./tool serve" } });
+    const uploaded = await alice.put("/packages/alice/tool/versions/1.0.0/assets/tool-linux-x64.tar.gz", bytes, {
+      query: { run: "./tool serve" },
+    });
     expect(uploaded.status).toBe(201);
-    const asset = { name: "tool-linux-x64.tar.gz", size: 5000, sha256: sha256Hex(bytes), sig: null, key_id: null, alg: null, run: "./tool serve", exec: null };
+    const asset = {
+      name: "tool-linux-x64.tar.gz",
+      size: 5000,
+      sha256: sha256Hex(bytes),
+      sig: null,
+      key_id: null,
+      alg: null,
+      run: "./tool serve",
+      exec: null,
+    };
     expect(await data(uploaded)).toMatchObject(asset);
 
     const published = await alice.call("POST", "/packages/alice/tool/versions/1.0.0/publish", { channel: "stable" });
@@ -244,19 +296,39 @@ describe("draft versions", () => {
 
     const list = await data<{ versions: unknown[]; channels: unknown[] }>(await alice.call("GET", "/packages/alice/tool/versions"));
     expect(list.versions).toHaveLength(1);
-    expect(list.versions[0]).toMatchObject({ version: "1.0.0", status: "published", notes: "First", assets: [asset] });
-    expect(list.channels).toMatchObject([{ name: "stable", version: "1.0.0" }]);
+    expect(list.versions[0]).toMatchObject({
+      version: "1.0.0",
+      status: "published",
+      notes: "First",
+      assets: [asset],
+    });
+    expect(list.channels).toMatchObject([
+      { name: "stable", version: "1.0.0" },
+    ]);
 
     const one = await data<{ version: unknown; channels: unknown[] }>(await alice.call("GET", "/packages/alice/tool/versions/1.0.0"));
-    expect(one.version).toMatchObject({ version: "1.0.0", status: "published", assets: [asset] });
-    expect(one.channels).toMatchObject([{ name: "stable", version: "1.0.0" }]);
+    expect(one.version).toMatchObject({
+      version: "1.0.0",
+      status: "published",
+      assets: [asset],
+    });
+    expect(one.channels).toMatchObject([
+      { name: "stable", version: "1.0.0" },
+    ]);
 
     expect((await alice.call("GET", "/packages/alice/tool/versions/9.9.9")).status).toBe(404);
   });
 
   test("a version id follows the lode rule and is unique in its package", async () => {
     const alice = await seedPublisher("alice", ["tool", "other"]);
-    for (const version of ["", ".hidden", "-1", "1.0/x", "1 0", "v".repeat(129)])
+    for (const version of [
+      "",
+      ".hidden",
+      "-1",
+      "1.0/x",
+      "1 0",
+      "v".repeat(129),
+    ])
       expect((await alice.call("POST", "/packages/alice/tool/versions", { version })).status).toBe(422);
     await draft(alice, "alice/tool", "2.0.0-rc.1_build-7");
     await expectError(await alice.call("POST", "/packages/alice/tool/versions", { version: "2.0.0-rc.1_build-7" }), 409, "VERSION_EXISTS");
@@ -309,7 +381,10 @@ describe("single-request upload", () => {
         controller.enqueue(chunk);
       },
     });
-    const res = await alice.put("/packages/alice/tool/versions/1.0.0/assets/big.bin", body, { length: size, query: { sha256 } });
+    const res = await alice.put("/packages/alice/tool/versions/1.0.0/assets/big.bin", body, {
+      length: size,
+      query: { sha256 },
+    });
     expect(res.status).toBe(201);
     expect(await data(res)).toMatchObject({ name: "big.bin", size, sha256 });
 
@@ -326,7 +401,12 @@ describe("single-request upload", () => {
     const alice = await seedPublisher("alice", ["tool"]);
     await draft(alice, "alice/tool");
     const { body, seen } = refusedBody();
-    const res = await alice.put("/packages/alice/tool/versions/1.0.0/assets/tool", body, { length: null, query: { sha256: "0".repeat(64) } });
+    const res = await alice.put("/packages/alice/tool/versions/1.0.0/assets/tool", body, {
+      length: null,
+      query: {
+        sha256: "0".repeat(64),
+      },
+    });
     await expectError(res, 411, "LENGTH_REQUIRED");
     expect(seen).toEqual({ drained: true, cancelled: false });
   });
@@ -336,7 +416,12 @@ describe("single-request upload", () => {
     const alice = await seedPublisher("alice", ["tool"]);
     await draft(alice, "alice/tool");
     const { body, seen } = refusedBody();
-    const res = await alice.put("/packages/alice/tool/versions/1.0.0/assets/tool", body, { length: 99614721, query: { sha256: "0".repeat(64) } });
+    const res = await alice.put("/packages/alice/tool/versions/1.0.0/assets/tool", body, {
+      length: 99614721,
+      query: {
+        sha256: "0".repeat(64),
+      },
+    });
     expect(res.status).toBe(413);
     const { error } = (await res.json()) as { error: { code: string; message: string } };
     expect(error.code).toBe("SINGLE_REQUEST_TOO_LARGE");
@@ -349,7 +434,12 @@ describe("single-request upload", () => {
     await draft(alice, "alice/tool");
     await db.insert(registryQuotas).values({ userId: "alice", maxAssetBytes: 1000 }).run();
     const { body, seen } = refusedBody();
-    const res = await alice.put("/packages/alice/tool/versions/1.0.0/assets/tool", body, { length: 1001, query: { sha256: "0".repeat(64) } });
+    const res = await alice.put("/packages/alice/tool/versions/1.0.0/assets/tool", body, {
+      length: 1001,
+      query: {
+        sha256: "0".repeat(64),
+      },
+    });
     await expectError(res, 413, "ASSET_TOO_LARGE");
     expect(seen).toEqual({ drained: true, cancelled: false });
     expect(await assetRows()).toHaveLength(0);
@@ -362,7 +452,12 @@ describe("single-request upload", () => {
     expect((await alice.put("/packages/alice/tool/versions/1.0.0/assets/first", bytesOf(1000))).status).toBe(201);
 
     const { body, seen } = refusedBody();
-    const res = await alice.put("/packages/alice/tool/versions/1.0.0/assets/second", body, { length: 501, query: { sha256: "0".repeat(64) } });
+    const res = await alice.put("/packages/alice/tool/versions/1.0.0/assets/second", body, {
+      length: 501,
+      query: {
+        sha256: "0".repeat(64),
+      },
+    });
     await expectError(res, 409, "STORAGE_QUOTA_EXCEEDED");
     expect(seen).toEqual({ drained: true, cancelled: false });
     expect((await assetRows()).map(a => a.name)).toEqual(["first"]);
@@ -384,10 +479,36 @@ describe("single-request upload", () => {
     const alice = await seedPublisher("alice", ["tool"]);
     await release(alice, "alice/tool");
     const cases: Array<[Client, string, Record<string, string>, number]> = [
-      [alice, "/packages/alice/tool/versions/1.0.0/assets/tool", { sha256: "0".repeat(64) }, 409],
-      [alice, "/packages/alice/tool/versions/9.9.9/assets/tool", { sha256: "0".repeat(64) }, 404],
-      [alice, "/packages/alice/tool/versions/1.0.0/assets/tool", { sha256: "nope" }, 422],
-      [client("nobody", {}), "/packages/alice/tool/versions/1.0.0/assets/tool", { sha256: "0".repeat(64) }, 401],
+      [
+        alice,
+        "/packages/alice/tool/versions/1.0.0/assets/tool",
+        {
+          sha256: "0".repeat(64),
+        },
+        409,
+      ],
+      [
+        alice,
+        "/packages/alice/tool/versions/9.9.9/assets/tool",
+        {
+          sha256: "0".repeat(64),
+        },
+        404,
+      ],
+      [
+        alice,
+        "/packages/alice/tool/versions/1.0.0/assets/tool",
+        { sha256: "nope" },
+        422,
+      ],
+      [
+        client("nobody", {}),
+        "/packages/alice/tool/versions/1.0.0/assets/tool",
+        {
+          sha256: "0".repeat(64),
+        },
+        401,
+      ],
     ];
     for (const [who, path, query, status] of cases) {
       const { body, seen } = refusedBody();
@@ -405,24 +526,54 @@ describe("single-request upload", () => {
       [".hidden", {}],
       ["-flag", {}],
       ["a b", {}],
-      ["tool", { sha256: sha256Hex(bytes).toUpperCase() }],
-      ["tool", { sha256: "abc" }],
-      ["tool", { run: "   " }],
-      ["tool", { run: "./tool\n./evil" }],
-      ["tool", { exec: "\t" }],
-      ["tool", { exec: "a\u0000b" }],
+      [
+        "tool",
+        {
+          sha256: sha256Hex(bytes).toUpperCase(),
+        },
+      ],
+      [
+        "tool",
+        { sha256: "abc" },
+      ],
+      [
+        "tool",
+        { run: "   " },
+      ],
+      [
+        "tool",
+        { run: "./tool\n./evil" },
+      ],
+      [
+        "tool",
+        { exec: "\t" },
+      ],
+      [
+        "tool",
+        { exec: "a\u0000b" },
+      ],
     ];
     for (const [name, query] of bad)
       await expectError(await alice.put(`${base}/${encodeURIComponent(name)}`, bytes, { query }), 422, "VALIDATION_ERROR");
     await expectError(await client("nobody", {}).put(`${base}/tool`, bytes), 401, "UNAUTHORIZED");
-    expect((await alice.put(`${base}/tool`, bytes, { query: { sha256: "" } })).status).toBe(422);
+    expect((await alice.put(`${base}/tool`, bytes, {
+      query: { sha256: "" },
+    })).status).toBe(422);
     await expectError(await alice.put(`${base}/tool`, new Uint8Array(0)), 422, "VALIDATION_ERROR");
     expect(await assetRows()).toHaveLength(0);
 
     // Empty `sig`, `run` and `exec` are the same as leaving them out.
-    const res = await alice.put(`${base}/tool`, bytes, { query: { sig: "", run: "", exec: "" } });
+    const res = await alice.put(`${base}/tool`, bytes, {
+      query: { sig: "", run: "", exec: "" },
+    });
     expect(res.status).toBe(201);
-    expect(await data(res)).toMatchObject({ sig: null, key_id: null, alg: null, run: null, exec: null });
+    expect(await data(res)).toMatchObject({
+      sig: null,
+      key_id: null,
+      alg: null,
+      run: null,
+      exec: null,
+    });
   });
 
   test("bytes that do not match the declared digest or length store nothing", async () => {
@@ -430,7 +581,11 @@ describe("single-request upload", () => {
     const versionId = await draft(alice, "alice/tool");
     const bytes = bytesOf(100);
     const path = "/packages/alice/tool/versions/1.0.0/assets/tool";
-    await expectError(await alice.put(path, bytes, { query: { sha256: sha256Hex(bytesOf(100, 2)) } }), 422, "DIGEST_MISMATCH");
+    await expectError(await alice.put(path, bytes, {
+      query: {
+        sha256: sha256Hex(bytesOf(100, 2)),
+      },
+    }), 422, "DIGEST_MISMATCH");
     await expectError(await alice.put(path, bytes, { length: 99 }), 422, "DIGEST_MISMATCH");
     expect(await assetRows()).toHaveLength(0);
     expect(existsSync(await blobPath("tool", versionId, "tool"))).toBe(false);
@@ -445,14 +600,35 @@ describe("single-request upload", () => {
     const second = bytesOf(120, 2);
     expect((await alice.put(path, first)).status).toBe(201);
 
-    await expectError(await alice.put(path, second, { query: { sha256: sha256Hex(first) } }), 422, "DIGEST_MISMATCH");
-    expect(await assetRows()).toMatchObject([{ size: 300, sha256: sha256Hex(first) }]);
+    await expectError(await alice.put(path, second, {
+      query: {
+        sha256: sha256Hex(first),
+      },
+    }), 422, "DIGEST_MISMATCH");
+    expect(await assetRows()).toMatchObject([
+      {
+        size: 300,
+        sha256: sha256Hex(first),
+      },
+    ]);
     expect(statSync(await blobPath("tool", versionId, "tool")).size).toBe(300);
 
-    const replaced = await alice.put(path, second, { query: { exec: "./tool" } });
+    const replaced = await alice.put(path, second, {
+      query: { exec: "./tool" },
+    });
     expect(replaced.status).toBe(200);
-    expect(await data(replaced)).toMatchObject({ size: 120, sha256: sha256Hex(second), exec: "./tool" });
-    expect(await assetRows()).toMatchObject([{ name: "tool", size: 120, sha256: sha256Hex(second) }]);
+    expect(await data(replaced)).toMatchObject({
+      size: 120,
+      sha256: sha256Hex(second),
+      exec: "./tool",
+    });
+    expect(await assetRows()).toMatchObject([
+      {
+        name: "tool",
+        size: 120,
+        sha256: sha256Hex(second),
+      },
+    ]);
     expect(statSync(await blobPath("tool", versionId, "tool")).size).toBe(120);
     expect((await getUsage(db, "alice")).storageBytes).toBe(120);
   });
@@ -484,7 +660,12 @@ describe("single-request upload", () => {
         controller.enqueue(bytes.subarray(1000));
       },
     }, { highWaterMark: 0 });
-    const uploading = alice.put(`${base}/assets/slow`, body, { length: bytes.length, query: { sha256: sha256Hex(bytes) } });
+    const uploading = alice.put(`${base}/assets/slow`, body, {
+      length: bytes.length,
+      query: {
+        sha256: sha256Hex(bytes),
+      },
+    });
     await reading;
 
     await expectError(await alice.call("POST", `${base}/publish`, { channel: "stable" }), 409, "VERSION_BUSY");
@@ -553,9 +734,13 @@ describe("signatures", () => {
     await registerSigner(alice, "alice/tool");
     const vector = vectorOf("run");
     const versionId = await draft(alice, "alice/tool", vector.version);
-    const flipped = `${vector.sig.startsWith("A") ? "B" : "A"}${vector.sig.slice(1)}`;
+    const flipped = `${vector.sig.startsWith("A")
+      ? "B"
+      : "A"}${vector.sig.slice(1)}`;
     const tampered: Array<Record<string, string>> = [
-      { sha256: sha256Hex(bytesOf(10)) },
+      {
+        sha256: sha256Hex(bytesOf(10)),
+      },
       { sig: flipped },
       { sig: "not-a-signature" },
       { run: `${vector.run} --insecure` },
@@ -568,9 +753,13 @@ describe("signatures", () => {
     }
     // The same signature under another asset name or version does not verify either.
     const bytes = new TextEncoder().encode(vector.content);
-    await expectError(await alice.put(`/packages/alice/tool/versions/${vector.version}/assets/renamed.tar.gz`, bytes, { query: signedQuery(vector) }), 400, "INVALID_SIGNATURE");
+    await expectError(await alice.put(`/packages/alice/tool/versions/${vector.version}/assets/renamed.tar.gz`, bytes, {
+      query: signedQuery(vector),
+    }), 400, "INVALID_SIGNATURE");
     await draft(alice, "alice/tool", "9.9.9");
-    await expectError(await alice.put(`/packages/alice/tool/versions/9.9.9/assets/${vector.name}`, bytes, { query: signedQuery(vector) }), 400, "INVALID_SIGNATURE");
+    await expectError(await alice.put(`/packages/alice/tool/versions/9.9.9/assets/${vector.name}`, bytes, {
+      query: signedQuery(vector),
+    }), 400, "INVALID_SIGNATURE");
     expect(await assetRows()).toHaveLength(0);
 
     expect((await putVector(alice, "alice/tool", vector)).status).toBe(201);
@@ -638,9 +827,14 @@ describe("signatures", () => {
 
     const { body, seen } = refusedBody();
     const path = `/packages/alice/tool/versions/${vector.version}/assets/${vector.name}`;
-    await expectError(await alice.put(path, body, { length: 10, query: { sha256: vector.sha256 } }), 400, "SIGNATURE_REQUIRED");
+    await expectError(await alice.put(path, body, {
+      length: 10,
+      query: { sha256: vector.sha256 },
+    }), 400, "SIGNATURE_REQUIRED");
     expect(seen).toEqual({ drained: true, cancelled: false });
-    await expectError(await alice.put(path, new TextEncoder().encode(vector.content), { query: { sig: "" } }), 400, "SIGNATURE_REQUIRED");
+    await expectError(await alice.put(path, new TextEncoder().encode(vector.content), {
+      query: { sig: "" },
+    }), 400, "SIGNATURE_REQUIRED");
     expect(await assetRows()).toHaveLength(0);
     expect((await putVector(alice, "alice/tool", vector)).status).toBe(201);
   });
@@ -763,13 +957,20 @@ describe("authorization", () => {
   test("a read grant reads and cannot create a draft, upload or publish", async () => {
     const alice = await seedPublisher("alice", ["tool"]);
     await draft(alice, "alice/tool");
-    const reader = await mint(alice, [{ package: "alice/tool", access: "read" }]);
+    const reader = await mint(alice, [
+      { package: "alice/tool", access: "read" },
+    ]);
 
     expect((await reader.call("GET", "/packages/alice/tool/versions")).status).toBe(200);
     expect((await reader.call("GET", "/packages/alice/tool/versions/1.0.0")).status).toBe(200);
     expect((await reader.call("POST", "/packages/alice/tool/versions", { version: "2.0.0" })).status).toBe(403);
     const { body, seen } = refusedBody();
-    expect((await reader.put("/packages/alice/tool/versions/1.0.0/assets/tool", body, { length: 10, query: { sha256: "0".repeat(64) } })).status).toBe(403);
+    expect((await reader.put("/packages/alice/tool/versions/1.0.0/assets/tool", body, {
+      length: 10,
+      query: {
+        sha256: "0".repeat(64),
+      },
+    })).status).toBe(403);
     expect(seen).toEqual({ drained: true, cancelled: false });
     expect((await reader.call("DELETE", "/packages/alice/tool/versions/1.0.0/assets/tool")).status).toBe(403);
     expect((await reader.call("POST", "/packages/alice/tool/versions/1.0.0/publish", { channel: "stable" })).status).toBe(403);
@@ -780,7 +981,9 @@ describe("authorization", () => {
 
   test("a write grant releases and cannot yank or restore", async () => {
     const alice = await seedPublisher("alice", ["tool"]);
-    const writer = await mint(alice, [{ package: "alice/tool", access: "write" }]);
+    const writer = await mint(alice, [
+      { package: "alice/tool", access: "write" },
+    ]);
 
     await draft(writer, "alice/tool", "1.0.0");
     expect((await writer.put("/packages/alice/tool/versions/1.0.0/assets/tool", bytesOf(10))).status).toBe(201);
@@ -804,7 +1007,9 @@ describe("authorization", () => {
     const alice = await seedPublisher("alice", ["tool"]);
     await release(alice, "alice/tool", "1.0.0");
     await release(alice, "alice/tool", "1.1.0");
-    const manager = await mint(alice, [{ package: "alice/tool", access: "admin" }]);
+    const manager = await mint(alice, [
+      { package: "alice/tool", access: "admin" },
+    ]);
     expect((await manager.call("POST", "/packages/alice/tool/versions/1.0.0/yank")).status).toBe(200);
     expect((await manager.call("POST", "/packages/alice/tool/versions/1.0.0/restore")).status).toBe(200);
   });
@@ -815,10 +1020,16 @@ describe("authorization", () => {
     const first = await release(alice, "alice/tool", "1.0.0");
     await release(alice, "alice/tool", "1.1.0");
     const tokens = [
-      await mint(alice, [{ package: "alice/tool", access: "write" }]),
-      await mint(alice, [{ package: "alice/tool", access: "admin" }]),
+      await mint(alice, [
+        { package: "alice/tool", access: "write" },
+      ]),
+      await mint(alice, [
+        { package: "alice/tool", access: "admin" },
+      ]),
       await mint(alice, { all: "admin" }),
-      await mint(root, [{ package: "alice/tool", access: "admin" }]),
+      await mint(root, [
+        { package: "alice/tool", access: "admin" },
+      ]),
     ];
     for (const status of ["published", "yanked"] as const) {
       await db.update(registryVersions).set({ status }).where(eq(registryVersions.id, first)).run();
@@ -832,7 +1043,9 @@ describe("authorization", () => {
   test("a token reaches only the packages it has a grant on", async () => {
     const alice = await seedPublisher("alice", ["tool", "other"]);
     await draft(alice, "alice/other");
-    const writer = await mint(alice, [{ package: "alice/tool", access: "write" }]);
+    const writer = await mint(alice, [
+      { package: "alice/tool", access: "write" },
+    ]);
     expect((await writer.call("GET", "/packages/alice/other/versions")).status).toBe(403);
     expect((await writer.call("POST", "/packages/alice/other/versions", { version: "2.0.0" })).status).toBe(403);
     expect((await writer.put("/packages/alice/other/versions/1.0.0/assets/tool", bytesOf(10))).status).toBe(403);
@@ -877,7 +1090,12 @@ describe("authorization", () => {
     await draft(alice, "alice/tool");
     await db.update(registryNamespaces).set({ status: "suspended" }).where(eq(registryNamespaces.slug, "alice")).run();
     const { body, seen } = refusedBody();
-    await expectError(await alice.put("/packages/alice/tool/versions/1.0.0/assets/tool", body, { length: 10, query: { sha256: "0".repeat(64) } }), 403, "NAMESPACE_SUSPENDED");
+    await expectError(await alice.put("/packages/alice/tool/versions/1.0.0/assets/tool", body, {
+      length: 10,
+      query: {
+        sha256: "0".repeat(64),
+      },
+    }), 403, "NAMESPACE_SUSPENDED");
     expect(seen).toEqual({ drained: true, cancelled: false });
     await expectError(await alice.call("POST", "/packages/alice/tool/versions", { version: "2.0.0" }), 403, "NAMESPACE_SUSPENDED");
     expect((await alice.call("GET", "/packages/alice/tool/versions")).status).toBe(200);
@@ -887,7 +1105,9 @@ describe("authorization", () => {
 describe("audit", () => {
   test("every mutation is recorded, with the token id for a token request", async () => {
     const alice = await seedPublisher("alice", ["tool"]);
-    const manager = await mint(alice, [{ package: "alice/tool", access: "admin" }]);
+    const manager = await mint(alice, [
+      { package: "alice/tool", access: "admin" },
+    ]);
     await db.delete(auditEvents).run();
 
     await draft(manager, "alice/tool", "1.0.0");

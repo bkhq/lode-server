@@ -10,7 +10,13 @@ export interface SettingRow {
   readonly updatedAt: string;
 }
 
-const SENSITIVE_SUFFIXES = [".secret", ".api_key", ".password", ".client_secret", ".token"];
+const SENSITIVE_SUFFIXES = [
+  ".secret",
+  ".api_key",
+  ".password",
+  ".client_secret",
+  ".token",
+];
 export const MASKED_VALUE = "******";
 
 export function isSensitiveKey(key: string): boolean {
@@ -40,7 +46,9 @@ export function maskSensitiveValue(row: SettingRow): SettingRow {
 }
 
 export function maskValue(key: string, value: string): string {
-  return isSensitiveKey(key) ? MASKED_VALUE : value;
+  return isSensitiveKey(key)
+    ? MASKED_VALUE
+    : value;
 }
 
 export async function setSetting(

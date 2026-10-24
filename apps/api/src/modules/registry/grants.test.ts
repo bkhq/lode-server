@@ -33,7 +33,14 @@ import "@/modules/account";
 // A raw 32-byte ed25519 public key, base64url.
 const KEY = "BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc";
 
-const noop = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
+const noop = {
+  debug() {},
+  info() {},
+  warn() {},
+  error() {},
+  fatal() {},
+  flush() {},
+} as unknown as Logger;
 
 let dir: string;
 let db: AppDatabase;
@@ -79,15 +86,30 @@ function caller(headers: Record<string, string>): Call {
   return async (method, path, body) => await app().request(`/api/registry${path}`, {
     method,
     headers: { ...headers, "Content-Type": "application/json" },
-    ...(body !== undefined && { body: JSON.stringify(body) }),
+    ...(body !== undefined && {
+      body: JSON.stringify(body),
+    }),
   });
 }
 
 async function seedUser(id: string, role: "user" | "admin" = "user"): Promise<Client> {
   const now = new Date().toISOString();
-  await db.insert(users).values({ id, oauthSub: `sub-${id}`, username: id, name: id, email: `${id}@t.io`, role, status: "active", createdAt: now, updatedAt: now }).run();
+  await db.insert(users).values({
+    id,
+    oauthSub: `sub-${id}`,
+    username: id,
+    name: id,
+    email: `${id}@t.io`,
+    role,
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  }).run();
   const session = await createSession(db, id, "access", undefined, 3600);
-  return { id, call: caller({ Cookie: `session_id=${session}` }) };
+  return {
+    id,
+    call: caller({ Cookie: `session_id=${session}` }),
+  };
 }
 
 /**
@@ -121,7 +143,11 @@ async function mint(owner: Client, grants: unknown, extra: Record<string, unknow
   const res = await owner.call("POST", "/tokens", { name: "ci", grants, ...extra });
   expect(res.status).toBe(201);
   const created = await data<{ id: string; token: string }>(res);
-  return { id: created.id, secret: created.token, call: caller({ Authorization: `Bearer ${created.token}` }) };
+  return {
+    id: created.id,
+    secret: created.token,
+    call: caller({ Authorization: `Bearer ${created.token}` }),
+  };
 }
 
 async function scopesOf(tokenId: string): Promise<string[]> {
@@ -136,15 +162,33 @@ async function packageId(slug: string): Promise<string> {
 async function seedStorage(pkg: string, assetSize: number, uploadSize: number): Promise<void> {
   const versionId = `v-${pkg}`;
   await db.insert(registryVersions).values({ id: versionId, packageId: await packageId(pkg), version: "1.0.0" }).run();
-  await db.insert(registryAssets).values({ id: `a-${pkg}`, versionId, name: "bin", size: assetSize, sha256: "0".repeat(64), blobKey: `k-${pkg}` }).run();
-  await db.insert(registryUploads).values({ id: `u-${pkg}`, versionId, assetName: "big", size: uploadSize, sha256: "0".repeat(64), r2UploadId: "r2", expiresAt: new Date(Date.now() + 60_000).toISOString() }).run();
+  await db.insert(registryAssets).values({
+    id: `a-${pkg}`,
+    versionId,
+    name: "bin",
+    size: assetSize,
+    sha256: "0".repeat(64),
+    blobKey: `k-${pkg}`,
+  }).run();
+  await db.insert(registryUploads).values({
+    id: `u-${pkg}`,
+    versionId,
+    assetName: "big",
+    size: uploadSize,
+    sha256: "0".repeat(64),
+    r2UploadId: "r2",
+    expiresAt: new Date(Date.now() + 60_000).toISOString(),
+  }).run();
 }
 
 describe("token scopes", () => {
   test("scopes follow the highest level granted", () => {
     expect(deriveScopes([])).toEqual([]);
     expect(deriveScopes({ all: "read" })).toEqual(["packages:read"]);
-    expect(deriveScopes([{ package: "a/b", access: "read" }, { package: "a/c", access: "write" }])).toEqual(["packages:read", "packages:write"]);
+    expect(deriveScopes([
+      { package: "a/b", access: "read" },
+      { package: "a/c", access: "write" },
+    ])).toEqual(["packages:read", "packages:write"]);
     expect(deriveScopes({ all: "admin" })).toEqual(["packages:read", "packages:write", "packages:admin"]);
   });
 
@@ -184,13 +228,21 @@ describe("token scopes", () => {
     const scopes = deriveScopes({ all: "read" });
     for (const [method, path] of reads)
       expect(`${method} ${path} ${tokenScopesAllow(scopes, method, path)}`).toBe(`${method} ${path} true`);
-    for (const [method, path] of [...release, ...manage, ...keys])
+    for (const [method, path] of [
+      ...release,
+      ...manage,
+      ...keys,
+    ])
       expect(`${method} ${path} ${tokenScopesAllow(scopes, method, path)}`).toBe(`${method} ${path} false`);
   });
 
   test("a write grant releases, registers signing keys and cannot change settings, yank or restore", () => {
     const scopes = deriveScopes({ all: "write" });
-    for (const [method, path] of [...reads, ...release, ...keys])
+    for (const [method, path] of [
+      ...reads,
+      ...release,
+      ...keys,
+    ])
       expect(`${method} ${path} ${tokenScopesAllow(scopes, method, path)}`).toBe(`${method} ${path} true`);
     for (const [method, path] of manage)
       expect(`${method} ${path} ${tokenScopesAllow(scopes, method, path)}`).toBe(`${method} ${path} false`);
@@ -198,7 +250,11 @@ describe("token scopes", () => {
 
   test("an admin grant manages, and no scope opens a session-only route", () => {
     const scopes = deriveScopes({ all: "admin" });
-    for (const [method, path] of [...reads, ...release, ...manage])
+    for (const [method, path] of [
+      ...reads,
+      ...release,
+      ...manage,
+    ])
       expect(`${method} ${path} ${tokenScopesAllow(scopes, method, path)}`).toBe(`${method} ${path} true`);
     const sessionOnly: (readonly [string, string])[] = [
       ["POST", "/registry/packages"],
@@ -228,7 +284,10 @@ describe("token management", () => {
     const res = await alice.call("POST", "/tokens", {
       name: "ci",
       expires_at: expires,
-      grants: [{ package: "alice/tool", access: "write" }, { package: "alice/lib", access: "read" }],
+      grants: [
+        { package: "alice/tool", access: "write" },
+        { package: "alice/lib", access: "read" },
+      ],
     });
     expect(res.status).toBe(201);
     const created = await data<{ id: string; token: string }>(res);
@@ -237,7 +296,10 @@ describe("token management", () => {
       id: created.id,
       user_id: alice.id,
       name: "ci",
-      grants: [{ package: "alice/lib", access: "read" }, { package: "alice/tool", access: "write" }],
+      grants: [
+        { package: "alice/lib", access: "read" },
+        { package: "alice/tool", access: "write" },
+      ],
       expires_at: expires,
       last_used_at: null,
     };
@@ -253,18 +315,35 @@ describe("token management", () => {
   test("an all-packages grant is one row with no package", async () => {
     const alice = await seedPublisher("alice", ["tool"]);
     const token = await mint(alice, { all: "admin" });
-    expect(await db.select().from(registryTokenGrants).all()).toEqual([{ tokenId: token.id, packageId: null, access: "admin" }]);
-    expect(await data<unknown[]>(await alice.call("GET", "/tokens"))).toMatchObject([{ grants: { all: "admin" } }]);
+    expect(await db.select().from(registryTokenGrants).all()).toEqual([
+      { tokenId: token.id, packageId: null, access: "admin" },
+    ]);
+    expect(await data<unknown[]>(await alice.call("GET", "/tokens"))).toMatchObject([
+      {
+        grants: { all: "admin" },
+      },
+    ]);
     expect(await scopesOf(token.id)).toEqual(["packages:read", "packages:write", "packages:admin"]);
   });
 
   test("replacing grants keeps the secret and derives the scopes again", async () => {
     const alice = await seedPublisher("alice", ["tool", "lib"]);
-    const token = await mint(alice, [{ package: "alice/tool", access: "admin" }]);
+    const token = await mint(alice, [
+      { package: "alice/tool", access: "admin" },
+    ]);
     expect((await token.call("PATCH", "/packages/alice/tool", { description: "x" })).status).toBe(200);
 
-    const res = await alice.call("PUT", `/tokens/${token.id}`, { grants: [{ package: "alice/lib", access: "read" }] });
-    expect(await data(res)).toMatchObject({ id: token.id, grants: [{ package: "alice/lib", access: "read" }] });
+    const res = await alice.call("PUT", `/tokens/${token.id}`, {
+      grants: [
+        { package: "alice/lib", access: "read" },
+      ],
+    });
+    expect(await data(res)).toMatchObject({
+      id: token.id,
+      grants: [
+        { package: "alice/lib", access: "read" },
+      ],
+    });
     expect(await scopesOf(token.id)).toEqual(["packages:read"]);
 
     // The same secret, now with the new grants only.
@@ -276,37 +355,79 @@ describe("token management", () => {
   test("replacing grants leaves a token's other scopes alone", async () => {
     const alice = await seedPublisher("alice", ["tool"]);
     const token = await mint(alice, { all: "write" });
-    await db.update(apiTokens).set({ scopes: JSON.stringify(["account:read", "packages:read", "packages:write"]) }).run();
-    await alice.call("PUT", `/tokens/${token.id}`, { grants: { all: "read" } });
+    await db.update(apiTokens).set({
+      scopes: JSON.stringify(["account:read", "packages:read", "packages:write"]),
+    }).run();
+    await alice.call("PUT", `/tokens/${token.id}`, {
+      grants: { all: "read" },
+    });
     expect(await scopesOf(token.id)).toEqual(["account:read", "packages:read"]);
   });
 
   test("a token can be renamed with its grants", async () => {
     const alice = await seedPublisher("alice", ["tool"]);
     const token = await mint(alice, { all: "read" });
-    const res = await alice.call("PUT", `/tokens/${token.id}`, { name: "  deploy  ", grants: { all: "read" } });
+    const res = await alice.call("PUT", `/tokens/${token.id}`, {
+      name: "  deploy  ",
+      grants: { all: "read" },
+    });
     expect(await data(res)).toMatchObject({ id: token.id, name: "deploy" });
     expect((await token.call("GET", "/packages/alice/tool")).status).toBe(200);
 
-    for (const name of ["", "   ", "x".repeat(101)])
-      expect((await alice.call("PUT", `/tokens/${token.id}`, { name, grants: { all: "read" } })).status).toBe(422);
-    expect(await data<unknown[]>(await alice.call("GET", "/tokens"))).toMatchObject([{ name: "deploy" }]);
+    for (const name of [
+      "",
+      "   ",
+      "x".repeat(101),
+    ]) {
+      expect((await alice.call("PUT", `/tokens/${token.id}`, {
+        name,
+        grants: { all: "read" },
+      })).status).toBe(422);
+    }
+    expect(await data<unknown[]>(await alice.call("GET", "/tokens"))).toMatchObject([
+      { name: "deploy" },
+    ]);
   });
 
   test("a grant naming another user's package, or none at all, is refused", async () => {
     const alice = await seedPublisher("alice", ["tool"]);
     const bob = await seedPublisher("bob", ["mine"]);
     await alice.call("POST", "/packages", { slug: "open", name: "open", visibility: "public" });
-    const token = await mint(bob, [{ package: "bob/mine", access: "read" }]);
+    const token = await mint(bob, [
+      { package: "bob/mine", access: "read" },
+    ]);
 
-    for (const pkg of ["alice/tool", "alice/open", "alice/nope", "nobody/x", "bob", "bob/mine/extra"]) {
-      const created = await bob.call("POST", "/tokens", { name: "x", grants: [{ package: pkg, access: "read" }] });
+    for (const pkg of [
+      "alice/tool",
+      "alice/open",
+      "alice/nope",
+      "nobody/x",
+      "bob",
+      "bob/mine/extra",
+    ]) {
+      const created = await bob.call("POST", "/tokens", {
+        name: "x",
+        grants: [
+          { package: pkg, access: "read" },
+        ],
+      });
       expect(`${pkg} ${created.status} ${await errorCode(created)}`).toBe(`${pkg} 422 INVALID_GRANT`);
-      const replaced = await bob.call("PUT", `/tokens/${token.id}`, { grants: [{ package: pkg, access: "read" }] });
+      const replaced = await bob.call("PUT", `/tokens/${token.id}`, {
+        grants: [
+          { package: pkg, access: "read" },
+        ],
+      });
       expect(`${pkg} ${replaced.status}`).toBe(`${pkg} 422`);
     }
     // Nothing was created or changed on the way.
-    expect(await data<unknown[]>(await bob.call("GET", "/tokens"))).toMatchObject([{ id: token.id, grants: [{ package: "bob/mine", access: "read" }] }]);
+    expect(await data<unknown[]>(await bob.call("GET", "/tokens"))).toMatchObject([
+      {
+        id: token.id,
+        grants: [
+          { package: "bob/mine", access: "read" },
+        ],
+      },
+    ]);
   });
 
   test("malformed grants are refused", async () => {
@@ -314,8 +435,13 @@ describe("token management", () => {
     const bad = [
       { all: "owner" },
       { all: "read", extra: 1 },
-      [{ package: "alice/tool", access: "owner" }],
-      [{ package: "alice/tool", access: "read" }, { package: "alice/tool", access: "write" }],
+      [
+        { package: "alice/tool", access: "owner" },
+      ],
+      [
+        { package: "alice/tool", access: "read" },
+        { package: "alice/tool", access: "write" },
+      ],
       "read",
     ];
     for (const grants of bad)
@@ -328,7 +454,9 @@ describe("token management", () => {
     const alice = await seedPublisher("alice", ["tool"]);
     const bob = await seedPublisher("bob", ["mine"]);
     const token = await mint(alice, { all: "read" });
-    expect((await bob.call("PUT", `/tokens/${token.id}`, { grants: { all: "admin" } })).status).toBe(404);
+    expect((await bob.call("PUT", `/tokens/${token.id}`, {
+      grants: { all: "admin" },
+    })).status).toBe(404);
     expect((await bob.call("DELETE", `/tokens/${token.id}`)).status).toBe(404);
     expect(await data<unknown[]>(await bob.call("GET", "/tokens"))).toEqual([]);
     expect((await token.call("GET", "/packages/alice/tool")).status).toBe(200);
@@ -345,15 +473,45 @@ describe("token management", () => {
   test("token mutations are audited", async () => {
     const alice = await seedPublisher("alice", ["tool"]);
     const token = await mint(alice, { all: "read" });
-    await alice.call("PUT", `/tokens/${token.id}`, { grants: [{ package: "alice/tool", access: "write" }] });
-    await alice.call("PUT", `/tokens/${token.id}`, { name: "renamed", grants: [{ package: "alice/tool", access: "write" }] });
+    await alice.call("PUT", `/tokens/${token.id}`, {
+      grants: [
+        { package: "alice/tool", access: "write" },
+      ],
+    });
+    await alice.call("PUT", `/tokens/${token.id}`, {
+      name: "renamed",
+      grants: [
+        { package: "alice/tool", access: "write" },
+      ],
+    });
     await alice.call("DELETE", `/tokens/${token.id}`);
     const events = (await db.select().from(auditEvents).all()).filter(e => e.action.startsWith("registry.token."));
-    expect(events.map(e => e.action)).toEqual(["registry.token.created", "registry.token.grants_replaced", "registry.token.grants_replaced", "registry.token.revoked"]);
-    for (const event of events)
-      expect(event).toMatchObject({ actorId: alice.id, resourceType: "api_token", resourceId: token.id, result: "success" });
-    expect(JSON.parse(events[1]!.detail!)).toEqual({ grants: [{ package: "alice/tool", access: "write" }] });
-    expect(JSON.parse(events[2]!.detail!)).toEqual({ grants: [{ package: "alice/tool", access: "write" }], name: "renamed", previous_name: events[0]!.resourceName });
+    expect(events.map(e => e.action)).toEqual([
+      "registry.token.created",
+      "registry.token.grants_replaced",
+      "registry.token.grants_replaced",
+      "registry.token.revoked",
+    ]);
+    for (const event of events) {
+      expect(event).toMatchObject({
+        actorId: alice.id,
+        resourceType: "api_token",
+        resourceId: token.id,
+        result: "success",
+      });
+    }
+    expect(JSON.parse(events[1]!.detail!)).toEqual({
+      grants: [
+        { package: "alice/tool", access: "write" },
+      ],
+    });
+    expect(JSON.parse(events[2]!.detail!)).toEqual({
+      grants: [
+        { package: "alice/tool", access: "write" },
+      ],
+      name: "renamed",
+      previous_name: events[0]!.resourceName,
+    });
   });
 });
 
@@ -361,7 +519,9 @@ describe("grant check", () => {
   test("a token is refused on a package it has no grant for", async () => {
     const alice = await seedPublisher("alice", ["tool", "other"]);
     await alice.call("POST", "/packages", { slug: "open", name: "open", visibility: "public" });
-    const token = await mint(alice, [{ package: "alice/tool", access: "admin" }]);
+    const token = await mint(alice, [
+      { package: "alice/tool", access: "admin" },
+    ]);
 
     expect((await token.call("GET", "/packages/alice/tool")).status).toBe(200);
     // Private and not granted: as if it did not exist. Public: refused.
@@ -386,12 +546,16 @@ describe("grant check", () => {
   test("read and write grants cannot change settings; an admin grant can, but cannot delete", async () => {
     const alice = await seedPublisher("alice", ["tool"]);
     for (const level of ["read", "write"] as const) {
-      const token = await mint(alice, [{ package: "alice/tool", access: level }]);
+      const token = await mint(alice, [
+        { package: "alice/tool", access: level },
+      ]);
       expect((await token.call("GET", "/packages/alice/tool")).status).toBe(200);
       expect((await token.call("PATCH", "/packages/alice/tool", { description: "x" })).status).toBe(403);
       expect((await token.call("DELETE", "/packages/alice/tool")).status).toBe(403);
     }
-    const admin = await mint(alice, [{ package: "alice/tool", access: "admin" }]);
+    const admin = await mint(alice, [
+      { package: "alice/tool", access: "admin" },
+    ]);
     expect(await data(await admin.call("PATCH", "/packages/alice/tool", { description: "by token" }))).toMatchObject({ description: "by token" });
     expect((await admin.call("DELETE", "/packages/alice/tool")).status).toBe(403);
     expect(await db.select().from(registryPackages).all()).toHaveLength(1);
@@ -401,7 +565,10 @@ describe("grant check", () => {
     // One admin grant gives the token the packages:admin scope; the grant
     // check still holds the other package at read.
     const alice = await seedPublisher("alice", ["tool", "lib"]);
-    const token = await mint(alice, [{ package: "alice/tool", access: "admin" }, { package: "alice/lib", access: "read" }]);
+    const token = await mint(alice, [
+      { package: "alice/tool", access: "admin" },
+      { package: "alice/lib", access: "read" },
+    ]);
     expect((await token.call("PATCH", "/packages/alice/tool", { description: "x" })).status).toBe(200);
     expect((await token.call("PATCH", "/packages/alice/lib", { description: "x" })).status).toBe(403);
   });
@@ -429,7 +596,9 @@ describe("grant check", () => {
       ["DELETE", `/admin/tokens/${token.id}`],
     ];
     for (const [method, path] of routes) {
-      const res = await token.call(method, path, method === "GET" || method === "DELETE" ? undefined : {});
+      const res = await token.call(method, path, method === "GET" || method === "DELETE"
+        ? undefined
+        : {});
       expect(`${method} ${path} ${res.status}`).toBe(`${method} ${path} 403`);
     }
     // The token and the package are still there.
@@ -452,7 +621,9 @@ describe("grant check", () => {
     expect((await data<{ slug: string }[]>(await all.call("GET", "/packages"))).map(p => p.slug)).toEqual(["mine"]);
 
     // An administrator may name any package in a grant.
-    const named = await mint(root, [{ package: "alice/tool", access: "read" }]);
+    const named = await mint(root, [
+      { package: "alice/tool", access: "read" },
+    ]);
     expect((await named.call("GET", "/packages/alice/tool")).status).toBe(200);
     expect((await data<{ namespace: string }[]>(await named.call("GET", "/packages"))).map(p => p.namespace)).toEqual(["alice"]);
     expect(alice.id).toBe("alice");
@@ -460,10 +631,21 @@ describe("grant check", () => {
 
   test("a grant disappears with its package", async () => {
     const alice = await seedPublisher("alice", ["tool", "lib"]);
-    const token = await mint(alice, [{ package: "alice/tool", access: "write" }, { package: "alice/lib", access: "read" }]);
+    const token = await mint(alice, [
+      { package: "alice/tool", access: "write" },
+      { package: "alice/lib", access: "read" },
+    ]);
     expect((await alice.call("DELETE", "/packages/alice/tool")).status).toBe(200);
-    expect(await db.select().from(registryTokenGrants).all()).toEqual([{ tokenId: token.id, packageId: await packageId("lib"), access: "read" }]);
-    expect(await data<unknown[]>(await alice.call("GET", "/tokens"))).toMatchObject([{ grants: [{ package: "alice/lib", access: "read" }] }]);
+    expect(await db.select().from(registryTokenGrants).all()).toEqual([
+      { tokenId: token.id, packageId: await packageId("lib"), access: "read" },
+    ]);
+    expect(await data<unknown[]>(await alice.call("GET", "/tokens"))).toMatchObject([
+      {
+        grants: [
+          { package: "alice/lib", access: "read" },
+        ],
+      },
+    ]);
 
     // A package of the same slug created later is not covered by the old grant.
     expect((await alice.call("POST", "/packages", { slug: "tool", name: "tool", visibility: "private" })).status).toBe(201);
@@ -474,8 +656,15 @@ describe("grant check", () => {
     const alice = await seedPublisher("alice", ["tool"]);
     const token = await mint(alice, { all: "admin" });
     await db.update(registryNamespaces).set({ status: "suspended" }).run();
-    for (const [method, path] of [["GET", "/packages"], ["GET", "/packages/alice/tool"], ["PATCH", "/packages/alice/tool"], ["GET", "/packages/alice/nope"]] as const) {
-      const res = await token.call(method, path, method === "PATCH" ? { description: "x" } : undefined);
+    for (const [method, path] of [
+      ["GET", "/packages"],
+      ["GET", "/packages/alice/tool"],
+      ["PATCH", "/packages/alice/tool"],
+      ["GET", "/packages/alice/nope"],
+    ] as const) {
+      const res = await token.call(method, path, method === "PATCH"
+        ? { description: "x" }
+        : undefined);
       expect(`${method} ${path} ${res.status} ${await errorCode(res)}`).toBe(`${method} ${path} 403 NAMESPACE_SUSPENDED`);
     }
     expect(await resolveReadToken(db, `Bearer ${token.secret}`, await packageId("tool"))).toBe(false);
@@ -511,7 +700,9 @@ describe("signing keys through a token", () => {
 
   test("a write grant registers the package's keys, and cannot revoke one", async () => {
     const alice = await seedPublisher("alice", ["tool"]);
-    const token = await mint(alice, [{ package: "alice/tool", access: "write" }]);
+    const token = await mint(alice, [
+      { package: "alice/tool", access: "write" },
+    ]);
 
     const created = await token.call("POST", TOOL, { public_key: KEY, name: "ci" });
     expect(created.status).toBe(201);
@@ -533,7 +724,9 @@ describe("signing keys through a token", () => {
     expect((await reader.call("GET", TOOL)).status).toBe(200);
 
     // A private package the token has no grant on does not exist to it.
-    const elsewhere = await mint(alice, [{ package: "alice/lib", access: "admin" }]);
+    const elsewhere = await mint(alice, [
+      { package: "alice/lib", access: "admin" },
+    ]);
     expect((await elsewhere.call("POST", TOOL, { public_key: KEY, name: "ci" })).status).toBe(404);
     expect((await elsewhere.call("GET", TOOL)).status).toBe(404);
     expect((await elsewhere.call("POST", "/packages/alice/lib/keys", { public_key: KEY, name: "ci" })).status).toBe(201);
@@ -560,11 +753,15 @@ describe("a user without a namespace yet", () => {
     const carol = await seedUser("carol");
     const root = await seedUser("root1", "admin");
     expect(await data<unknown>(await carol.call("GET", "/packages"))).toEqual([]);
-    expect(await data(await carol.call("GET", "/quota"))).toMatchObject({ usage: { packages: 0, storage_bytes: 0 } });
+    expect(await data(await carol.call("GET", "/quota"))).toMatchObject({
+      usage: { packages: 0, storage_bytes: 0 },
+    });
     expect(await data<unknown>(await carol.call("GET", "/tokens"))).toEqual([]);
     expect(await data<unknown>(await root.call("GET", "/admin/namespaces"))).toEqual([]);
     expect(await data<unknown>(await root.call("GET", "/admin/packages"))).toEqual([]);
-    expect(await data(await root.call("GET", "/admin/users/carol/quota"))).toMatchObject({ usage: { packages: 0, storage_bytes: 0 } });
+    expect(await data(await root.call("GET", "/admin/users/carol/quota"))).toMatchObject({
+      usage: { packages: 0, storage_bytes: 0 },
+    });
     expect(await db.select().from(registryNamespaces).all()).toEqual([]);
   });
 
@@ -581,7 +778,12 @@ describe("a user without a namespace yet", () => {
 
   test("a grant cannot name a package under a namespace that does not exist", async () => {
     const carol = await seedUser("carol");
-    const res = await carol.call("POST", "/tokens", { name: "x", grants: [{ package: "carol/tool", access: "read" }] });
+    const res = await carol.call("POST", "/tokens", {
+      name: "x",
+      grants: [
+        { package: "carol/tool", access: "read" },
+      ],
+    });
     expect(`${res.status} ${await errorCode(res)}`).toBe("422 INVALID_GRANT");
   });
 });
@@ -591,7 +793,9 @@ describe("resolveReadToken", () => {
     const alice = await seedPublisher("alice", ["tool", "other"]);
     const bob = await seedPublisher("bob", ["mine"]);
     const tool = await packageId("tool");
-    const named = await mint(alice, [{ package: "alice/tool", access: "read" }]);
+    const named = await mint(alice, [
+      { package: "alice/tool", access: "read" },
+    ]);
     const all = await mint(alice, { all: "write" });
     const none = await mint(alice, []);
     const foreign = await mint(bob, { all: "admin" });
@@ -617,7 +821,13 @@ describe("private packages", () => {
     await seedPublisher("alice", ["secret"]);
     const bob = await seedPublisher("bob", ["mine"]);
     const token = await mint(bob, { all: "admin" });
-    for (const [method, body] of [["GET", undefined], ["PATCH", { description: "x" }]] as const) {
+    for (const [method, body] of [
+      ["GET", undefined],
+      [
+        "PATCH",
+        { description: "x" },
+      ],
+    ] as const) {
       const hidden = await token.call(method, "/packages/alice/secret", body);
       const missing = await token.call(method, "/packages/alice/nope", body);
       expect(`${method} ${hidden.status}`).toBe(`${method} 404`);
@@ -635,8 +845,16 @@ describe("suspended namespace", () => {
     expect((await alice.call("GET", "/packages")).status).toBe(200);
     expect((await alice.call("GET", "/packages/alice/tool")).status).toBe(200);
     for (const [method, path, body] of [
-      ["POST", "/packages", { slug: "more", name: "more" }],
-      ["PATCH", "/packages/alice/tool", { description: "x" }],
+      [
+        "POST",
+        "/packages",
+        { slug: "more", name: "more" },
+      ],
+      [
+        "PATCH",
+        "/packages/alice/tool",
+        { description: "x" },
+      ],
       ["DELETE", "/packages/alice/tool", undefined],
     ] as const) {
       const res = await alice.call(method, path, body);
@@ -673,7 +891,9 @@ describe("quota and usage", () => {
     expect(await getUsage(db, alice.id)).toEqual({ packages: 2, storageBytes: 1234 });
     expect(await getUsage(db, bob.id)).toEqual({ packages: 1, storageBytes: 7 });
     expect(await getUsage(db, "nobody")).toEqual({ packages: 0, storageBytes: 0 });
-    expect(await data(await alice.call("GET", "/quota"))).toMatchObject({ usage: { packages: 2, storage_bytes: 1234 } });
+    expect(await data(await alice.call("GET", "/quota"))).toMatchObject({
+      usage: { packages: 2, storage_bytes: 1234 },
+    });
   });
 
   test("an upload is refused before it starts when it is too large or over quota", async () => {
@@ -696,7 +916,11 @@ describe("platform administration", () => {
     ["POST", "/admin/namespaces/alice/restore"],
     ["GET", "/admin/packages"],
     ["GET", "/admin/users/alice/quota"],
-    ["PUT", "/admin/users/alice/quota", { max_packages: 99 }],
+    [
+      "PUT",
+      "/admin/users/alice/quota",
+      { max_packages: 99 },
+    ],
     ["GET", "/admin/tokens"],
     ["DELETE", "/admin/tokens/t1"],
   ];
@@ -724,12 +948,38 @@ describe("platform administration", () => {
 
     const owner = { id: "alice", username: "alice", name: "alice" };
     expect(await data(await root.call("GET", "/admin/namespaces"))).toMatchObject([
-      { slug: "alice", status: "active", owner, packages: 2, storage_bytes: 1200 },
-      { slug: "bob", status: "active", owner: { id: "bob" }, packages: 0, storage_bytes: 0 },
+      {
+        slug: "alice",
+        status: "active",
+        owner,
+        packages: 2,
+        storage_bytes: 1200,
+      },
+      {
+        slug: "bob",
+        status: "active",
+        owner: { id: "bob" },
+        packages: 0,
+        storage_bytes: 0,
+      },
     ]);
     expect(await data(await root.call("GET", "/admin/packages"))).toMatchObject([
-      { namespace: "alice", slug: "lib", name: "The lib", visibility: "private", owner, storage_bytes: 0 },
-      { namespace: "alice", slug: "tool", name: "The tool", visibility: "private", owner, storage_bytes: 1200 },
+      {
+        namespace: "alice",
+        slug: "lib",
+        name: "The lib",
+        visibility: "private",
+        owner,
+        storage_bytes: 0,
+      },
+      {
+        namespace: "alice",
+        slug: "tool",
+        name: "The tool",
+        visibility: "private",
+        owner,
+        storage_bytes: 1200,
+      },
     ]);
   });
 
@@ -767,27 +1017,45 @@ describe("platform administration", () => {
     });
     expect((await alice.call("POST", "/packages", { slug: "four", name: "four" })).status).toBe(201);
     expect((await alice.call("POST", "/packages", { slug: "five", name: "five" })).status).toBe(409);
-    expect(await data(await alice.call("GET", "/quota"))).toMatchObject({ limits: { max_packages: 4 }, usage: { packages: 4 } });
+    expect(await data(await alice.call("GET", "/quota"))).toMatchObject({
+      limits: { max_packages: 4 },
+      usage: { packages: 4 },
+    });
 
     // Lowering it below what is held refuses new packages and keeps the old.
     await root.call("PUT", "/admin/users/alice/quota", { max_packages: 1 });
     expect((await alice.call("POST", "/packages", { slug: "five", name: "five" })).status).toBe(409);
-    expect(await data(await root.call("GET", "/admin/users/alice/quota"))).toMatchObject({ override: { max_packages: 1 }, usage: { packages: 4 } });
+    expect(await data(await root.call("GET", "/admin/users/alice/quota"))).toMatchObject({
+      override: { max_packages: 1 },
+      usage: { packages: 4 },
+    });
 
     // Nulls clear the override: the row goes and the defaults apply again.
     expect(await data(await root.call("PUT", "/admin/users/alice/quota", { max_packages: null, max_storage_bytes: null, max_asset_bytes: null })))
-      .toMatchObject({ override: { max_packages: null }, limits: { max_packages: 3 } });
+      .toMatchObject({
+        override: { max_packages: null },
+        limits: { max_packages: 3 },
+      });
     expect(await db.select().from(registryQuotas).all()).toEqual([]);
 
     const event = (await db.select().from(auditEvents).where(eq(auditEvents.action, "registry.quota.updated")).all())[0]!;
     expect(event).toMatchObject({ actorId: root.id, resourceId: alice.id });
-    expect(JSON.parse(event.detail!)).toEqual({ owner_user_id: alice.id, override: { max_packages: 4, max_storage_bytes: null, max_asset_bytes: null } });
+    expect(JSON.parse(event.detail!)).toEqual({
+      owner_user_id: alice.id,
+      override: { max_packages: 4, max_storage_bytes: null, max_asset_bytes: null },
+    });
   });
 
   test("quota input is validated", async () => {
     await seedPublisher("alice");
     const root = await seedUser("root1", "admin");
-    for (const body of [{ max_asset_bytes: 524288001 }, { max_packages: -1 }, { max_packages: 1.5 }, { max_storage_bytes: "1" }, { unknown: 1 }])
+    for (const body of [
+      { max_asset_bytes: 524288001 },
+      { max_packages: -1 },
+      { max_packages: 1.5 },
+      { max_storage_bytes: "1" },
+      { unknown: 1 },
+    ])
       expect((await root.call("PUT", "/admin/users/alice/quota", body)).status).toBe(422);
     expect((await root.call("PUT", "/admin/users/nobody/quota", { max_packages: 1 })).status).toBe(404);
     expect((await root.call("GET", "/admin/users/nobody/quota")).status).toBe(404);
@@ -797,16 +1065,30 @@ describe("platform administration", () => {
     const alice = await seedPublisher("alice", ["tool"]);
     const bob = await seedPublisher("bob", ["mine"]);
     const root = await seedUser("root1", "admin");
-    const aliceToken = await mint(alice, [{ package: "alice/tool", access: "write" }]);
+    const aliceToken = await mint(alice, [
+      { package: "alice/tool", access: "write" },
+    ]);
     const bobToken = await mint(bob, { all: "read" });
 
     const all = await data<Record<string, unknown>[]>(await root.call("GET", "/admin/tokens"));
     expect(all).toMatchObject([
-      { id: aliceToken.id, user_id: alice.id, grants: [{ package: "alice/tool", access: "write" }] },
-      { id: bobToken.id, user_id: bob.id, grants: { all: "read" } },
+      {
+        id: aliceToken.id,
+        user_id: alice.id,
+        grants: [
+          { package: "alice/tool", access: "write" },
+        ],
+      },
+      {
+        id: bobToken.id,
+        user_id: bob.id,
+        grants: { all: "read" },
+      },
     ]);
     expect(JSON.stringify(all)).not.toContain(aliceToken.secret);
-    expect(await data(await root.call("GET", "/admin/tokens?user_id=bob"))).toMatchObject([{ id: bobToken.id }]);
+    expect(await data(await root.call("GET", "/admin/tokens?user_id=bob"))).toMatchObject([
+      { id: bobToken.id },
+    ]);
     expect(await data<unknown[]>(await root.call("GET", "/admin/tokens?user_id=nobody"))).toEqual([]);
 
     expect((await root.call("DELETE", `/admin/tokens/${aliceToken.id}`)).status).toBe(200);

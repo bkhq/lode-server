@@ -91,7 +91,10 @@ function reportRowsAffected(db: unknown, storage: DurableObjectStorage): void {
       run(placeholders);
       const row = storage.sql.exec("SELECT changes() AS n, last_insert_rowid() AS id").toArray()[0] as
         { n: number; id: number } | undefined;
-      return { rowsAffected: Number(row?.n ?? 0), lastInsertRowid: BigInt(row?.id ?? 0) };
+      return {
+        rowsAffected: Number(row?.n ?? 0),
+        lastInsertRowid: BigInt(row?.id ?? 0),
+      };
     };
     return query;
   };

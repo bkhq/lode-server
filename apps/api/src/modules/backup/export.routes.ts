@@ -59,7 +59,9 @@ export function backupExportRoutes() {
       const config = c.get("config");
 
       const authz = c.req.header("authorization") ?? "";
-      const token = authz.startsWith("Bearer ") ? authz.slice(7) : "";
+      const token = authz.startsWith("Bearer ")
+        ? authz.slice(7)
+        : "";
       const bucket = tokenBucketKey(token);
 
       // Already streaming for this token → reject loudly so a misbehaving
@@ -78,7 +80,10 @@ export function backupExportRoutes() {
           userAgent: c.req.header("user-agent") ?? "service-token",
           result: "failure",
         });
-        return c.json({ success: false, error: { code: "RATE_LIMITED", message: "Another export is in progress for this token." } }, 429);
+        return c.json({
+          success: false,
+          error: { code: "RATE_LIMITED", message: "Another export is in progress for this token." },
+        }, 429);
       }
 
       // Min-interval gate. Counted from the moment the previous export
@@ -103,13 +108,18 @@ export function backupExportRoutes() {
               userAgent: c.req.header("user-agent") ?? "service-token",
               result: "failure",
             });
-            return c.json({ success: false, error: { code: "RATE_LIMITED", message: `Backup export throttled. Retry after ${retryAfter}s.` } }, 429);
+            return c.json({
+              success: false,
+              error: { code: "RATE_LIMITED", message: `Backup export throttled. Retry after ${retryAfter}s.` },
+            }, 429);
           }
         }
       }
 
       backupExportInFlight.add(bucket);
-      const { modules, body } = streamJsonBackup(db, [...getModuleNames()]);
+      const { modules, body } = streamJsonBackup(db, [
+        ...getModuleNames(),
+      ]);
       const timestamp = new Date().toISOString().replace(RE_TIMESTAMP_CHARS, "-").slice(0, 19);
       await audit(db, c.get("logger"), {
         actorId: "system",
@@ -176,7 +186,10 @@ export function backupExportRoutes() {
       description: "Returns the available data modules and their dependencies. Admin only.",
       security: SECURITY.session,
       responses: {
-        ...jsonOk(z.array(z.object({ name: z.string(), deps: z.array(z.string()) })), "Available modules"),
+        ...jsonOk(z.array(z.object({
+          name: z.string(),
+          deps: z.array(z.string()),
+        })), "Available modules"),
         ...errors(401, 403),
       },
     }),

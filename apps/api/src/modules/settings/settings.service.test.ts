@@ -46,13 +46,23 @@ describe("isSensitiveKey", () => {
 
 describe("maskSensitiveValue / maskValue", () => {
   test("returns MASKED_VALUE for sensitive keys", () => {
-    const row = { key: "smtp.password", value: "real", updatedBy: null, updatedAt: "" };
+    const row = {
+      key: "smtp.password",
+      value: "real",
+      updatedBy: null,
+      updatedAt: "",
+    };
     expect(maskSensitiveValue(row).value).toBe(MASKED_VALUE);
     expect(maskValue("smtp.password", "real")).toBe(MASKED_VALUE);
   });
 
   test("returns the original row for non-sensitive keys", () => {
-    const row = { key: "smtp.host", value: "smtp.example.com", updatedBy: null, updatedAt: "" };
+    const row = {
+      key: "smtp.host",
+      value: "smtp.example.com",
+      updatedBy: null,
+      updatedAt: "",
+    };
     expect(maskSensitiveValue(row)).toBe(row);
     expect(maskValue("smtp.host", "smtp.example.com")).toBe("smtp.example.com");
   });

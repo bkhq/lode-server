@@ -7,12 +7,18 @@ beforeEach(() => {
   registerTokenScope({
     name: "issues:read",
     description: "Read issues",
-    routes: [{ method: "GET", path: "/issues" }, { method: "GET", path: "/issues/*" }],
+    routes: [
+      { method: "GET", path: "/issues" },
+      { method: "GET", path: "/issues/*" },
+    ],
   });
   registerTokenScope({
     name: "issues:write",
     description: "Change issues",
-    routes: [{ method: "POST", path: "/issues" }, { method: "PATCH", path: "/issues/:id" }],
+    routes: [
+      { method: "POST", path: "/issues" },
+      { method: "PATCH", path: "/issues/:id" },
+    ],
   });
 });
 afterEach(() => restore());

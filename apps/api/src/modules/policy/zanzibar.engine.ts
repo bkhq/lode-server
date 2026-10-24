@@ -103,7 +103,9 @@ export interface SubjectNode {
 }
 
 function formatTuple(ns: string, objId: string, rel: string, subNs: string, subId: string, subRel?: string | null): string {
-  const subject = subRel ? `${subNs}:${subId}#${subRel}` : `${subNs}:${subId}`;
+  const subject = subRel
+    ? `${subNs}:${subId}#${subRel}`
+    : `${subNs}:${subId}`;
   return `${ns}:${objId}#${rel}@${subject}`;
 }
 
@@ -139,7 +141,13 @@ export async function check(
   const budget = options.budget ?? makeBudget();
   const objectRows = options.objectRows ?? new Map<string, readonly TupleRow[]>();
   const { groupClosure } = options;
-  const recurse: CheckOptions = { depth: depth + 1, visited, budget, objectRows, ...(groupClosure && { groupClosure }) };
+  const recurse: CheckOptions = {
+    depth: depth + 1,
+    visited,
+    budget,
+    objectRows,
+    ...(groupClosure && { groupClosure }),
+  };
 
   if (depth > MAX_DEPTH) {
     return { allowed: false, resolvedThrough: [] };
@@ -160,7 +168,9 @@ export async function check(
   // Group membership lives in its own table; everything else is answered
   // from the object's single row fetch.
   const membership = isGroupMembership(namespace, relation);
-  const rows = membership ? [] : await rowsForObject(db, namespace, objectId, objectRows);
+  const rows = membership
+    ? []
+    : await rowsForObject(db, namespace, objectId, objectRows);
 
   // 1. Direct tuple match (subject_relation is the direct-subject sentinel;
   // group_members keeps NULL for the same meaning)
@@ -171,7 +181,9 @@ export async function check(
   if (direct) {
     return {
       allowed: true,
-      resolvedThrough: [formatTuple(namespace, objectId, relation, subjectNs, subjectId)],
+      resolvedThrough: [
+        formatTuple(namespace, objectId, relation, subjectNs, subjectId),
+      ],
     };
   }
 
@@ -186,7 +198,9 @@ export async function check(
       if (groupClosure.has(tuple.subjectId)) {
         return {
           allowed: true,
-          resolvedThrough: [formatTuple(namespace, objectId, relation, tuple.subjectNamespace, tuple.subjectId, tuple.subjectRelation)],
+          resolvedThrough: [
+            formatTuple(namespace, objectId, relation, tuple.subjectNamespace, tuple.subjectId, tuple.subjectRelation),
+          ],
         };
       }
       continue;

@@ -11,9 +11,13 @@ export const Route = createFileRoute("/_app/admin/users")({
 function UsersLayout() {
   const { t } = useTranslation(["common", "users"]);
   const navigate = useNavigate();
-  const pathname = useRouterState({ select: s => s.location.pathname });
+  const pathname = useRouterState({
+    select: s => s.location.pathname,
+  });
 
-  const currentTab = pathname.includes("/users/groups") ? "groups" : "users";
+  const currentTab = pathname.includes("/users/groups")
+    ? "groups"
+    : "users";
 
   const handleTabChange = (value: string | null) => {
     if (!value)

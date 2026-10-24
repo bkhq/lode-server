@@ -87,7 +87,9 @@ export function ResourceAttachmentSection({
     },
     onSuccess: () => {
       setDeleteTarget(null);
-      void qc.invalidateQueries({ queryKey: attachmentsQueryKey(resource, resourceId) });
+      void qc.invalidateQueries({
+        queryKey: attachmentsQueryKey(resource, resourceId),
+      });
     },
     onError: err => setError(errorMessage(err, t("common.error.deleteFailed"))),
   });
@@ -119,7 +121,9 @@ export function ResourceAttachmentSection({
                 <div
                   key={att.id}
                   className="group relative flex h-12 cursor-pointer items-center gap-2 overflow-hidden rounded-md border bg-card pr-2 transition-colors hover:bg-accent/20"
-                  onClick={() => (canPreview ? setPreviewTarget(att) : handleDownload(att))}
+                  onClick={() => (canPreview
+                    ? setPreviewTarget(att)
+                    : handleDownload(att))}
                   title={att.filename}
                 >
                   {isImage
@@ -297,7 +301,9 @@ function TextPreview({ url, i18nNs }: { readonly url: string; readonly i18nNs: s
   if (query.error || query.data === undefined) {
     return (
       <div className="flex h-[60vh] items-center justify-center text-sm text-destructive">
-        {query.error instanceof Error ? query.error.message : t("common.error.loadFailed")}
+        {query.error instanceof Error
+          ? query.error.message
+          : t("common.error.loadFailed")}
       </div>
     );
   }

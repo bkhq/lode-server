@@ -7,8 +7,12 @@ export const users = sqliteTable("users", {
   name: text("name").notNull(),
   email: text("email").notNull(),
   avatar: text("avatar"),
-  role: text("role", { enum: ["admin", "user"] }).notNull().default("user"),
-  status: text("status", { enum: ["active", "disabled"] }).notNull().default("active"),
+  role: text("role", {
+    enum: ["admin", "user"],
+  }).notNull().default("user"),
+  status: text("status", {
+    enum: ["active", "disabled"],
+  }).notNull().default("active"),
   // Set for accounts that sign in with a password (LOCAL_LOGIN): created by an
   // admin or seeded from the environment. Null for accounts that only sign in
   // through the identity provider. Never leaves the server.
@@ -29,7 +33,9 @@ export const userPreferences = sqliteTable("user_preferences", {
   value: text("value").notNull(),
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()).$onUpdateFn(() => new Date().toISOString()),
 }, t => [
-  primaryKey({ columns: [t.userId, t.key] }),
+  primaryKey({
+    columns: [t.userId, t.key],
+  }),
 ]);
 
 export const userTotpDevices = sqliteTable("user_totp_devices", {

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUpCircle, CheckCircle2, History, PauseCircle, PlayCircle, RefreshCw, RotateCcw, RotateCw, Settings2, XCircle } from "lucide-react";
-import { useState } from "react";
+import { ArrowUpCircle, CheckCircle2, History, PauseCircle, PlayCircle, RefreshCw, RotateCcw, RotateCw, SearchCheck, Settings2, XCircle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Badge } from "@/shared/components/ui/badge";
@@ -40,10 +40,19 @@ interface LodeHistoryEntry {
   readonly result: "good" | "bad";
 }
 
+interface LodeSupervisor {
+  readonly version: string;
+  readonly commit?: string | null;
+  readonly features?: readonly string[] | null;
+}
+
 interface LodeStatus {
   readonly supervised?: boolean | null;
   readonly active?: boolean | null;
   readonly stateAvailable?: boolean | null;
+  readonly supervisor?: LodeSupervisor | null;
+  readonly canCheck?: boolean | null;
+  readonly checkPending?: boolean | null;
   readonly status?: string | null;
   readonly current?: string | null;
   readonly lastGood?: string | null;
@@ -92,13 +101,35 @@ async function fetchVersion(): Promise<SystemVersion> {
 export function AboutSettingsTab() {
   const { t } = useTranslation("settings");
   const qc = useQueryClient();
-  const versionQuery = useQuery({ queryKey: versionQueryKey, queryFn: fetchVersion });
+  const versionQuery = useQuery({
+    queryKey: versionQueryKey,
+    queryFn: fetchVersion,
+    // Poll while lode works through an on-demand check (it answers within seconds).
+    refetchInterval: query => query.state.data?.lode?.checkPending
+      ? 2_000
+      : false,
+  });
   const [confirm, setConfirm] = useState<Confirmation | null>(null);
+  // Set when this tab requested a check, to announce its outcome once lode answers.
+  const awaitingCheckRef = useRef(false);
 
   const version = versionQuery.data;
+  const lode = version?.lode;
+
+  useEffect(() => {
+    if (!awaitingCheckRef.current || !lode || lode.checkPending)
+      return;
+    awaitingCheckRef.current = false;
+    if (lode.updateAvailable && lode.available)
+      toast.success(t("about.lode.updateFound", { version: lode.available }));
+    else
+      toast.success(t("about.lode.upToDate"));
+  }, [lode, t]);
 
   function onError(err: unknown) {
-    toast.error(err instanceof Error ? err.message : t("about.lode.actionFailed"));
+    toast.error(err instanceof Error
+      ? err.message
+      : t("about.lode.actionFailed"));
   }
   function onDone(message: string) {
     toast.success(message);
@@ -111,23 +142,44 @@ export function AboutSettingsTab() {
     onSuccess: () => onDone(t("about.lode.restartRequested")),
     onError,
   });
+  const checkMutation = useMutation({
+    mutationFn: () => http("/system/lode/check", { method: "POST" }),
+    onSuccess: () => {
+      awaitingCheckRef.current = true;
+      onDone(t("about.lode.checkRequested"));
+    },
+    onError,
+  });
   const updateMutation = useMutation({
-    mutationFn: (target: string) => http("/system/lode/update", { method: "POST", body: JSON.stringify({ target }) }),
+    mutationFn: (target: string) => http("/system/lode/update", {
+      method: "POST",
+      body: JSON.stringify({ target }),
+    }),
     onSuccess: (_d, target) => onDone(t("about.lode.updateRequested", { target })),
     onError,
   });
   const rollbackMutation = useMutation({
-    mutationFn: (target?: string) => http("/system/lode/rollback", { method: "POST", body: JSON.stringify(target ? { version: target } : {}) }),
+    mutationFn: (target?: string) => http("/system/lode/rollback", {
+      method: "POST",
+      body: JSON.stringify(target
+        ? { version: target }
+        : {}),
+    }),
     onSuccess: () => onDone(t("about.lode.rollbackRequested")),
     onError,
   });
   const holdMutation = useMutation({
-    mutationFn: (hold: boolean) => http("/system/lode/hold", { method: "POST", body: JSON.stringify({ hold }) }),
-    onSuccess: (_d, hold) => onDone(hold ? t("about.lode.holdSet") : t("about.lode.holdReleased")),
+    mutationFn: (hold: boolean) => http("/system/lode/hold", {
+      method: "POST",
+      body: JSON.stringify({ hold }),
+    }),
+    onSuccess: (_d, hold) => onDone(hold
+      ? t("about.lode.holdSet")
+      : t("about.lode.holdReleased")),
     onError,
   });
 
-  const pending = restartMutation.isPending || updateMutation.isPending || rollbackMutation.isPending || holdMutation.isPending;
+  const pending = restartMutation.isPending || checkMutation.isPending || updateMutation.isPending || rollbackMutation.isPending || holdMutation.isPending;
 
   function runConfirmed() {
     if (!confirm)
@@ -143,7 +195,10 @@ export function AboutSettingsTab() {
   return (
     <div className="space-y-4 pt-4">
       {versionQuery.error && (
-        <ErrorBanner message={versionQuery.error instanceof Error ? versionQuery.error.message : t("about.loadFailed")} />
+        <ErrorBanner message={versionQuery.error instanceof Error
+          ? versionQuery.error.message
+          : t("about.loadFailed")}
+        />
       )}
 
       <Card>
@@ -177,11 +232,14 @@ export function AboutSettingsTab() {
       </Card>
 
       <LodeCard
-        lode={version?.lode}
+        lode={lode}
         pending={pending}
         onRestart={() => setConfirm({ kind: "restart" })}
+        onCheck={() => checkMutation.mutate()}
         onUpdate={target => setConfirm({ kind: "update", target })}
-        onRollback={target => setConfirm(target ? { kind: "rollback", target } : { kind: "rollback" })}
+        onRollback={target => setConfirm(target
+          ? { kind: "rollback", target }
+          : { kind: "rollback" })}
         onHold={held => holdMutation.mutate(held)}
       />
 
@@ -199,40 +257,132 @@ interface LodeCardProps {
   readonly lode: LodeStatus | null | undefined;
   readonly pending: boolean;
   readonly onRestart: () => void;
+  readonly onCheck: () => void;
   readonly onUpdate: (target: string) => void;
   readonly onRollback: (target?: string) => void;
   readonly onHold: (held: boolean) => void;
 }
 
-function LodeCard({ lode, pending, onRestart, onUpdate, onRollback, onHold }: LodeCardProps) {
+function LodeCard({ lode, pending, onRestart, onCheck, onUpdate, onRollback, onHold }: LodeCardProps) {
   const { t } = useTranslation("settings");
   const [versionInput, setVersionInput] = useState("");
   const active = lode?.active === true;
   const held = lode?.hold === true;
   const rollbackTarget = safeText(lode?.rollbackTarget);
+  const checking = lode?.checkPending === true;
 
   const rows = [
-    { label: t("about.lode.status"), value: held ? t("about.lode.statusHeld") : safeText(lode?.status) },
-    { label: t("about.lode.current"), value: safeText(lode?.current) },
-    { label: t("about.lode.lastGood"), value: safeText(lode?.lastGood) },
-    { label: t("about.lode.available"), value: safeText(lode?.available) },
-    { label: t("about.lode.activeVersion"), value: safeText(lode?.activeVersion) },
-    { label: t("about.lode.readiness"), value: lode?.ready == null ? null : boolText(lode.ready, t) },
-    { label: t("about.lode.lastCheck"), value: safeText(lode?.lastCheckAt) },
-    { label: t("about.lode.lastError"), value: safeText(lode?.lastError) },
+    {
+      label: t("about.lode.status"),
+      value: held
+        ? t("about.lode.statusHeld")
+        : safeText(lode?.status),
+    },
+    {
+      label: t("about.lode.current"),
+      value: safeText(lode?.current),
+    },
+    {
+      label: t("about.lode.lastGood"),
+      value: safeText(lode?.lastGood),
+    },
+    {
+      label: t("about.lode.available"),
+      value: safeText(lode?.available),
+    },
+    {
+      label: t("about.lode.activeVersion"),
+      value: safeText(lode?.activeVersion),
+    },
+    {
+      label: t("about.lode.readiness"),
+      value: lode?.ready == null
+        ? null
+        : boolText(lode.ready, t),
+    },
+    {
+      label: t("about.lode.lastCheck"),
+      value: safeText(lode?.lastCheckAt),
+    },
+    {
+      label: t("about.lode.lastError"),
+      value: safeText(lode?.lastError),
+    },
+  ].filter(row => row.value != null);
+
+  const supervisor = lode?.supervisor;
+  const features = supervisor?.features ?? [];
+  const supervisorRows = [
+    {
+      label: t("about.lode.lodeVersion"),
+      value: safeText(supervisor?.version),
+    },
+    {
+      label: t("about.lode.lodeCommit"),
+      value: safeText(supervisor?.commit)
+        ? <span className="font-mono">{supervisor?.commit}</span>
+        : null,
+    },
+    {
+      label: t("about.lode.lodeFeatures"),
+      value: features.length > 0
+        ? (
+            <span className="flex flex-wrap gap-1">
+              {features.map(f => <Badge key={f} variant="outline" className="font-mono">{f}</Badge>)}
+            </span>
+          )
+        : null,
+    },
   ].filter(row => row.value != null);
 
   const cfg = lode?.config;
   const configRows = [
-    { label: t("about.lode.source"), value: cfg?.source ? `${cfg.sourceType ?? ""} ${cfg.source}`.trim() : null },
-    { label: t("about.lode.asset"), value: safeText(cfg?.asset) },
-    { label: t("about.lode.channel"), value: safeText(cfg?.channel) },
-    { label: t("about.lode.policy"), value: safeText(cfg?.policy) },
-    { label: t("about.lode.pin"), value: safeText(cfg?.pin) },
-    { label: t("about.lode.checkInterval"), value: cfg?.checkInterval == null ? null : t("about.lode.seconds", { n: cfg.checkInterval }) },
-    { label: t("about.lode.keepVersions"), value: cfg?.keepVersions == null ? null : String(cfg.keepVersions) },
-    { label: t("about.lode.signature"), value: safeText(cfg?.requireSignature) },
-    { label: t("about.lode.runtime"), value: cfg?.runtime ? `${cfg.runtime}${cfg.runtimeVersion ? ` ${cfg.runtimeVersion}` : ""}` : null },
+    {
+      label: t("about.lode.source"),
+      value: cfg?.source
+        ? `${cfg.sourceType ?? ""} ${cfg.source}`.trim()
+        : null,
+    },
+    {
+      label: t("about.lode.asset"),
+      value: safeText(cfg?.asset),
+    },
+    {
+      label: t("about.lode.channel"),
+      value: safeText(cfg?.channel),
+    },
+    {
+      label: t("about.lode.policy"),
+      value: safeText(cfg?.policy),
+    },
+    {
+      label: t("about.lode.pin"),
+      value: safeText(cfg?.pin),
+    },
+    {
+      label: t("about.lode.checkInterval"),
+      value: cfg?.checkInterval == null
+        ? null
+        : t("about.lode.seconds", { n: cfg.checkInterval }),
+    },
+    {
+      label: t("about.lode.keepVersions"),
+      value: cfg?.keepVersions == null
+        ? null
+        : String(cfg.keepVersions),
+    },
+    {
+      label: t("about.lode.signature"),
+      value: safeText(cfg?.requireSignature),
+    },
+    {
+      label: t("about.lode.runtime"),
+      value: cfg?.runtime
+        ? `${cfg.runtime}${cfg.runtimeVersion
+          ? ` ${cfg.runtimeVersion}`
+          : ""}`
+        : null,
+    },
   ].filter(row => row.value != null);
   // Show the config section when lode.toml is present (even if some fields are
   // absent); flag a present-but-unreadable file.
@@ -279,6 +429,12 @@ function LodeCard({ lode, pending, onRestart, onUpdate, onRollback, onHold }: Lo
           <BooleanBadge label={t("about.lode.active")} value={lode?.active} />
         </div>
 
+        {active && (
+          supervisor
+            ? <InfoSection title={t("about.lode.supervisor")} rows={supervisorRows} />
+            : <p className="text-sm text-muted-foreground">{t("about.lode.supervisorUnknown")}</p>
+        )}
+
         <InfoSection title={t("about.lode.lifecycle")} rows={rows} />
 
         {(configRows.length > 0 || configProblem) && (
@@ -297,6 +453,14 @@ function LodeCard({ lode, pending, onRestart, onUpdate, onRollback, onHold }: Lo
             <RotateCw />
             {t("about.lode.restart")}
           </Button>
+          {lode?.canCheck && (
+            <Button type="button" variant="outline" disabled={pending || !active || checking} onClick={onCheck}>
+              <SearchCheck className={checking ? "animate-pulse" : undefined} />
+              {checking
+                ? t("about.lode.checking")
+                : t("about.lode.checkUpdates")}
+            </Button>
+          )}
           <Button type="button" variant="outline" disabled={pending || !active} onClick={() => onUpdate("latest")}>
             <ArrowUpCircle />
             {t("about.lode.updateLatest")}
@@ -339,7 +503,9 @@ function LodeCard({ lode, pending, onRestart, onUpdate, onRollback, onHold }: Lo
 }
 
 function Banner({ tone, icon, text, children }: { readonly tone: "primary" | "amber"; readonly icon: ReactNode; readonly text: string; readonly children: ReactNode }) {
-  const border = tone === "primary" ? "border-primary/30 bg-primary/5" : "border-amber-500/40 bg-amber-500/10";
+  const border = tone === "primary"
+    ? "border-primary/30 bg-primary/5"
+    : "border-amber-500/40 bg-amber-500/10";
   return (
     <div className={`flex flex-wrap items-center gap-2 rounded-lg border p-3 text-sm ${border}`}>
       {icon}
@@ -363,9 +529,16 @@ function HistorySection({ entries }: { readonly entries: readonly LodeHistoryEnt
             <span className="font-mono">{e.version}</span>
             <span className="flex items-center gap-2">
               <span className="text-muted-foreground">{formatBuildTime(e.at) ?? e.at}</span>
-              <Badge variant={e.result === "good" ? "secondary" : "outline"}>
-                {e.result === "good" ? <CheckCircle2 /> : <XCircle />}
-                {e.result === "good" ? t("about.lode.historyGood") : t("about.lode.historyBad")}
+              <Badge variant={e.result === "good"
+                ? "secondary"
+                : "outline"}
+              >
+                {e.result === "good"
+                  ? <CheckCircle2 />
+                  : <XCircle />}
+                {e.result === "good"
+                  ? t("about.lode.historyGood")
+                  : t("about.lode.historyBad")}
               </Badge>
             </span>
           </div>
@@ -396,7 +569,11 @@ function ConfirmDialog({
     ? t("about.lode.restartConfirmDescription")
     : confirm?.kind === "update"
       ? t("about.lode.updateConfirmDescription", { target: confirm.target })
-      : t("about.lode.rollbackConfirmDescription", { target: confirm?.kind === "rollback" ? confirm.target ?? t("about.lode.lastGoodVersion") : "" });
+      : t("about.lode.rollbackConfirmDescription", {
+          target: confirm?.kind === "rollback"
+            ? confirm.target ?? t("about.lode.lastGoodVersion")
+            : "",
+        });
   return (
     <Dialog open={confirm !== null} onOpenChange={open => !open && onCancel()}>
       <DialogContent>
@@ -454,7 +631,9 @@ function BooleanBadge({ label, value }: { readonly label: string; readonly value
   const enabled = value === true;
   return (
     <Badge variant={enabled ? "secondary" : "outline"}>
-      {enabled ? <CheckCircle2 /> : <XCircle />}
+      {enabled
+        ? <CheckCircle2 />
+        : <XCircle />}
       <span>{`${label}:`}</span>
       <span>{boolText(value, t)}</span>
     </Badge>
@@ -470,7 +649,9 @@ function boolText(value: boolean | null | undefined, t: (key: string) => string)
 }
 
 function safeText(value: string | null | undefined) {
-  const trimmed = typeof value === "string" ? value.trim() : "";
+  const trimmed = typeof value === "string"
+    ? value.trim()
+    : "";
   return trimmed || null;
 }
 

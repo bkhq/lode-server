@@ -89,7 +89,9 @@ export function SettingsTab({ pkg, canWrite }: SettingsTabProps) {
       // Leave first: refetching the deleted package while this page is
       // still mounted would flash its not-found state.
       await navigate({ to: "/packages" });
-      queryClient.removeQueries({ queryKey: registryKeys.package(pkg.namespace, pkg.slug) });
+      queryClient.removeQueries({
+        queryKey: registryKeys.package(pkg.namespace, pkg.slug),
+      });
       await invalidate();
     },
     onError,
@@ -170,7 +172,9 @@ export function SettingsTab({ pkg, canWrite }: SettingsTabProps) {
             </div>
             {canWrite && (
               <Button type="submit" disabled={save.isPending || !dirty || nameError !== undefined}>
-                {save.isPending ? t("common:common.saving") : t("common:common.save")}
+                {save.isPending
+                  ? t("common:common.saving")
+                  : t("common:common.save")}
               </Button>
             )}
           </form>

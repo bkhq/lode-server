@@ -122,5 +122,8 @@ export async function revokeKey(db: AppDatabase, packageId: string, id: string):
     return { key, changed: false };
   const revokedAt = new Date().toISOString();
   await db.update(registryKeys).set({ revokedAt }).where(owned).run();
-  return { key: { ...key, revokedAt }, changed: true };
+  return {
+    key: { ...key, revokedAt },
+    changed: true,
+  };
 }

@@ -164,7 +164,9 @@ export async function rotateDek(state: EncryptionState, dbPath: string, currentD
       unlinkSync(tmpPath);
     cleanupWalShm(tmpPath);
     await reopenWithDek(state, currentDek);
-    throw new Error(`DEK rotation verification failed: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(`DEK rotation verification failed: ${err instanceof Error
+      ? err.message
+      : String(err)}`);
   }
 
   // ── Point of no return ──
@@ -212,7 +214,9 @@ export async function rotateDek(state: EncryptionState, dbPath: string, currentD
     // as in error, and re-fire onUnlock with the OLD dek so request handlers
     // do not crash on a closed handle. We deliberately do NOT delete the .bak
     // so an operator can recover manually if rename-back fails.
-    const message = err instanceof Error ? err.message : String(err);
+    const message = err instanceof Error
+      ? err.message
+      : String(err);
     try {
       if (existsSync(bakPath) && !existsSync(dbPath)) {
         renameSync(bakPath, dbPath);
@@ -277,7 +281,9 @@ async function migrateToEncrypted(dbPath: string, dekHex: string): Promise<void>
     verifyClient.close();
     if (existsSync(tmpPath))
       unlinkSync(tmpPath);
-    throw new Error(`Encryption verification failed: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(`Encryption verification failed: ${err instanceof Error
+      ? err.message
+      : String(err)}`);
   }
   verifyClient.close();
 

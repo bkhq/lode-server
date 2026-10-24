@@ -21,7 +21,10 @@ async function digestOf(stream: ReadableStream<Uint8Array>): Promise<{ sha256: s
     hasher.update(chunk);
     size += chunk.length;
   }
-  return { sha256: hasher.digest("hex"), size };
+  return {
+    sha256: hasher.digest("hex"),
+    size,
+  };
 }
 
 describe("/api/registry/uploads — multipart upload", () => {
@@ -50,15 +53,26 @@ describe("/api/registry/uploads — multipart upload", () => {
     const user = await getClient("user@example.com");
     const pkg = await createPackage(user);
     const base = packagePath(pkg);
-    const ci = await createToken(user, [{ package: `${pkg.namespace}/${pkg.slug}`, access: "write" }]);
+    const ci = await createToken(user, [
+      { package: `${pkg.namespace}/${pkg.slug}`, access: "write" },
+    ]);
     await createDraft(ci.token, pkg, "1.0.0");
     const before = (await user.json<Envelope<{ usage: { storage_bytes: number } }>>("/api/registry/quota")).data.usage.storage_bytes;
 
     // The start contract is the plan's, camelCase.
-    const start = await send(ci.token, "POST", `${base}/versions/1.0.0/uploads`, JSON.stringify({ asset: "big.bin", size: ASSET_SIZE, sha256, run: "./big" }), { "Content-Type": "application/json" });
+    const start = await send(ci.token, "POST", `${base}/versions/1.0.0/uploads`, JSON.stringify({
+      asset: "big.bin",
+      size: ASSET_SIZE,
+      sha256,
+      run: "./big",
+    }), { "Content-Type": "application/json" });
     expect(start.status).toBe(201);
     const started = ((await start.json()) as Envelope<Started>).data;
-    expect(started).toEqual({ uploadId: expect.any(String), partSize: PART_SIZE, partCount: 2 });
+    expect(started).toEqual({
+      uploadId: expect.any(String),
+      partSize: PART_SIZE,
+      partCount: 2,
+    });
     const upload = `/api/registry/uploads/${started.uploadId}`;
 
     // The declared size is reserved against the quota from the start.
@@ -80,7 +94,13 @@ describe("/api/registry/uploads — multipart upload", () => {
 
     const complete = await send(ci.token, "POST", `${upload}/complete`);
     expect(complete.status).toBe(201);
-    expect(((await complete.json()) as Envelope<AssetView>).data).toMatchObject({ name: "big.bin", size: ASSET_SIZE, sha256, run: "./big", sig: null });
+    expect(((await complete.json()) as Envelope<AssetView>).data).toMatchObject({
+      name: "big.bin",
+      size: ASSET_SIZE,
+      sha256,
+      run: "./big",
+      sig: null,
+    });
     // The upload is gone once it became an asset, and the reservation became usage.
     expect((await send(ci.token, "POST", `${upload}/complete`)).status).toBe(404);
     const stored = (await user.json<Envelope<{ usage: { storage_bytes: number } }>>("/api/registry/quota")).data.usage.storage_bytes;
@@ -88,7 +108,12 @@ describe("/api/registry/uploads — multipart upload", () => {
 
     await publish(ci.token, pkg, "1.0.0");
     const listed = (await manifestOf(pkg)).versions["1.0.0"]?.assets[0];
-    expect(listed).toMatchObject({ name: "big.bin", size: ASSET_SIZE, sha256, run: "./big" });
+    expect(listed).toMatchObject({
+      name: "big.bin",
+      size: ASSET_SIZE,
+      sha256,
+      run: "./big",
+    });
     const download = await fetch(listed!.url);
     expect(download.status).toBe(200);
     // The Bun server sends a streamed body chunked, so the length is only
@@ -107,7 +132,11 @@ describe("/api/registry/uploads — multipart upload", () => {
     const pkg = await createPackage(user);
     await createDraft(user, pkg, "1.0.0");
 
-    const start = await send(user, "POST", `${packagePath(pkg)}/versions/1.0.0/uploads`, JSON.stringify({ asset: "big.bin", size: ASSET_SIZE, sha256: "0".repeat(64) }), { "Content-Type": "application/json" });
+    const start = await send(user, "POST", `${packagePath(pkg)}/versions/1.0.0/uploads`, JSON.stringify({
+      asset: "big.bin",
+      size: ASSET_SIZE,
+      sha256: "0".repeat(64),
+    }), { "Content-Type": "application/json" });
     const { uploadId } = ((await start.json()) as Envelope<Started>).data;
     const upload = `/api/registry/uploads/${uploadId}`;
     expect((await send(user, "PUT", `${upload}/parts/1`, Bun.file(file).slice(0, PART_SIZE))).status).toBe(200);
@@ -130,9 +159,16 @@ describe("/api/registry/uploads — multipart upload", () => {
     const base = packagePath(pkg);
     await createDraft(user, pkg, "1.0.0");
     const start = (body: Record<string, unknown>, caller = user) =>
-      send(caller, "POST", `${base}/versions/1.0.0/uploads`, JSON.stringify({ asset: "big.bin", size: ASSET_SIZE, sha256, ...body }), { "Content-Type": "application/json" });
+      send(caller, "POST", `${base}/versions/1.0.0/uploads`, JSON.stringify({
+        asset: "big.bin",
+        size: ASSET_SIZE,
+        sha256,
+        ...body,
+      }), { "Content-Type": "application/json" });
 
-    expect((await start({ sha256: sha256.toUpperCase() })).status).toBe(422);
+    expect((await start({
+      sha256: sha256.toUpperCase(),
+    })).status).toBe(422);
     expect((await start({ size: 0 })).status).toBe(422);
     expect((await start({ asset: "-bad" })).status).toBe(422);
     expect(await refusal(await start({ size: 500 * 1024 * 1024 + 1 }))).toEqual({ status: 413, code: "ASSET_TOO_LARGE" });

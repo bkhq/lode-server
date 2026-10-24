@@ -65,7 +65,12 @@ async function activeRoots(db: AppDatabase, packageId: string): Promise<SigningK
     .from(registryKeys)
     .where(and(eq(registryKeys.packageId, packageId), eq(registryKeys.alg, "ed25519"), isNull(registryKeys.revokedAt)))
     .all();
-  return rows.map(row => ({ keyId: row.keyId, alg: "ed25519", publicKey: row.publicKey, delegated: false }));
+  return rows.map(row => ({
+    keyId: row.keyId,
+    alg: "ed25519",
+    publicKey: row.publicKey,
+    delegated: false,
+  }));
 }
 
 export async function findDelegation(db: AppDatabase, packageId: string): Promise<Delegation | undefined> {
@@ -77,7 +82,9 @@ export async function findRevocationList(db: AppDatabase, packageId: string): Pr
 }
 
 function revokedIds(list: RevocationList | undefined): Set<string> {
-  return new Set(list ? JSON.parse(list.revoked) as string[] : []);
+  return new Set(list
+    ? JSON.parse(list.revoked) as string[]
+    : []);
 }
 
 export async function delegationStatus(db: AppDatabase, delegation: Delegation, now = Date.now()): Promise<DelegationStatus> {
@@ -97,21 +104,32 @@ export async function delegationStatus(db: AppDatabase, delegation: Delegation, 
 /** The package's delegation while it is live, else undefined. */
 export async function liveDelegation(db: AppDatabase, packageId: string, now = Date.now()): Promise<Delegation | undefined> {
   const delegation = await findDelegation(db, packageId);
-  return delegation && await delegationStatus(db, delegation, now) === "live" ? delegation : undefined;
+  return delegation && await delegationStatus(db, delegation, now) === "live"
+    ? delegation
+    : undefined;
 }
 
 /** The package's active registered keys, and the sub-key of its live delegation. */
 export async function signingKeys(db: AppDatabase, packageId: string, now = Date.now()): Promise<SigningKey[]> {
   const keys = await activeRoots(db, packageId);
   const delegation = await liveDelegation(db, packageId, now);
-  if (delegation)
-    keys.push({ keyId: delegation.keyId, alg: "ed25519", publicKey: delegation.publicKey, delegated: true });
+  if (delegation) {
+    keys.push({
+      keyId: delegation.keyId,
+      alg: "ed25519",
+      publicKey: delegation.publicKey,
+      delegated: true,
+    });
+  }
   return keys;
 }
 
 /** The first of `keys` the signature verifies under, trying `keyId`'s key first. */
 async function verifyingKey(keys: readonly SigningKey[], keyId: string | undefined, sig: string, message: Uint8Array<ArrayBuffer>): Promise<SigningKey | undefined> {
-  const ordered = [...keys.filter(key => key.keyId === keyId), ...keys.filter(key => key.keyId !== keyId)];
+  const ordered = [
+    ...keys.filter(key => key.keyId === keyId),
+    ...keys.filter(key => key.keyId !== keyId),
+  ];
   for (const key of ordered) {
     if (await verifyEd25519(key.publicKey, sig, message))
       return key;
@@ -137,7 +155,9 @@ async function checkDelegation(roots: readonly SigningKey[], slug: string, input
     raw = parsePublicKey(input.key);
   }
   catch (err) {
-    return `the delegated key is not usable: ${err instanceof Error ? err.message : String(err)}`;
+    return `the delegated key is not usable: ${err instanceof Error
+      ? err.message
+      : String(err)}`;
   }
   const publicKey = encodeBase64Url(raw);
   const root = await verifyingKey(roots, input.issuer, input.sig, delegationMessage(input.name, publicKey, input.not_before, input.not_after));
@@ -164,7 +184,9 @@ export async function putDelegation(db: AppDatabase, pkg: { id: string; slug: st
   const registered = await db.select().from(registryKeys).where(and(eq(registryKeys.packageId, pkg.id), eq(registryKeys.keyId, checked.keyId))).get();
   if (registered) {
     throw new AppError(
-      `${checked.keyId} is ${registered.revokedAt === null ? "a registered" : "a revoked"} signing key of the package; delegate to a key of its own`,
+      `${checked.keyId} is ${registered.revokedAt === null
+        ? "a registered"
+        : "a revoked"} signing key of the package; delegate to a key of its own`,
       409,
       "KEY_REGISTERED",
     );
@@ -211,7 +233,12 @@ export async function withDelegation(db: AppDatabase, pkg: { id: string; slug: s
   if (!delegation)
     return manifest;
   const { channels, versions, ...head } = manifest;
-  return { ...head, delegation: delegationDocument(delegation, pkg.slug), channels, versions };
+  return {
+    ...head,
+    delegation: delegationDocument(delegation, pkg.slug),
+    channels,
+    versions,
+  };
 }
 
 /**
@@ -236,18 +263,29 @@ export async function putRevocationList(db: AppDatabase, pkg: { id: string; slug
   if (input.delegation) {
     const checked = await checkDelegation(keys, pkg.slug, input.delegation);
     const seconds = unixNow(now);
-    if (typeof checked === "string")
+    if (typeof checked === "string") {
       rejected = checked;
-    else if (seconds < input.delegation.not_before || seconds >= input.delegation.not_after)
+    }
+    else if (seconds < input.delegation.not_before || seconds >= input.delegation.not_after) {
       rejected = "the delegation is outside its validity window";
-    else if (revoked.has(checked.keyId))
+    }
+    else if (revoked.has(checked.keyId)) {
       rejected = `the delegated key ${checked.keyId} is revoked`;
-    else
-      keys.push({ keyId: checked.keyId, alg: "ed25519", publicKey: checked.publicKey, delegated: true });
+    }
+    else {
+      keys.push({
+        keyId: checked.keyId,
+        alg: "ed25519",
+        publicKey: checked.publicKey,
+        delegated: true,
+      });
+    }
   }
   if (!(await verifyingKey(keys, input.key_id, input.sig, revocationMessage(input.key_id, input.issued_at, input.revoked)))) {
     throw new AppError(
-      `The revocation list does not verify under an active signing key of the package${rejected ? ` (delegation rejected: ${rejected})` : ""}`,
+      `The revocation list does not verify under an active signing key of the package${rejected
+        ? ` (delegation rejected: ${rejected})`
+        : ""}`,
       400,
       "INVALID_SIGNATURE",
     );
@@ -257,7 +295,9 @@ export async function putRevocationList(db: AppDatabase, pkg: { id: string; slug
     issuedAt: input.issued_at,
     revoked: JSON.stringify(input.revoked),
     keyId: input.key_id,
-    delegation: input.delegation ? JSON.stringify(input.delegation) : null,
+    delegation: input.delegation
+      ? JSON.stringify(input.delegation)
+      : null,
     sig: input.sig,
     updatedAt: new Date(now).toISOString(),
   };
@@ -271,7 +311,9 @@ export function revocationListDocument(list: RevocationList): RevocationListDocu
     issued_at: list.issuedAt,
     revoked: JSON.parse(list.revoked) as string[],
     key_id: list.keyId,
-    ...(list.delegation !== null && { delegation: JSON.parse(list.delegation) as DelegationDocument }),
+    ...(list.delegation !== null && {
+      delegation: JSON.parse(list.delegation) as DelegationDocument,
+    }),
     sig: list.sig,
   };
 }

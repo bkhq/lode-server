@@ -15,15 +15,21 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
  * schedules.
  */
 export const execute: ActionExecutor = async (ctx, config) => {
-  const olderThanDays = config.olderThanDays === undefined ? 0 : Number(config.olderThanDays);
+  const olderThanDays = config.olderThanDays === undefined
+    ? 0
+    : Number(config.olderThanDays);
   const cutoffIso = olderThanDays > 0
     ? new Date(Date.now() - olderThanDays * MS_PER_DAY).toISOString()
     : null;
 
-  const conditions = [eq(cronJobs.isDeleted, true)];
+  const conditions = [
+    eq(cronJobs.isDeleted, true),
+  ];
   if (cutoffIso)
     conditions.push(lt(cronJobs.updatedAt, cutoffIso));
-  const where = conditions.length === 1 ? conditions[0]! : and(...conditions)!;
+  const where = conditions.length === 1
+    ? conditions[0]!
+    : and(...conditions)!;
 
   const candidates = await ctx.db
     .select({ id: cronJobs.id })
@@ -38,7 +44,9 @@ export const execute: ActionExecutor = async (ctx, config) => {
   let logCount = 0;
   for (const c of candidates) {
     const totalRow = await ctx.db
-      .select({ value: count() })
+      .select({
+        value: count(),
+      })
       .from(cronJobLogs)
       .where(eq(cronJobLogs.jobId, c.id))
       .get();

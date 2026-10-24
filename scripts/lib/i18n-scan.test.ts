@@ -39,7 +39,10 @@ describe("flatten", () => {
   test("flattens a nested tree to dot-joined leaf paths", () => {
     const tree = {
       title: "Hello",
-      nav: { home: "Home", deep: { x: "X" } },
+      nav: {
+        home: "Home",
+        deep: { x: "X" },
+      },
       // arrays / non-string leaves are not key leaves
       arr: ["a", "b"],
     };
@@ -106,7 +109,9 @@ describe("collectReferences", () => {
 
 describe("findMissing (code → locale)", () => {
   test("string-shorthand & object defaults are NOT missing; explicit ns:key miss IS", () => {
-    writeFixture("locales/en/common.json", JSON.stringify({ present: { ok: "OK" } }));
+    writeFixture("locales/en/common.json", JSON.stringify({
+      present: { ok: "OK" },
+    }));
     writeFixture("locales/en/admin.json", JSON.stringify({ known: "Known" }));
     writeFixture(
       "src/page.tsx",
@@ -151,7 +156,10 @@ describe("findUnused (locale → code)", () => {
   test("flags unreferenced keys and spares referenced + dynamic-ns keys", () => {
     writeFixture(
       "locales/en/common.json",
-      JSON.stringify({ used: { a: "A" }, dead: { b: "B" } }),
+      JSON.stringify({
+        used: { a: "A" },
+        dead: { b: "B" },
+      }),
     );
     writeFixture(
       "locales/en/dynns.json",

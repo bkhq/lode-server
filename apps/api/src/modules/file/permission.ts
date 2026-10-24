@@ -50,5 +50,7 @@ export function getFilePermissionHook(ownerType: string): FilePermissionHook | u
 
 /** Sorted list of registered owner_types. Diagnostic + test helper. */
 export function listRegisteredOwnerTypes(): readonly string[] {
-  return [...hooks.keys()].sort();
+  return [
+    ...hooks.keys(),
+  ].sort();
 }

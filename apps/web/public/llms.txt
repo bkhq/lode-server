@@ -53,7 +53,7 @@ permissions:
 
 env:
   # The -mini image holds only the lode binary (about 3 MB). Pin a release you have reviewed.
-  LODE_IMAGE: docker.io/bkhq/lode:v0.1.0-mini
+  LODE_IMAGE: docker.io/bkhq/lode:v0.3.0-mini
 
 jobs:
   publish:
@@ -141,9 +141,9 @@ run = "./myapp"
   ```
 
   Other archives: `lode-linux-arm64.tar.gz`, `lode-darwin-arm64.tar.gz`, `lode-darwin-x64.tar.gz`.
-- Container image `docker.io/bkhq/lode`, with the binary at `/usr/bin/lode`. Tags are release tags (`v0.1.0`) and `latest`, each in three variants:
-  - `-mini` (`v0.1.0-mini`, `latest-mini`): the binary and nothing else, a few MB, no libc and no shell. Use it to copy the binary out, or to run a static app.
-  - `-slim` (`v0.1.0-slim`, `latest-slim`): Debian slim, with glibc and a shell, for apps that need them or a downloaded Bun, Node or Deno.
+- Container image `docker.io/bkhq/lode`, with the binary at `/usr/bin/lode`. Tags are release tags (`v0.3.0`) and `latest`, each in three variants:
+  - `-mini` (`v0.3.0-mini`, `latest-mini`): the binary and nothing else, a few MB, no libc and no shell. Use it to copy the binary out, or to run a static app.
+  - `-slim` (`v0.3.0-slim`, `latest-slim`): Debian slim, with glibc and a shell, for apps that need them or a downloaded Bun, Node or Deno.
   - no suffix: the full base image.
 
 ## Using lode

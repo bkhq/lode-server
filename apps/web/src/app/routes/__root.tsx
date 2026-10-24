@@ -14,7 +14,14 @@ export const Route = createRootRoute({
   notFoundComponent: NotFoundPage,
 });
 
-const BYPASS_SUFFIXES = ["/setup", "/unlock", "/denied", "/login", "/totp-verify", "/error"];
+const BYPASS_SUFFIXES = [
+  "/setup",
+  "/unlock",
+  "/denied",
+  "/login",
+  "/totp-verify",
+  "/error",
+];
 
 function redirectToLogin() {
   // Carry the query string too so deep-link context (filters, ids,

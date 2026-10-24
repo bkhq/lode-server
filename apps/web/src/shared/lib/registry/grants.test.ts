@@ -14,7 +14,9 @@ describe("isAllGrant", () => {
 
   it("is false for a list, empty or not", () => {
     expect(isAllGrant([])).toBe(false);
-    expect(isAllGrant([{ package: "abcd1234/app", access: "read" }])).toBe(false);
+    expect(isAllGrant([
+      { package: "abcd1234/app", access: "read" },
+    ])).toBe(false);
   });
 });
 

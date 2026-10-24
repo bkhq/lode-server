@@ -43,7 +43,9 @@ export function KeysTab({ ns, pkg, canRevoke }: KeysTabProps) {
   const revokeMutation = useMutation({
     mutationFn: (key: SigningKey) => revokeKey(ns, pkg, key.id),
     onSuccess: (_data, key) => {
-      void queryClient.invalidateQueries({ queryKey: registryKeys.keys(ns, pkg) });
+      void queryClient.invalidateQueries({
+        queryKey: registryKeys.keys(ns, pkg),
+      });
       toast.success(t("keys:toast.revoked", { name: key.name }));
     },
     onError: err => toast.error(registryErrorMessage(err, t, t("common:common.error.operationFailed"))),
@@ -88,7 +90,11 @@ export function KeysTab({ ns, pkg, canRevoke }: KeysTabProps) {
               ? (
                   <TableRow>
                     <TableCell colSpan={COLUMNS} className="h-24 text-center text-muted-foreground">
-                      {isPending ? t("common:common.loading") : error ? t("common:common.error.loadFailed") : t("keys:empty")}
+                      {isPending
+                        ? t("common:common.loading")
+                        : error
+                          ? t("common:common.error.loadFailed")
+                          : t("keys:empty")}
                     </TableCell>
                   </TableRow>
                 )
@@ -175,7 +181,9 @@ function CopyTrustedKeyButton({ value }: { readonly value: string }) {
 
   return (
     <Button variant="ghost" size="sm" onClick={() => void copy()}>
-      {copied ? <Check className="size-3.5" /> : <ClipboardCopy className="size-3.5" />}
+      {copied
+        ? <Check className="size-3.5" />
+        : <ClipboardCopy className="size-3.5" />}
       {t("copyTrustedKey")}
     </Button>
   );

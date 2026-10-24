@@ -36,7 +36,9 @@ export function ActionMetaCard({ action }: { readonly action: ActionCatalogEntry
   // Wrap the looked-up component in a stable holder object so the
   // linter's "components declared during render" guard doesn't trip on
   // `<Icon />`; pattern matches `PortalPage`'s `<tile.icon />`.
-  const icon = { Component: resolveActionIcon(action.icon) };
+  const icon = {
+    Component: resolveActionIcon(action.icon),
+  };
   return (
     <div className="rounded-md border bg-muted/30 p-3">
       <div className="flex items-start gap-3">
@@ -106,7 +108,9 @@ export function DynamicActionFields({
           <span>{t("dangerousWarning", { defaultValue: "This action runs with the API process's full privileges. Review every config before saving — there is no sandbox." })}</span>
         </div>
       )}
-      {[...groups.entries()].map(([groupName, items]) => (
+      {[
+        ...groups.entries(),
+      ].map(([groupName, items]) => (
         <div key={groupName} className="space-y-3">
           {groupName !== "default" && (
             <div className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{groupName}</div>
@@ -149,7 +153,9 @@ function DynamicField({
           <Input
             id={id}
             placeholder={input.placeholder}
-            value={typeof value === "string" ? value : ""}
+            value={typeof value === "string"
+              ? value
+              : ""}
             onChange={e => onChange(e.target.value)}
           />
         );
@@ -160,7 +166,9 @@ function DynamicField({
             type="password"
             autoComplete="new-password"
             placeholder={input.placeholder}
-            value={typeof value === "string" ? value : ""}
+            value={typeof value === "string"
+              ? value
+              : ""}
             onChange={e => onChange(e.target.value)}
           />
         );
@@ -169,7 +177,9 @@ function DynamicField({
           <Textarea
             id={id}
             placeholder={input.placeholder}
-            value={typeof value === "string" ? value : ""}
+            value={typeof value === "string"
+              ? value
+              : ""}
             onChange={e => onChange(e.target.value)}
             rows={3}
             className="font-mono text-xs"
@@ -183,8 +193,12 @@ function DynamicField({
             min={input.min}
             max={input.max}
             placeholder={input.placeholder}
-            value={value === undefined || value === null ? "" : String(value)}
-            onChange={e => onChange(e.target.value === "" ? undefined : e.target.value)}
+            value={value === undefined || value === null
+              ? ""
+              : String(value)}
+            onChange={e => onChange(e.target.value === ""
+              ? undefined
+              : e.target.value)}
           />
         );
       case "boolean":
@@ -201,7 +215,9 @@ function DynamicField({
       case "select":
         return (
           <Select
-            value={typeof value === "string" ? value : ""}
+            value={typeof value === "string"
+              ? value
+              : ""}
             onValueChange={(v) => {
               if (typeof v === "string")
                 onChange(v);
@@ -227,7 +243,9 @@ function DynamicField({
           <Textarea
             id={id}
             placeholder={input.placeholder}
-            value={typeof value === "string" ? value : JSON.stringify(value ?? {}, null, 2)}
+            value={typeof value === "string"
+              ? value
+              : JSON.stringify(value ?? {}, null, 2)}
             onChange={e => onChange(e.target.value)}
             rows={4}
             className="font-mono text-xs"

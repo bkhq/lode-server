@@ -81,13 +81,23 @@ export const runtimeFieldsSchema = z.object({
 }).superRefine((fields, ctx) => {
   const spec = runtimeOf(fields);
   if (!spec) {
-    if (fields.runtime_version || fields.runtime_version_check || fields.runtime_download || fields.runtime_sha256)
-      ctx.addIssue({ code: "custom", path: ["runtime"], message: "the runtime fields need `runtime`" });
+    if (fields.runtime_version || fields.runtime_version_check || fields.runtime_download || fields.runtime_sha256) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["runtime"],
+        message: "the runtime fields need `runtime`",
+      });
+    }
     return;
   }
   const error = runtimeSpecError(spec);
-  if (error !== undefined)
-    ctx.addIssue({ code: "custom", path: ["runtime"], message: error });
+  if (error !== undefined) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["runtime"],
+      message: error,
+    });
+  }
 });
 
 /** The runtime named by the flat fields, or null. */
@@ -110,9 +120,16 @@ const uploadQuerySchema = z.object({
   exec: overrideSchema("exec"),
 }).and(runtimeFieldsSchema);
 
-const packageParamSchema = z.object({ ns: z.string(), pkg: z.string() });
-export const versionParamSchema = packageParamSchema.extend({ ver: z.string() });
-const assetParamSchema = versionParamSchema.extend({ asset: z.string() });
+const packageParamSchema = z.object({
+  ns: z.string(),
+  pkg: z.string(),
+});
+export const versionParamSchema = packageParamSchema.extend({
+  ver: z.string(),
+});
+const assetParamSchema = versionParamSchema.extend({
+  asset: z.string(),
+});
 
 const RE_KEY_ID = /^[0-9a-f]{16}$/;
 const manifestSignatureBodySchema = z.strictObject({
@@ -122,7 +139,10 @@ const manifestSignatureBodySchema = z.strictObject({
   expires_sig: z.string().min(1).max(512).optional(),
 }).refine(body => (body.expires === undefined) === (body.expires_sig === undefined), "expires and expires_sig go together");
 
-const versionWithChannelsSchema = z.object({ version: versionSchema, channels: z.array(channelSchema) });
+const versionWithChannelsSchema = z.object({
+  version: versionSchema,
+  channels: z.array(channelSchema),
+});
 
 export const RE_CONTENT_LENGTH = /^\d+$/;
 
@@ -140,7 +160,11 @@ export async function auditRelease(
     resourceType: resource.type,
     resourceId: resource.id,
     resourceName: `${access.namespace.slug}/${access.package.slug}${resource.name}`,
-    detail: { owner_user_id: access.namespace.ownerUserId, ...detail, ...(access.tokenId !== null && { token_id: access.tokenId }) },
+    detail: {
+      owner_user_id: access.namespace.ownerUserId,
+      ...detail,
+      ...(access.tokenId !== null && { token_id: access.tokenId }),
+    },
   });
 }
 
@@ -161,7 +185,13 @@ export function registryReleaseRoutes() {
       summary: "List the versions of a package",
       description: "Every version, newest first, drafts and yanked ones included, each with its assets, and the package's channel pointers. A token needs a `read` grant on the package.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.object({ versions: z.array(versionSchema), channels: z.array(channelSchema) })), ...errors(401, 403, 404) },
+      responses: {
+        ...jsonOk(z.object({
+          versions: z.array(versionSchema),
+          channels: z.array(channelSchema),
+        })),
+        ...errors(401, 403, 404),
+      },
     }),
     validator("param", packageParamSchema),
     async (c) => {
@@ -169,7 +199,13 @@ export function registryReleaseRoutes() {
       const { package: pkg } = await requirePackageAccess(c, "read");
       const versions = await listVersions(db, pkg.id);
       const channels = await listChannels(db, pkg.id);
-      return c.json({ success: true, data: { versions: versions.map(versionView), channels: channels.map(channelView) } });
+      return c.json({
+        success: true,
+        data: {
+          versions: versions.map(versionView),
+          channels: channels.map(channelView),
+        },
+      });
     },
   );
 
@@ -180,7 +216,10 @@ export function registryReleaseRoutes() {
       summary: "Get a version",
       description: "One version with its assets, and the package's channel pointers. A token needs a `read` grant on the package.",
       security: SECURITY.session,
-      responses: { ...jsonOk(versionWithChannelsSchema), ...errors(401, 403, 404) },
+      responses: {
+        ...jsonOk(versionWithChannelsSchema),
+        ...errors(401, 403, 404),
+      },
     }),
     validator("param", versionParamSchema),
     async (c) => {
@@ -188,7 +227,13 @@ export function registryReleaseRoutes() {
       const { package: pkg } = await requirePackageAccess(c, "read");
       const version = await getVersion(db, pkg.id, c.req.valid("param").ver);
       const channels = await listChannels(db, pkg.id);
-      return c.json({ success: true, data: { version: versionView(version), channels: channels.map(channelView) } });
+      return c.json({
+        success: true,
+        data: {
+          version: versionView(version),
+          channels: channels.map(channelView),
+        },
+      });
     },
   );
 
@@ -199,15 +244,24 @@ export function registryReleaseRoutes() {
       summary: "Create a draft version",
       description: "Opens a draft to upload assets into. `version` follows lode's id rule: letters, digits, `.`, `_` and `-`, not starting with `.` or `-`. A draft is not served until it is published. 409 `VERSION_EXISTS` when the package has that version, 409 `VERSION_RETIRED` when a version of that id was published and then deleted: its id stays taken. Needs `write` access.",
       security: SECURITY.session,
-      responses: { ...jsonCreated(versionSchema), ...errors(401, 403, 404, 409, 422) },
+      responses: {
+        ...jsonCreated(versionSchema),
+        ...errors(401, 403, 404, 409, 422),
+      },
     }),
     validator("param", packageParamSchema),
-    validator("json", z.object({ version: versionIdSchema, notes: z.string().max(20000).optional() })),
+    validator("json", z.object({
+      version: versionIdSchema,
+      notes: z.string().max(20000).optional(),
+    })),
     async (c) => {
       const access = await requirePackageAccess(c, "write");
       const version = await createDraft(c.get("db"), access.package.id, c.req.valid("json"));
       await auditRelease(c, access, "registry.version.created", { type: "registry_version", id: version.id, name: `@${version.version}` });
-      return c.json({ success: true, data: versionView(version) }, 201);
+      return c.json({
+        success: true,
+        data: versionView(version),
+      }, 201);
     },
   );
 
@@ -218,7 +272,12 @@ export function registryReleaseRoutes() {
       summary: "Delete a version",
       description: "Removes the version with its assets and their stored bytes. A draft needs `write` access. A published or yanked version can only be deleted by the owner or an administrator from a signed-in session — never with a token — and only while no channel points at it; its id is retired and cannot be created again.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.object({ id: z.string() })), ...errors(401, 403, 404, 409) },
+      responses: {
+        ...jsonOk(z.object({
+          id: z.string(),
+        })),
+        ...errors(401, 403, 404, 409),
+      },
     }),
     validator("param", versionParamSchema),
     async (c) => {
@@ -236,7 +295,10 @@ export function registryReleaseRoutes() {
       }
       const deleted = await deleteVersion(db, c.get("config"), access.package.id, ver, { draftOnly });
       await auditRelease(c, access, "registry.version.deleted", { type: "registry_version", id: deleted.id, name: `@${deleted.version}` }, { status: deleted.status });
-      return c.json({ success: true, data: { id: deleted.id } });
+      return c.json({
+        success: true,
+        data: { id: deleted.id },
+      });
     },
   );
 
@@ -255,7 +317,14 @@ export function registryReleaseRoutes() {
         "The asset size limit and the owner's storage quota are checked against `Content-Length` before any byte is read. Uploading an asset name again replaces it while the version is a draft; a published or yanked version answers 409. Needs `write` access.",
       ].join("\n\n"),
       security: SECURITY.session,
-      requestBody: { required: true, content: { "application/octet-stream": { schema: { type: "string", format: "binary" } } } },
+      requestBody: {
+        required: true,
+        content: {
+          "application/octet-stream": {
+            schema: { type: "string", format: "binary" },
+          },
+        },
+      },
       responses: {
         ...jsonOk(assetSchema, "Replaced an asset of the same name"),
         ...jsonCreated(assetSchema),
@@ -279,8 +348,12 @@ export function registryReleaseRoutes() {
         throw new AppError("Content-Length is required", 411, "LENGTH_REQUIRED");
       const size = Number(declared);
       const body = c.req.raw.body;
-      if (size === 0 || !body)
-        throw new ValidationError("Validation failed", { formErrors: ["An asset must not be empty"], fieldErrors: {} });
+      if (size === 0 || !body) {
+        throw new ValidationError("Validation failed", {
+          formErrors: ["An asset must not be empty"],
+          fieldErrors: {},
+        });
+      }
 
       const { asset, replaced } = await uploadAsset(c.get("db"), c.get("config"), access, {
         version: ver,
@@ -299,7 +372,10 @@ export function registryReleaseRoutes() {
         key_id: asset.keyId,
         replaced,
       });
-      return c.json({ success: true, data: assetView(asset) }, replaced ? 200 : 201);
+      return c.json({
+        success: true,
+        data: assetView(asset),
+      }, replaced ? 200 : 201);
     },
   );
 
@@ -310,7 +386,12 @@ export function registryReleaseRoutes() {
       summary: "Delete an asset from a draft",
       description: "Removes the asset and its stored bytes. Drafts only: the assets of a published or yanked version are immutable (409). Needs `write` access.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.object({ name: z.string() })), ...errors(401, 403, 404, 409) },
+      responses: {
+        ...jsonOk(z.object({
+          name: z.string(),
+        })),
+        ...errors(401, 403, 404, 409),
+      },
     }),
     validator("param", assetParamSchema),
     async (c) => {
@@ -318,7 +399,10 @@ export function registryReleaseRoutes() {
       const { ver, asset: name } = c.req.valid("param");
       const asset = await deleteAsset(c.get("db"), c.get("config"), access.package.id, ver, name);
       await auditRelease(c, access, "registry.asset.deleted", { type: "registry_asset", id: asset.id, name: `@${ver}/${asset.name}` });
-      return c.json({ success: true, data: { name: asset.name } });
+      return c.json({
+        success: true,
+        data: { name: asset.name },
+      });
     },
   );
 
@@ -331,7 +415,10 @@ export function registryReleaseRoutes() {
       summary: "Publish a draft version",
       description: "Makes a draft with at least one asset `published` and moves the channel pointer to it in one transaction, so a polling client never sees a pointer to a half-uploaded release. `channel` follows lode's id rule. Once published, the version's assets are immutable. Needs `write` access.",
       security: SECURITY.session,
-      responses: { ...jsonOk(versionSchema), ...errors(401, 403, 404, 409, 422) },
+      responses: {
+        ...jsonOk(versionSchema),
+        ...errors(401, 403, 404, 409, 422),
+      },
     }),
     validator("param", versionParamSchema),
     validator("json", z.object({ channel: channelNameSchema })),
@@ -341,7 +428,10 @@ export function registryReleaseRoutes() {
       const { channel } = c.req.valid("json");
       const version = await publishVersion(c.get("db"), access.package.id, c.req.valid("param").ver, channel);
       await auditRelease(c, access, "registry.version.published", { type: "registry_version", id: version.id, name: `@${version.version}` }, { channel });
-      return c.json({ success: true, data: versionView(version) });
+      return c.json({
+        success: true,
+        data: versionView(version),
+      });
     },
   );
 
@@ -352,16 +442,24 @@ export function registryReleaseRoutes() {
       summary: "Move a channel pointer",
       description: "Promotes a version to a channel or rolls the channel back, creating the channel when it does not exist. The target must be a published version: a draft or a yanked one answers 409. Needs `write` access.",
       security: SECURITY.session,
-      responses: { ...jsonOk(channelSchema), ...errors(401, 403, 404, 409, 422) },
+      responses: {
+        ...jsonOk(channelSchema),
+        ...errors(401, 403, 404, 409, 422),
+      },
     }),
     validator("param", packageParamSchema.extend({ channel: channelNameSchema })),
-    validator("json", z.object({ version: z.string() })),
+    validator("json", z.object({
+      version: z.string(),
+    })),
     async (c) => {
       const access = await requirePackageAccess(c, "write");
       await assertNoCommits(c.get("db"), access.package.id, "move the channel with `lode-cli channel`");
       const pointer = await setChannel(c.get("db"), access.package.id, c.req.valid("param").channel, c.req.valid("json").version);
       await auditRelease(c, access, "registry.channel.updated", { type: "registry_channel", id: `${access.package.id}/${pointer.name}`, name: `#${pointer.name}` }, { version: pointer.version });
-      return c.json({ success: true, data: channelView(pointer) });
+      return c.json({
+        success: true,
+        data: channelView(pointer),
+      });
     },
   );
 
@@ -372,7 +470,10 @@ export function registryReleaseRoutes() {
       summary: "Yank a published version",
       description: "Hides the version from the manifest without deleting anything. Refused with 409 while a channel points at it: move the pointer first. On a package with manifest commits it is an emergency stop instead: the signed manifest still lists the version, but its assets are no longer served until a commit drops it or the version is restored; a channel may point at it. Needs `admin` access.",
       security: SECURITY.session,
-      responses: { ...jsonOk(versionSchema), ...errors(401, 403, 404, 409) },
+      responses: {
+        ...jsonOk(versionSchema),
+        ...errors(401, 403, 404, 409),
+      },
     }),
     validator("param", versionParamSchema),
     async (c) => {
@@ -382,7 +483,10 @@ export function registryReleaseRoutes() {
       const stop = (await headCommit(c.get("db"), access.package.id)) !== undefined;
       const version = await yankVersion(c.get("db"), access.package.id, c.req.valid("param").ver, { ignoreChannels: stop });
       await auditRelease(c, access, "registry.version.yanked", { type: "registry_version", id: version.id, name: `@${version.version}` });
-      return c.json({ success: true, data: versionView(version) });
+      return c.json({
+        success: true,
+        data: versionView(version),
+      });
     },
   );
 
@@ -393,14 +497,20 @@ export function registryReleaseRoutes() {
       summary: "Restore a yanked version",
       description: "Puts a yanked version back among the published ones. Needs `admin` access.",
       security: SECURITY.session,
-      responses: { ...jsonOk(versionSchema), ...errors(401, 403, 404, 409) },
+      responses: {
+        ...jsonOk(versionSchema),
+        ...errors(401, 403, 404, 409),
+      },
     }),
     validator("param", versionParamSchema),
     async (c) => {
       const access = await requirePackageAccess(c, "admin");
       const version = await restoreVersion(c.get("db"), access.package.id, c.req.valid("param").ver);
       await auditRelease(c, access, "registry.version.restored", { type: "registry_version", id: version.id, name: `@${version.version}` });
-      return c.json({ success: true, data: versionView(version) });
+      return c.json({
+        success: true,
+        data: versionView(version),
+      });
     },
   );
 
@@ -417,7 +527,10 @@ export function registryReleaseRoutes() {
       summary: "State of the package's manifest signature",
       description: "The publisher's signature over the manifest, or `null` when the package has none. `status` says whether it is served: `live` (attached to the manifest), `stale` (the catalog changed since it was made: sign again), `expired` (its `expires` has passed) or `revoked` (its key is no longer active). `expires` is Unix seconds. A token needs a `read` grant on the package.",
       security: SECURITY.session,
-      responses: { ...jsonOk(manifestSignatureSchema.nullable()), ...errors(401, 403, 404) },
+      responses: {
+        ...jsonOk(manifestSignatureSchema.nullable()),
+        ...errors(401, 403, 404),
+      },
     }),
     validator("param", packageParamSchema),
     async (c) => {
@@ -427,7 +540,15 @@ export function registryReleaseRoutes() {
       if (!stored)
         return c.json({ success: true, data: null });
       const status = await manifestSignatureStatus(db, stored, await currentManifest(c, access));
-      return c.json({ success: true, data: { key_id: stored.keyId, expires: stored.expires, status, updated_at: stored.updatedAt } });
+      return c.json({
+        success: true,
+        data: {
+          key_id: stored.keyId,
+          expires: stored.expires,
+          status,
+          updated_at: stored.updatedAt,
+        },
+      });
     },
   );
 
@@ -442,7 +563,10 @@ export function registryReleaseRoutes() {
         "The signature is served only while the manifest's catalog stays the same. Every publish, channel move, yank or restore makes it stale and the manifest unsigned until it is signed again. Needs `write` access.",
       ].join("\n\n"),
       security: SECURITY.session,
-      responses: { ...jsonOk(manifestSignatureSchema), ...errors(400, 401, 403, 404, 409, 422) },
+      responses: {
+        ...jsonOk(manifestSignatureSchema),
+        ...errors(400, 401, 403, 404, 409, 422),
+      },
     }),
     validator("param", packageParamSchema),
     validator("json", manifestSignatureBodySchema),
@@ -457,7 +581,15 @@ export function registryReleaseRoutes() {
         expiresSig: body.expires_sig,
       });
       await auditRelease(c, access, "registry.manifest.signed", { type: "registry_package", id: access.package.id, name: "" }, { key_id: stored.keyId, expires: stored.expires });
-      return c.json({ success: true, data: { key_id: stored.keyId, expires: stored.expires, status: "live" as const, updated_at: stored.updatedAt } });
+      return c.json({
+        success: true,
+        data: {
+          key_id: stored.keyId,
+          expires: stored.expires,
+          status: "live" as const,
+          updated_at: stored.updatedAt,
+        },
+      });
     },
   );
 
@@ -468,7 +600,12 @@ export function registryReleaseRoutes() {
       summary: "Remove the package's manifest signature",
       description: "The manifest is served unsigned again. Hosts with `require_manifest` set stop updating until it is signed anew; hosts on the default policy are unaffected. Needs `write` access.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.object({ removed: z.boolean() })), ...errors(401, 403, 404) },
+      responses: {
+        ...jsonOk(z.object({
+          removed: z.boolean(),
+        })),
+        ...errors(401, 403, 404),
+      },
     }),
     validator("param", packageParamSchema),
     async (c) => {
@@ -476,7 +613,10 @@ export function registryReleaseRoutes() {
       const removed = await deleteManifestSignature(c.get("db"), access.package.id);
       if (removed)
         await auditRelease(c, access, "registry.manifest.unsigned", { type: "registry_package", id: access.package.id, name: "" });
-      return c.json({ success: true, data: { removed } });
+      return c.json({
+        success: true,
+        data: { removed },
+      });
     },
   );
 

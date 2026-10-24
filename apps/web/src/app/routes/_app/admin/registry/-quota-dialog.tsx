@@ -46,7 +46,11 @@ export function QuotaDialog({ user, onClose }: { readonly user: Owner | null; re
         <DialogHeader>
           <DialogTitle>{t("registry:quota.title")}</DialogTitle>
           <DialogDescription>
-            {user ? t("registry:quota.description", { owner: ownerLabel(user) }) : null}
+            {user
+              ? t("registry:quota.description", {
+                  owner: ownerLabel(user),
+                })
+              : null}
           </DialogDescription>
         </DialogHeader>
         {user && <QuotaLoader userId={user.id} onClose={onClose} />}
@@ -59,7 +63,11 @@ function QuotaLoader({ userId, onClose }: { readonly userId: string; readonly on
   const { t } = useTranslation(["common", "registry", "regerrors"]);
   // Nothing is kept after closing and nothing refetches under the form: every
   // opening loads the current override once and the form starts from it.
-  const { data, error } = useQuery({ ...adminUserQuotaQuery(userId), gcTime: 0, refetchOnWindowFocus: false });
+  const { data, error } = useQuery({
+    ...adminUserQuotaQuery(userId),
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+  });
 
   if (data)
     return <QuotaEditor quota={data} onClose={onClose} />;
@@ -86,13 +94,18 @@ function QuotaEditor({ quota, onClose }: { readonly quota: UserQuota; readonly o
     mutationFn: (override: Parameters<typeof adminSetUserQuota>[1]) => adminSetUserQuota(quota.user_id, override),
     onSuccess: () => {
       toast.success(t("registry:quota.saved"));
-      void queryClient.invalidateQueries({ queryKey: registryKeys.adminUserQuota(quota.user_id) });
+      void queryClient.invalidateQueries({
+        queryKey: registryKeys.adminUserQuota(quota.user_id),
+      });
       onClose();
     },
   });
 
   const set = (patch: Partial<QuotaFormValues>) => {
-    setValues(v => ({ ...v, ...patch }));
+    setValues(v => ({
+      ...v,
+      ...patch,
+    }));
     setErrors({});
   };
 
@@ -121,7 +134,11 @@ function QuotaEditor({ quota, onClose }: { readonly quota: UserQuota; readonly o
           })}
         </dd>
         <dt className="text-muted-foreground">{t("registry:quota.asset")}</dt>
-        <dd>{t("registry:quota.upTo", { limit: formatBytes(quota.limits.max_asset_bytes) })}</dd>
+        <dd>
+          {t("registry:quota.upTo", {
+            limit: formatBytes(quota.limits.max_asset_bytes),
+          })}
+        </dd>
       </dl>
 
       <p className="text-sm text-muted-foreground">{t("registry:quota.hint")}</p>
@@ -151,15 +168,22 @@ function QuotaEditor({ quota, onClose }: { readonly quota: UserQuota; readonly o
         value={values.maxAsset}
         onChange={maxAsset => set({ maxAsset })}
         hint={t("registry:quota.assetHint")}
-        error={errors.maxAsset && (errors.maxAsset === "assetTooLarge" ? t("registry:quota.assetTooLarge") : t("registry:quota.assetInvalid"))}
+        error={errors.maxAsset && (errors.maxAsset === "assetTooLarge"
+          ? t("registry:quota.assetTooLarge")
+          : t("registry:quota.assetInvalid"))}
       />
 
-      <ErrorBanner message={mutation.error ? registryErrorMessage(mutation.error, t, t("common.error.saveFailed")) : null} />
+      <ErrorBanner message={mutation.error
+        ? registryErrorMessage(mutation.error, t, t("common.error.saveFailed"))
+        : null}
+      />
 
       <DialogFooter>
         <DialogClose render={<Button type="button" variant="outline">{t("common.cancel")}</Button>} />
         <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? t("common.saving") : t("common.save")}
+          {mutation.isPending
+            ? t("common.saving")
+            : t("common.save")}
         </Button>
       </DialogFooter>
     </form>
@@ -184,7 +208,9 @@ function SizeField({
   const { t } = useTranslation(["common", "registry"]);
   const id = useId();
   // Bytes are listed only while a stored limit needs them to be shown exactly.
-  const units = value.unit === "B" ? ["B" as const, ...INPUT_UNITS] : INPUT_UNITS;
+  const units = value.unit === "B"
+    ? ["B" as const, ...INPUT_UNITS]
+    : INPUT_UNITS;
 
   return (
     <div className="space-y-1.5">

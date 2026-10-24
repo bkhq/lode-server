@@ -46,7 +46,10 @@ export const grantLevelSchema = z.enum(["read", "write", "admin"]);
 /** Either one level for every package the owner has, or a level per package. */
 export const grantsSchema = z.union([
   z.strictObject({ all: grantLevelSchema }),
-  z.array(z.strictObject({ package: z.string(), access: grantLevelSchema }))
+  z.array(z.strictObject({
+    package: z.string(),
+    access: grantLevelSchema,
+  }))
     .max(200)
     .refine(list => new Set(list.map(g => g.package)).size === list.length, "A package is listed more than once"),
 ]);

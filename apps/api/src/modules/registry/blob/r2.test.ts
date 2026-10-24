@@ -83,7 +83,12 @@ class FakeBucket {
 
   async get(key: string): Promise<{ body: Body; size: number } | null> {
     const bytes = this.objects.get(key);
-    return bytes ? { body: streamOf(bytes), size: bytes.length } : null;
+    return bytes
+      ? {
+          body: streamOf(bytes),
+          size: bytes.length,
+        }
+      : null;
   }
 
   async delete(keys: string | string[]): Promise<void> {
@@ -95,17 +100,28 @@ class FakeBucket {
 
   /** Pages of two, so the driver has to follow the cursor (the last key seen). */
   async list(options: { prefix: string; cursor?: string }) {
-    const keys = [...this.objects.keys()]
+    const keys = [
+      ...this.objects.keys(),
+    ]
       .filter(key => key.startsWith(options.prefix) && key > (options.cursor ?? ""))
       .sort();
     const page = keys.slice(0, 2);
     const truncated = keys.length > 2;
-    return { objects: page.map(key => ({ key })), truncated, ...(truncated ? { cursor: page[1] } : {}) };
+    return {
+      objects: page.map(key => ({ key })),
+      truncated,
+      ...(truncated
+        ? { cursor: page[1] }
+        : {}),
+    };
   }
 
   async createMultipartUpload(key: string) {
     const uploadId = `upload-${this.#nextId++}`;
-    this.uploads.set(uploadId, { key, parts: new Map() });
+    this.uploads.set(uploadId, {
+      key,
+      parts: new Map(),
+    });
     return { key, uploadId };
   }
 
@@ -170,7 +186,10 @@ beforeEach(() => {
 describe("r2 blob store: put / get / delete", () => {
   test("round trip on the plain path", async () => {
     const bytes = bytesOf(10_500);
-    await store.put("pkg/1/2/tool.tar.gz", requestBody(bytes), { size: bytes.length, sha256: sha256Hex(bytes) });
+    await store.put("pkg/1/2/tool.tar.gz", requestBody(bytes), {
+      size: bytes.length,
+      sha256: sha256Hex(bytes),
+    });
 
     const object = await store.get("pkg/1/2/tool.tar.gz");
     expect(object?.size).toBe(bytes.length);
@@ -185,7 +204,10 @@ describe("r2 blob store: put / get / delete", () => {
 
   test("a rejected put is a BlobPutError and leaves no object", async () => {
     const bytes = bytesOf(4000);
-    const attempt = store.put("pkg/a", requestBody(bytes), { size: bytes.length, sha256: sha256Hex(bytesOf(4000, 9)) });
+    const attempt = store.put("pkg/a", requestBody(bytes), {
+      size: bytes.length,
+      sha256: sha256Hex(bytesOf(4000, 9)),
+    });
     await expect(attempt).rejects.toBeInstanceOf(BlobPutError);
     // R2 does not say why it rejected, so the driver does not claim to know.
     await expect(attempt).rejects.not.toBeInstanceOf(BlobDigestMismatchError);
@@ -194,21 +216,33 @@ describe("r2 blob store: put / get / delete", () => {
 
   test("a stream of unknown length goes through FixedLengthStream", async () => {
     const bytes = bytesOf(10_500);
-    await store.put("pkg/a", streamOf(bytes), { size: bytes.length, sha256: sha256Hex(bytes) });
+    await store.put("pkg/a", streamOf(bytes), {
+      size: bytes.length,
+      sha256: sha256Hex(bytes),
+    });
     expect(bucket.objects.get("pkg/a")).toEqual(bytes);
   });
 
   test("unknown length, wrong digest: BlobPutError, nothing stored", async () => {
     const bytes = bytesOf(4000);
-    const attempt = store.put("pkg/a", streamOf(bytes), { size: bytes.length, sha256: sha256Hex(bytesOf(4000, 9)) });
+    const attempt = store.put("pkg/a", streamOf(bytes), {
+      size: bytes.length,
+      sha256: sha256Hex(bytesOf(4000, 9)),
+    });
     await expect(attempt).rejects.toBeInstanceOf(BlobPutError);
     await expect(attempt).rejects.not.toBeInstanceOf(BlobDigestMismatchError);
     expect(bucket.objects.size).toBe(0);
   });
 
-  test.each([["shorter", 4001], ["longer", 3999]])("unknown length, body %s than declared: size mismatch", async (_label, size) => {
+  test.each([
+    ["shorter", 4001],
+    ["longer", 3999],
+  ])("unknown length, body %s than declared: size mismatch", async (_label, size) => {
     const bytes = bytesOf(4000);
-    await expect(store.put("pkg/a", streamOf(bytes), { size, sha256: sha256Hex(bytes) }))
+    await expect(store.put("pkg/a", streamOf(bytes), {
+      size,
+      sha256: sha256Hex(bytes),
+    }))
       .rejects
       .toBeInstanceOf(BlobDigestMismatchError);
     expect(bucket.objects.size).toBe(0);
@@ -226,7 +260,10 @@ describe("r2 blob store: put / get / delete", () => {
         controller.enqueue(bytesOf(10));
       },
     });
-    const attempt = store.put("pkg/a", body, { size: 100, sha256: sha256Hex(bytesOf(100)) });
+    const attempt = store.put("pkg/a", body, {
+      size: 100,
+      sha256: sha256Hex(bytesOf(100)),
+    });
     await expect(attempt).rejects.toBeInstanceOf(BlobPutError);
     await expect(attempt).rejects.not.toBeInstanceOf(BlobDigestMismatchError);
     expect(bucket.objects.size).toBe(0);
@@ -234,25 +271,41 @@ describe("r2 blob store: put / get / delete", () => {
 
   test("delete removes the object and tolerates a missing key", async () => {
     const bytes = bytesOf(10);
-    await store.put("pkg/a", requestBody(bytes), { size: 10, sha256: sha256Hex(bytes) });
+    await store.put("pkg/a", requestBody(bytes), {
+      size: 10,
+      sha256: sha256Hex(bytes),
+    });
     await store.delete("pkg/a");
     await store.delete("pkg/a");
     expect(await store.get("pkg/a")).toBeUndefined();
   });
 
   test("deletePrefix follows the listing cursor and removes only the prefix", async () => {
-    for (const key of ["pkg/1/2/a", "pkg/1/2/b", "pkg/1/2/c", "pkg/1/2/sub/d", "pkg/1/2/sub/e", "pkg/1/20/f", "pkg/1/3/g"]) {
+    for (const key of [
+      "pkg/1/2/a",
+      "pkg/1/2/b",
+      "pkg/1/2/c",
+      "pkg/1/2/sub/d",
+      "pkg/1/2/sub/e",
+      "pkg/1/20/f",
+      "pkg/1/3/g",
+    ]) {
       bucket.objects.set(key, bytesOf(1));
     }
     await store.deletePrefix("pkg/1/2/");
-    expect([...bucket.objects.keys()].sort()).toEqual(["pkg/1/20/f", "pkg/1/3/g"]);
+    expect([
+      ...bucket.objects.keys(),
+    ].sort()).toEqual(["pkg/1/20/f", "pkg/1/3/g"]);
     await store.deletePrefix("pkg/none/");
   });
 
   test("invalid keys and prefixes never reach the bucket", async () => {
     const bytes = bytesOf(10);
     bucket.objects.set("pkg/a", bytes);
-    await expect(store.put("../a", requestBody(bytes), { size: 10, sha256: sha256Hex(bytes) })).rejects.toThrow("Invalid blob key");
+    await expect(store.put("../a", requestBody(bytes), {
+      size: 10,
+      sha256: sha256Hex(bytes),
+    })).rejects.toThrow("Invalid blob key");
     await expect(store.get("/pkg/a")).rejects.toThrow("Invalid blob key");
     await expect(store.delete("pkg//a")).rejects.toThrow("Invalid blob key");
     await expect(store.deletePrefix("")).rejects.toThrow("Invalid blob key");
@@ -265,7 +318,12 @@ describe("r2 blob store: multipart", () => {
   const key = "pkg/1/2/big.bin";
 
   test("three parts, one of them uploaded twice", async () => {
-    const [one, staleTwo, two, three] = [bytesOf(5000, 1), bytesOf(5000, 2), bytesOf(5000, 3), bytesOf(1200, 4)];
+    const [one, staleTwo, two, three] = [
+      bytesOf(5000, 1),
+      bytesOf(5000, 2),
+      bytesOf(5000, 3),
+      bytesOf(1200, 4),
+    ];
     const { uploadId } = await store.createMultipart(key);
 
     const first = await store.putPart(key, uploadId, 1, requestBody(one), one.length);

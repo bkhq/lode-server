@@ -63,7 +63,9 @@ describe("loggingMiddleware", () => {
 
   test("logs even when the handler throws", async () => {
     const { app, calls } = buildApp();
-    app.onError((_err, c) => c.json({ error: { code: "X", message: "x" } }, 500));
+    app.onError((_err, c) => c.json({
+      error: { code: "X", message: "x" },
+    }, 500));
     const res = await app.request("/boom");
     expect(res.status).toBe(500);
     expect(calls.length).toBe(1);

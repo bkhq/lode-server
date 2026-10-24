@@ -56,7 +56,11 @@ export function CommitsTab({ ns, pkg }: CommitsTabProps) {
               ? (
                   <TableRow>
                     <TableCell colSpan={COLUMNS} className="h-24 text-center text-muted-foreground">
-                      {isPending ? t("common:common.loading") : error ? t("common:common.error.loadFailed") : t("package:commits.empty")}
+                      {isPending
+                        ? t("common:common.loading")
+                        : error
+                          ? t("common:common.error.loadFailed")
+                          : t("package:commits.empty")}
                     </TableCell>
                   </TableRow>
                 )

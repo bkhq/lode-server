@@ -23,7 +23,10 @@ import { OwnerCell } from "./-owner-cell";
 const PAGE_SIZE = 20;
 
 function searchUsers(q: string): Promise<{ data: Owner[] }> {
-  const params = new URLSearchParams({ page: "1", limit: String(PAGE_SIZE) });
+  const params = new URLSearchParams({
+    page: "1",
+    limit: String(PAGE_SIZE),
+  });
   if (q)
     params.set("q", q);
   return http(`/account/users?${params.toString()}`);
@@ -66,7 +69,10 @@ export function UserPickerDialog({
             className="pl-8"
           />
         </div>
-        <ErrorBanner message={error ? errorMessage(error, t("common.error.loadFailed")) : null} />
+        <ErrorBanner message={error
+          ? errorMessage(error, t("common.error.loadFailed"))
+          : null}
+        />
         <div className="max-h-72 space-y-1 overflow-y-auto" aria-busy={isPending}>
           {isPending && !error && <p className="py-6 text-center text-sm text-muted-foreground">{t("common.loading")}</p>}
           {data && users.length === 0 && (

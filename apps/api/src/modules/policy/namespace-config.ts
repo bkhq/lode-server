@@ -28,23 +28,50 @@ const defaultNamespaces: readonly NamespaceConfig[] = [
   {
     name: "group",
     relations: {
-      member: { union: [{ this: {} }] },
+      member: {
+        union: [
+          { this: {} },
+        ],
+      },
     },
   },
   {
     name: "resource_group",
     relations: {
       viewer: {
-        union: [{ this: {} }, { computed_userset: { relation: "editor" } }],
+        union: [
+          { this: {} },
+          {
+            computed_userset: { relation: "editor" },
+          },
+        ],
       },
       editor: {
-        union: [{ this: {} }, { computed_userset: { relation: "manager" } }],
+        union: [
+          { this: {} },
+          {
+            computed_userset: { relation: "manager" },
+          },
+        ],
       },
       manager: {
-        union: [{ this: {} }, { computed_userset: { relation: "admin" } }],
+        union: [
+          { this: {} },
+          {
+            computed_userset: { relation: "admin" },
+          },
+        ],
       },
-      admin: { union: [{ this: {} }] },
-      member: { union: [{ this: {} }] },
+      admin: {
+        union: [
+          { this: {} },
+        ],
+      },
+      member: {
+        union: [
+          { this: {} },
+        ],
+      },
     },
   },
   // `item` is the permission namespace for the item base module
@@ -72,32 +99,63 @@ const defaultNamespaces: readonly NamespaceConfig[] = [
   {
     name: "item",
     relations: {
-      owner: { union: [{ this: {} }] },
+      owner: {
+        union: [
+          { this: {} },
+        ],
+      },
       editor: {
         union: [
           { this: {} },
-          { computed_userset: { relation: "owner" } },
-          { tuple_to_userset: { tupleset: "parent_item", computed_userset: "editor" } },
+          {
+            computed_userset: { relation: "owner" },
+          },
+          {
+            tuple_to_userset: { tupleset: "parent_item", computed_userset: "editor" },
+          },
         ],
       },
       viewer: {
         union: [
           { this: {} },
-          { computed_userset: { relation: "editor" } },
+          {
+            computed_userset: { relation: "editor" },
+          },
           // The current handler of an item can always read it. This is the
           // one rule the issue routes used to encode by hand
           // (`creatorId || assigneeId`); keeping it in the namespace means
           // every path — routes, attachments, comments — agrees.
-          { computed_userset: { relation: "assignee" } },
-          { tuple_to_userset: { tupleset: "parent_item", computed_userset: "viewer" } },
+          {
+            computed_userset: { relation: "assignee" },
+          },
+          {
+            tuple_to_userset: { tupleset: "parent_item", computed_userset: "viewer" },
+          },
         ],
       },
       assignee: {
-        union: [{ this: {} }, { computed_userset: { relation: "owner" } }],
+        union: [
+          { this: {} },
+          {
+            computed_userset: { relation: "owner" },
+          },
+        ],
       },
-      approver: { union: [{ this: {} }] },
-      watcher: { union: [{ this: {} }] },
-      parent_item: { union: [{ this: {} }] },
+      approver: {
+        union: [
+          { this: {} },
+        ],
+      },
+      watcher: {
+        union: [
+          { this: {} },
+        ],
+      },
+      parent_item: {
+        union: [
+          { this: {} },
+        ],
+      },
     },
   },
 ];
@@ -113,7 +171,10 @@ const moduleNamespaces = new Map<string, NamespaceConfig>();
  */
 export function loadNamespaces(configs?: readonly NamespaceConfig[]): void {
   namespaceRegistry.clear();
-  for (const config of configs ?? [...defaultNamespaces, ...moduleNamespaces.values()]) {
+  for (const config of configs ?? [
+    ...defaultNamespaces,
+    ...moduleNamespaces.values(),
+  ]) {
     namespaceRegistry.set(config.name, config);
   }
 }

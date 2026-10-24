@@ -48,9 +48,13 @@ export const TAGS = {
 type SecurityRequirement = Record<string, string[]>;
 export const SECURITY: Record<"session" | "serviceToken", SecurityRequirement[]> = {
   /** Browser session cookie (most authed routes). */
-  session: [{ sessionCookie: [] }],
+  session: [
+    { sessionCookie: [] },
+  ],
   /** `Authorization: Bearer <service-token>` (metrics, token-scoped backup). */
-  serviceToken: [{ serviceToken: [] }],
+  serviceToken: [
+    { serviceToken: [] },
+  ],
 };
 
 // ─── Validation (preserves the 422 envelope) ───
@@ -118,7 +122,11 @@ const errorEnvelope = z.object({
 });
 
 function json(schema: ZodType) {
-  return { "application/json": { schema: resolver(schema) } };
+  return {
+    "application/json": {
+      schema: resolver(schema),
+    },
+  };
 }
 
 function successEnvelope(data: ZodType, withMeta = false) {
@@ -126,7 +134,13 @@ function successEnvelope(data: ZodType, withMeta = false) {
     success: z.literal(true),
     data,
     ...(withMeta
-      ? { meta: z.object({ total: z.number(), page: z.number(), limit: z.number() }) }
+      ? {
+          meta: z.object({
+            total: z.number(),
+            page: z.number(),
+            limit: z.number(),
+          }),
+        }
       : {}),
   };
   return z.object(shape);
@@ -134,22 +148,39 @@ function successEnvelope(data: ZodType, withMeta = false) {
 
 /** `200` with `{ success: true, data }`. */
 export function jsonOk(data: ZodType = z.unknown(), description = "Success"): ResponsesMap {
-  return { 200: { description, content: json(successEnvelope(data)) } };
+  return {
+    200: {
+      description,
+      content: json(successEnvelope(data)),
+    },
+  };
 }
 
 /** `201` with `{ success: true, data }`. */
 export function jsonCreated(data: ZodType = z.unknown(), description = "Created"): ResponsesMap {
-  return { 201: { description, content: json(successEnvelope(data)) } };
+  return {
+    201: {
+      description,
+      content: json(successEnvelope(data)),
+    },
+  };
 }
 
 /** `200` with `{ success: true, data: T[], meta }`. */
 export function jsonPaged(item: ZodType, description = "Paged list"): ResponsesMap {
-  return { 200: { description, content: json(successEnvelope(z.array(item), true)) } };
+  return {
+    200: {
+      description,
+      content: json(successEnvelope(z.array(item), true)),
+    },
+  };
 }
 
 /** `204 No Content`. */
 export function noContent(description = "No content"): ResponsesMap {
-  return { 204: { description } };
+  return {
+    204: { description },
+  };
 }
 
 const ERROR_DESCRIPTIONS: Partial<Record<number, string>> = {
@@ -169,12 +200,20 @@ const ERROR_DESCRIPTIONS: Partial<Record<number, string>> = {
 export function errors(...codes: number[]): ResponsesMap {
   const out: ResponsesMap = {};
   for (const code of codes) {
-    out[code] = { description: ERROR_DESCRIPTIONS[code] ?? "Error", content: json(errorEnvelope) };
+    out[code] = {
+      description: ERROR_DESCRIPTIONS[code] ?? "Error",
+      content: json(errorEnvelope),
+    };
   }
   return out;
 }
 
 /** A raw (non-JSON) response, e.g. Prometheus text or a binary download. */
 export function raw(status: StatusCode, mediaType: string, description: string): Record<number, { description: string; content: Record<string, Record<string, never>> }> {
-  return { [status as number]: { description, content: { [mediaType]: {} } } };
+  return {
+    [status as number]: {
+      description,
+      content: { [mediaType]: {} },
+    },
+  };
 }

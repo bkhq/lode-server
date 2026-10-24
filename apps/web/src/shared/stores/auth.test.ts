@@ -69,7 +69,9 @@ describe("useAuthStore.logout", () => {
   beforeEach(() => {
     originalLocation = globalThis.window?.location ?? ({} as Location);
     Object.defineProperty(globalThis, "window", {
-      value: { location: { href: "" } },
+      value: {
+        location: { href: "" },
+      },
       writable: true,
       configurable: true,
     });

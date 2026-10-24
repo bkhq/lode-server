@@ -12,7 +12,10 @@ describe("getNavItems", () => {
   it("registers every nav file under app/routes", () => {
     const onDisk = navItemsOnDisk;
     expect(onDisk.length).toBeGreaterThan(0);
-    const registered = [...getNavItems("main"), ...getNavItems("admin")];
+    const registered = [
+      ...getNavItems("main"),
+      ...getNavItems("admin"),
+    ];
     expect(registered.map(i => i.key).toSorted()).toEqual(onDisk.map(i => i.key).toSorted());
   });
 

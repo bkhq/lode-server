@@ -35,7 +35,12 @@ export async function attemptSealedUnlock(
     stats = statSync(path);
   }
   catch (err) {
-    logger.warn({ err: err instanceof Error ? err.message : String(err), path }, "sealed-unlock: stat failed");
+    logger.warn({
+      err: err instanceof Error
+        ? err.message
+        : String(err),
+      path,
+    }, "sealed-unlock: stat failed");
     return;
   }
   // Refuse a world-readable secret on disk. The owner-readable bit
@@ -43,7 +48,10 @@ export async function attemptSealedUnlock(
   // `apps/api/src/modules/encryption/bootstrap.ts`.
   const mode = stats.mode & 0o777;
   if (mode !== 0o600) {
-    logger.warn({ path, mode: mode.toString(8) }, "sealed-unlock: refusing — file mode must be 0600");
+    logger.warn({
+      path,
+      mode: mode.toString(8),
+    }, "sealed-unlock: refusing — file mode must be 0600");
     return;
   }
 
@@ -54,7 +62,11 @@ export async function attemptSealedUnlock(
     password = firstLine?.trim() ?? "";
   }
   catch (err) {
-    logger.warn({ err: err instanceof Error ? err.message : String(err) }, "sealed-unlock: read failed");
+    logger.warn({
+      err: err instanceof Error
+        ? err.message
+        : String(err),
+    }, "sealed-unlock: read failed");
     deleteFile(path, logger);
     return;
   }
@@ -78,11 +90,18 @@ export async function attemptSealedUnlock(
     }
     else {
       const text = await res.text().catch(() => "");
-      logger.warn({ status: res.status, body: text.slice(0, 200) }, "sealed-unlock: unlock failed");
+      logger.warn({
+        status: res.status,
+        body: text.slice(0, 200),
+      }, "sealed-unlock: unlock failed");
     }
   }
   catch (err) {
-    logger.warn({ err: err instanceof Error ? err.message : String(err) }, "sealed-unlock: request failed");
+    logger.warn({
+      err: err instanceof Error
+        ? err.message
+        : String(err),
+    }, "sealed-unlock: request failed");
   }
   deleteFile(path, logger);
 }
@@ -93,6 +112,11 @@ function deleteFile(path: string, logger: Logger): void {
     logger.info({ path }, "sealed-unlock: file deleted");
   }
   catch (err) {
-    logger.warn({ err: err instanceof Error ? err.message : String(err), path }, "sealed-unlock: delete failed");
+    logger.warn({
+      err: err instanceof Error
+        ? err.message
+        : String(err),
+      path,
+    }, "sealed-unlock: delete failed");
   }
 }

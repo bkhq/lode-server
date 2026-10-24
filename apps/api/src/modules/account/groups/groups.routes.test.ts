@@ -16,7 +16,14 @@ import { addGroupMember, createGroup, getGroupByName, getGroupMembers } from "./
 import { syncIdpGroups } from "./idp-sync";
 import "@/modules/account";
 
-const noop = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
+const noop = {
+  debug() {},
+  info() {},
+  warn() {},
+  error() {},
+  fatal() {},
+  flush() {},
+} as unknown as Logger;
 
 let dir: string;
 let db: AppDatabase;
@@ -24,7 +31,17 @@ let cookie: string;
 
 async function seedUser(id: string, role: "admin" | "user"): Promise<string> {
   const now = new Date().toISOString();
-  await db.insert(users).values({ id, oauthSub: `sub-${id}`, username: id, name: id, email: `${id}@t.io`, role, status: "active", createdAt: now, updatedAt: now }).run();
+  await db.insert(users).values({
+    id,
+    oauthSub: `sub-${id}`,
+    username: id,
+    name: id,
+    email: `${id}@t.io`,
+    role,
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  }).run();
   return id;
 }
 
@@ -57,7 +74,11 @@ function send(method: string, path: string, body?: unknown): Promise<Response> {
   return Promise.resolve(app().request(path, {
     method,
     headers: { "Cookie": cookie, "Content-Type": "application/json" },
-    ...body === undefined ? {} : { body: JSON.stringify(body) },
+    ...body === undefined
+      ? {}
+      : {
+          body: JSON.stringify(body),
+        },
   }));
 }
 

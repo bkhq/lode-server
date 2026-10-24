@@ -142,7 +142,10 @@ export function GrantEditor({ value, onChange, packages }: {
                             <LevelSelect<RowLevel>
                               value={value.perPackage[key] ?? "none"}
                               options={ROW_LEVELS}
-                              onChange={level => onChange({ ...value, perPackage: { ...value.perPackage, [key]: level } })}
+                              onChange={level => onChange({
+                                ...value,
+                                perPackage: { ...value.perPackage, [key]: level },
+                              })}
                               label={t("editor.accessFor", { package: key })}
                             />
                           </TableCell>

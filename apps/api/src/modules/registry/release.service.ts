@@ -103,7 +103,10 @@ export async function listVersions(db: AppDatabase, packageId: string): Promise<
     .where(eq(registryVersions.packageId, packageId))
     .orderBy(asc(registryAssets.name))
     .all();
-  return versions.map(version => ({ ...version, assets: assets.map(a => a.asset).filter(a => a.versionId === version.id) }));
+  return versions.map(version => ({
+    ...version,
+    assets: assets.map(a => a.asset).filter(a => a.versionId === version.id),
+  }));
 }
 
 export async function listChannels(db: AppDatabase, packageId: string): Promise<ChannelPointer[]> {
@@ -138,7 +141,12 @@ export async function createDraft(db: AppDatabase, packageId: string, input: { v
   if (await isRetired(db, packageId, input.version))
     throw new AppError(`Version ${input.version} was published and then deleted; its id cannot be used again`, 409, "VERSION_RETIRED");
   try {
-    const row = await db.insert(registryVersions).values({ id: nanoid(), packageId, version: input.version, notes: input.notes ?? null }).returning().get();
+    const row = await db.insert(registryVersions).values({
+      id: nanoid(),
+      packageId,
+      version: input.version,
+      notes: input.notes ?? null,
+    }).returning().get();
     return { ...row, assets: [] };
   }
   catch (err) {
@@ -208,7 +216,9 @@ export function storedRuntime(runtime: RuntimeSpec | null): string | null {
 
 /** The runtime a column holds. */
 export function parseRuntime(column: string | null): RuntimeSpec | null {
-  return column === null ? null : JSON.parse(column) as RuntimeSpec;
+  return column === null
+    ? null
+    : JSON.parse(column) as RuntimeSpec;
 }
 
 /** The version an upload goes into, which has to be a draft. */
@@ -232,7 +242,9 @@ export async function admitUpload(db: AppDatabase, config: ReleaseConfig, target
 
   if (input.sig === null && pkg.requireSignature)
     throw new AppError("This package requires signed assets: pass the signature as `sig`", 400, "SIGNATURE_REQUIRED");
-  return input.sig === null ? null : await verifyUnderPackageKeys(db, pkg, input.version, { ...input, sig: input.sig });
+  return input.sig === null
+    ? null
+    : await verifyUnderPackageKeys(db, pkg, input.version, { ...input, sig: input.sig });
 }
 
 /**
@@ -344,7 +356,14 @@ export async function resignAsset(db: AppDatabase, pkg: Target["package"], versi
     const current = await db.select().from(registryAssets).where(sameName).get();
     if (!current)
       throw new NotFoundError("Asset");
-    const signed = await verifyUnderPackageKeys(db, pkg, version.version, { name, sha256: current.sha256, run: current.run, exec: current.exec, runtime: parseRuntime(current.runtime), sig });
+    const signed = await verifyUnderPackageKeys(db, pkg, version.version, {
+      name,
+      sha256: current.sha256,
+      run: current.run,
+      exec: current.exec,
+      runtime: parseRuntime(current.runtime),
+      sig,
+    });
     const asset = await db.update(registryAssets).set({ sig, keyId: signed.keyId, alg: signed.alg }).where(eq(registryAssets.id, current.id)).returning().get();
     return { asset: asset!, previousKeyId: current.keyId };
   }
@@ -361,12 +380,20 @@ async function pointChannel(tx: Transaction, packageId: string, name: string, ve
   await tx
     .insert(registryChannels)
     .values({ packageId, name, versionId })
-    .onConflictDoUpdate({ target: [registryChannels.packageId, registryChannels.name], set: { versionId, updatedAt: new Date().toISOString() } })
+    .onConflictDoUpdate({
+      target: [registryChannels.packageId, registryChannels.name],
+      set: {
+        versionId,
+        updatedAt: new Date().toISOString(),
+      },
+    })
     .run();
 }
 
 async function pointersAt(tx: Transaction, versionId: string): Promise<number> {
-  return (await tx.select({ n: count() }).from(registryChannels).where(eq(registryChannels.versionId, versionId)).get())?.n ?? 0;
+  return (await tx.select({
+    n: count(),
+  }).from(registryChannels).where(eq(registryChannels.versionId, versionId)).get())?.n ?? 0;
 }
 
 /**
@@ -382,10 +409,15 @@ export async function publishVersion(db: AppDatabase, packageId: string, version
       const current = await tx.select({ status: registryVersions.status }).from(registryVersions).where(eq(registryVersions.id, version.id)).get();
       if (current?.status !== "draft")
         throw notDraft(version.version);
-      const assets = await tx.select({ n: count() }).from(registryAssets).where(eq(registryAssets.versionId, version.id)).get();
+      const assets = await tx.select({
+        n: count(),
+      }).from(registryAssets).where(eq(registryAssets.versionId, version.id)).get();
       if ((assets?.n ?? 0) === 0)
         throw new AppError(`Version ${version.version} has no assets to publish`, 409, "VERSION_EMPTY");
-      await tx.update(registryVersions).set({ status: "published", publishedAt: new Date().toISOString() }).where(eq(registryVersions.id, version.id)).run();
+      await tx.update(registryVersions).set({
+        status: "published",
+        publishedAt: new Date().toISOString(),
+      }).where(eq(registryVersions.id, version.id)).run();
       await pointChannel(tx, packageId, channel, version.id);
     });
   }

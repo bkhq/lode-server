@@ -38,7 +38,9 @@ const RE_TRAILING_SLASHES = /\/+$/;
 
 export async function fetchOidcDiscovery(issuer: string): Promise<OidcDiscovery> {
   const url = `${issuer.replace(RE_TRAILING_SLASHES, "")}/.well-known/openid-configuration`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(10_000),
+  });
   if (!res.ok) {
     throw new Error(`OIDC discovery failed: ${res.status} ${res.statusText} from ${url}`);
   }
@@ -122,8 +124,12 @@ export async function readDiscoveryCache(cachePath: string, issuer: string): Pro
     const cached = await file.json() as CachedDiscovery;
     if (cached.issuer !== issuer)
       return { discovery: null, warnings: blank };
-    if (!discoveryEndpointsMatchIssuer(cached.discovery, issuer))
-      return { discovery: null, warnings: { ...blank, tampered: true } };
+    if (!discoveryEndpointsMatchIssuer(cached.discovery, issuer)) {
+      return {
+        discovery: null,
+        warnings: { ...blank, tampered: true },
+      };
+    }
 
     const fetchedAt = Date.parse(cached.fetchedAt);
     let stale = false;
@@ -135,7 +141,10 @@ export async function readDiscoveryCache(cachePath: string, issuer: string): Pro
         ageHours = Math.round(ageMs / 3_600_000);
       }
     }
-    return { discovery: cached.discovery, warnings: { tampered: false, stale, ageHours } };
+    return {
+      discovery: cached.discovery,
+      warnings: { tampered: false, stale, ageHours },
+    };
   }
   catch {
     return { discovery: null, warnings: blank };
@@ -147,7 +156,11 @@ export async function writeDiscoveryCache(cachePath: string, issuer: string, dis
     return;
   try {
     const tmp = `${cachePath}.tmp`;
-    await Bun.write(tmp, JSON.stringify({ issuer, fetchedAt: new Date().toISOString(), discovery } satisfies CachedDiscovery));
+    await Bun.write(tmp, JSON.stringify({
+      issuer,
+      fetchedAt: new Date().toISOString(),
+      discovery,
+    } satisfies CachedDiscovery));
     const { renameSync } = await import("node:fs");
     renameSync(tmp, cachePath);
   }

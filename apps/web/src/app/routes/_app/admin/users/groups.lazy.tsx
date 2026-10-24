@@ -96,7 +96,9 @@ function GroupsTab() {
       setGroups(res.data);
     }
     catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error.loadFailed"));
+      setError(err instanceof Error
+        ? err.message
+        : t("common.error.loadFailed"));
     }
     finally {
       setLoading(false);
@@ -114,7 +116,9 @@ function GroupsTab() {
       setMembers(res.data);
     }
     catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error.loadFailed"));
+      setError(err instanceof Error
+        ? err.message
+        : t("common.error.loadFailed"));
     }
     finally {
       setMembersLoading(false);
@@ -159,7 +163,9 @@ function GroupsTab() {
       void fetchGroups();
     }
     catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error.operationFailed"));
+      setError(err instanceof Error
+        ? err.message
+        : t("common.error.operationFailed"));
     }
   };
 
@@ -172,7 +178,9 @@ function GroupsTab() {
       void fetchGroups();
     }
     catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error.operationFailed"));
+      setError(err instanceof Error
+        ? err.message
+        : t("common.error.operationFailed"));
     }
   };
 
@@ -187,7 +195,9 @@ function GroupsTab() {
       void fetchGroups();
     }
     catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error.deleteFailed"));
+      setError(err instanceof Error
+        ? err.message
+        : t("common.error.deleteFailed"));
       setDeleteConfirm(null);
     }
   };
@@ -367,10 +377,14 @@ function GroupsTab() {
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <CardTitle className="truncate">
-                  {selectedGroup ? t("membersOf", { name: selectedGroup.name }) : t("membersTitle")}
+                  {selectedGroup
+                    ? t("membersOf", { name: selectedGroup.name })
+                    : t("membersTitle")}
                 </CardTitle>
                 <CardDescription>
-                  {selectedGroup?.source === "idp" ? t("idpManaged") : t("membersDescription")}
+                  {selectedGroup?.source === "idp"
+                    ? t("idpManaged")
+                    : t("membersDescription")}
                 </CardDescription>
               </div>
               {selectedGroup && selectedGroup.source !== "idp" && (
@@ -504,7 +518,9 @@ function GroupFormDialog({
       await onSubmit(name.trim(), desc.trim());
     }
     catch (err) {
-      setFormError(err instanceof Error ? err.message : t("common.error.operationFailed"));
+      setFormError(err instanceof Error
+        ? err.message
+        : t("common.error.operationFailed"));
     }
     finally {
       setSubmitting(false);

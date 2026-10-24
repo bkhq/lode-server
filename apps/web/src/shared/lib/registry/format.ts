@@ -6,7 +6,9 @@ export function formatBytes(n: number): string {
     return "0 B";
   let value = n;
   let unit = 0;
-  const digits = () => (unit >= 2 ? 1 : 0);
+  const digits = () => (unit >= 2
+    ? 1
+    : 0);
   // Step up while the value, as it would be printed, reaches 1024.
   while (unit < UNITS.length - 1 && Number(value.toFixed(digits())) >= 1024) {
     value /= 1024;

@@ -43,7 +43,9 @@ export function useResourceAttachmentUpload({
       }
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: attachmentsQueryKey(resource, resourceId) });
+      void qc.invalidateQueries({
+        queryKey: attachmentsQueryKey(resource, resourceId),
+      });
     },
     onError: (err) => {
       onError?.(err);

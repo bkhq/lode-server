@@ -25,5 +25,7 @@ export function showsHome(mode: HomePageMode, atOriginRoot: boolean = isOriginRo
     return false;
   if (basePath === "")
     return true;
-  return mode === "root" ? atOriginRoot : !atOriginRoot;
+  return mode === "root"
+    ? atOriginRoot
+    : !atOriginRoot;
 }

@@ -26,7 +26,9 @@ export function flatten(value: unknown, prefix = ""): string[] {
     return [];
   const out: string[] = [];
   for (const [k, v] of Object.entries(value)) {
-    const next = prefix ? `${prefix}.${k}` : k;
+    const next = prefix
+      ? `${prefix}.${k}`
+      : k;
     out.push(...flatten(v, next));
   }
   return out;
@@ -44,13 +46,22 @@ export function loadNamespaces(localesDir: string, lang: string): NamespaceKeys[
     .map((f) => {
       const ns = f.replace(/\.json$/, "");
       const raw = JSON.parse(readFileSync(resolve(dir, f), "utf-8"));
-      return { ns, keys: new Set(flatten(raw)) };
+      return {
+        ns,
+        keys: new Set(flatten(raw)),
+      };
     });
 }
 
 // ── Code walk ────────────────────────────────────────────────────
 
-const SKIP_DIRS = new Set(["node_modules", "dist", "build", "locales", ".turbo"]);
+const SKIP_DIRS = new Set([
+  "node_modules",
+  "dist",
+  "build",
+  "locales",
+  ".turbo",
+]);
 const CODE_EXTS = new Set([".ts", ".tsx", ".js", ".jsx"]);
 
 export function* walkCode(dir: string): Generator<string> {
@@ -99,7 +110,9 @@ function templatePrefix(arg: string): string | undefined {
   if (idx < 0)
     return undefined;
   const stem = arg.slice(0, idx);
-  return stem.length === 0 ? undefined : stem;
+  return stem.length === 0
+    ? undefined
+    : stem;
 }
 
 export interface StaticRef {
@@ -190,8 +203,12 @@ export function collectReferences(codeRoot: string): CodeReferences {
         staticRefs.push({
           file,
           raw: arg,
-          ns: colon > 0 ? arg.slice(0, colon) : undefined,
-          key: colon > 0 ? arg.slice(colon + 1) : arg,
+          ns: colon > 0
+            ? arg.slice(0, colon)
+            : undefined,
+          key: colon > 0
+            ? arg.slice(colon + 1)
+            : arg,
           fileNs: nsForFile,
           hasDefault: defaultedKeys.has(arg),
           source: "t",
@@ -215,8 +232,12 @@ export function collectReferences(codeRoot: string): CodeReferences {
         staticRefs.push({
           file,
           raw: k,
-          ns: colon > 0 ? k.slice(0, colon) : undefined,
-          key: colon > 0 ? k.slice(colon + 1) : k,
+          ns: colon > 0
+            ? k.slice(0, colon)
+            : undefined,
+          key: colon > 0
+            ? k.slice(colon + 1)
+            : k,
           fileNs: nsForFile,
           hasDefault: false,
           source: "titleKey",
@@ -242,7 +263,14 @@ export function collectReferences(codeRoot: string): CodeReferences {
     }
   }
 
-  return { literals, stems, titleKeys, defaultNamespaces, dynamicNamespaces, staticRefs };
+  return {
+    literals,
+    stems,
+    titleKeys,
+    defaultNamespaces,
+    dynamicNamespaces,
+    staticRefs,
+  };
 }
 
 // ── Unused detection ─────────────────────────────────────────────
@@ -342,12 +370,18 @@ export function findMissing(
         continue;
       if (has(ref.ns, ref.key) || has(FALLBACK_NS, ref.key))
         continue;
-      missing.push({ file: ref.file, raw: ref.raw, tried: [ref.ns, FALLBACK_NS] });
+      missing.push({
+        file: ref.file,
+        raw: ref.raw,
+        tried: [ref.ns, FALLBACK_NS],
+      });
       continue;
     }
 
     // Bare key — resolvable only if the file declares its ns scope.
-    const candidates = [...new Set([...ref.fileNs, FALLBACK_NS])].filter(n => nsNames.has(n));
+    const candidates = [
+      ...new Set([...ref.fileNs, FALLBACK_NS]),
+    ].filter(n => nsNames.has(n));
     if (ref.fileNs.length === 0)
       continue; // ns unknowable from regex — skip to avoid false positives.
     if (candidates.some(ns => has(ns, ref.key)))

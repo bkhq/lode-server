@@ -13,5 +13,7 @@ export const Route = createFileRoute("/")({
 // unauthenticated visitor to `/login`.
 function IndexPage() {
   const homePage = useSystemStore(s => s.homePage);
-  return showsHome(homePage) ? <HomePage /> : <Navigate to="/overview" />;
+  return showsHome(homePage)
+    ? <HomePage />
+    : <Navigate to="/overview" />;
 }

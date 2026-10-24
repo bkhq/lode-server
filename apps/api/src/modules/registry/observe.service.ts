@@ -27,7 +27,9 @@ export function instanceIdOf(resource: Attributes): string | undefined {
 }
 
 function text(value: unknown): string | null {
-  return value === undefined || value === "" ? null : String(value).slice(0, MAX_TEXT_LENGTH);
+  return value === undefined || value === ""
+    ? null
+    : String(value).slice(0, MAX_TEXT_LENGTH);
 }
 
 /** `value` as JSON, dropping keys from the end until it fits `max` bytes. */
@@ -50,7 +52,9 @@ function statusOf(metrics: Record<string, MetricPoint[]>): string | null {
 
 function intervalOf(resource: Attributes): number | null {
   const n = Number(resource["lode.report.interval"]);
-  return Number.isInteger(n) && n > 0 ? n : null;
+  return Number.isInteger(n) && n > 0
+    ? n
+    : null;
 }
 
 interface InstanceUpdate {
@@ -67,7 +71,9 @@ async function touchInstance(db: AppDatabase, packageId: string, resource: Attri
     return undefined;
   const known = await db.select({ id: registryInstances.instanceId }).from(registryInstances).where(and(eq(registryInstances.packageId, packageId), eq(registryInstances.instanceId, instanceId))).get();
   if (!known) {
-    const row = await db.select({ n: count() }).from(registryInstances).where(eq(registryInstances.packageId, packageId)).get();
+    const row = await db.select({
+      n: count(),
+    }).from(registryInstances).where(eq(registryInstances.packageId, packageId)).get();
     if ((row?.n ?? 0) >= maxInstances)
       return undefined;
   }
@@ -80,11 +86,22 @@ async function touchInstance(db: AppDatabase, packageId: string, resource: Attri
     intervalSeconds: intervalOf(resource),
     attributes: boundedJson(resource, MAX_ATTRIBUTES_BYTES),
     lastSeenAt: now,
-    ...(update.metrics && { metrics: boundedJson(update.metrics, MAX_METRICS_BYTES), status: statusOf(update.metrics) }),
+    ...(update.metrics && {
+      metrics: boundedJson(update.metrics, MAX_METRICS_BYTES),
+      status: statusOf(update.metrics),
+    }),
   };
   await db.insert(registryInstances)
-    .values({ packageId, instanceId, firstSeenAt: now, ...fields })
-    .onConflictDoUpdate({ target: [registryInstances.packageId, registryInstances.instanceId], set: fields })
+    .values({
+      packageId,
+      instanceId,
+      firstSeenAt: now,
+      ...fields,
+    })
+    .onConflictDoUpdate({
+      target: [registryInstances.packageId, registryInstances.instanceId],
+      set: fields,
+    })
     .run();
   return instanceId;
 }
@@ -113,7 +130,9 @@ export async function recordEvents(db: AppDatabase, packageId: string, resource:
     instanceId,
     name: e.name.slice(0, MAX_TEXT_LENGTH),
     version,
-    body: e.body === null ? null : e.body.slice(0, MAX_BODY_LENGTH),
+    body: e.body === null
+      ? null
+      : e.body.slice(0, MAX_BODY_LENGTH),
     attributes: boundedJson(e.attributes, MAX_ATTRIBUTES_BYTES),
     at: e.at ?? now,
   }))).run();
@@ -171,7 +190,9 @@ export interface EventView {
 
 /** A package's events, newest first, strictly before `before` when given. */
 export async function listEvents(db: AppDatabase, packageId: string, opts: { before?: string | undefined; limit: number }): Promise<EventView[]> {
-  const rows = await db.select().from(registryInstanceEvents).where(and(eq(registryInstanceEvents.packageId, packageId), opts.before === undefined ? undefined : lt(registryInstanceEvents.at, opts.before))).orderBy(desc(registryInstanceEvents.at)).limit(opts.limit).all();
+  const rows = await db.select().from(registryInstanceEvents).where(and(eq(registryInstanceEvents.packageId, packageId), opts.before === undefined
+    ? undefined
+    : lt(registryInstanceEvents.at, opts.before))).orderBy(desc(registryInstanceEvents.at)).limit(opts.limit).all();
   return rows.map(row => ({
     id: row.id,
     instance_id: row.instanceId,

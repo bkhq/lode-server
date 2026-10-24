@@ -5,7 +5,10 @@ import { assertCronSchedulerSupported } from "./cron.service";
 
 function platformWithResidentTimers(residentTimers: boolean): Platform {
   const base = getPlatform();
-  return { ...base, capabilities: { ...base.capabilities, residentTimers } };
+  return {
+    ...base,
+    capabilities: { ...base.capabilities, residentTimers },
+  };
 }
 
 afterEach(() => __resetPlatformForTests());

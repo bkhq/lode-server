@@ -53,18 +53,22 @@ function extractTokens(value: string): Set<string> {
 
 function flattenLeaves(value: unknown, prefix = ""): LeafEntry[] {
   if (typeof value === "string") {
-    return [{
-      path: prefix,
-      value,
-      tokens: extractTokens(value),
-      empty: value.length === 0,
-    }];
+    return [
+      {
+        path: prefix,
+        value,
+        tokens: extractTokens(value),
+        empty: value.length === 0,
+      },
+    ];
   }
   if (!isObject(value))
     return [];
   const out: LeafEntry[] = [];
   for (const [k, v] of Object.entries(value)) {
-    const next = prefix ? `${prefix}.${k}` : k;
+    const next = prefix
+      ? `${prefix}.${k}`
+      : k;
     out.push(...flattenLeaves(v, next));
   }
   return out;

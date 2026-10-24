@@ -16,7 +16,9 @@ export function useTokenUserFilter(): string | undefined {
       // The router parses a bare numeric parameter into a number.
       if (typeof value === "number")
         return String(value);
-      return typeof value === "string" && value ? value : undefined;
+      return typeof value === "string" && value
+        ? value
+        : undefined;
     },
   });
 }

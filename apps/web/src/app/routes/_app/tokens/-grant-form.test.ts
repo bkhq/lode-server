@@ -10,7 +10,10 @@ const OWNED = [
 ];
 
 function state(patch: Partial<GrantFormState>): GrantFormState {
-  return { ...emptyGrantForm(), ...patch };
+  return {
+    ...emptyGrantForm(),
+    ...patch,
+  };
 }
 
 describe("packageKey", () => {
@@ -31,7 +34,11 @@ describe("toWire", () => {
   });
 
   it("lets the switch win over the per-package rows", () => {
-    const form = state({ all: true, allLevel: "admin", perPackage: { "abcd1234/app": "read" } });
+    const form = state({
+      all: true,
+      allLevel: "admin",
+      perPackage: { "abcd1234/app": "read" },
+    });
     expect(toWire(form)).toEqual({ all: "admin" });
   });
 
@@ -60,7 +67,9 @@ describe("fromWire", () => {
   });
 
   it("gives every owned package a row, none where the token has no grant", () => {
-    const grants: Grants = [{ package: "abcd1234/cli", access: "write" }];
+    const grants: Grants = [
+      { package: "abcd1234/cli", access: "write" },
+    ];
     expect(fromWire(grants, OWNED)).toEqual({
       all: false,
       allLevel: "read",
@@ -75,7 +84,9 @@ describe("fromWire", () => {
     ];
     const form = fromWire(grants, OWNED);
     expect(form.perPackage).not.toHaveProperty("abcd1234/gone");
-    expect(toWire(form)).toEqual([{ package: "abcd1234/app", access: "read" }]);
+    expect(toWire(form)).toEqual([
+      { package: "abcd1234/app", access: "read" },
+    ]);
   });
 
   it("reads a token without grants as an empty form", () => {
@@ -86,17 +97,25 @@ describe("fromWire", () => {
 describe("round trips", () => {
   it.each<[string, Grants]>([
     ["no grant", []],
-    ["all packages", { all: "admin" }],
-    ["a list in package order", [
-      { package: "abcd1234/app", access: "read" },
-      { package: "abcd1234/docs", access: "write" },
-    ]],
+    [
+      "all packages",
+      { all: "admin" },
+    ],
+    [
+      "a list in package order",
+      [
+        { package: "abcd1234/app", access: "read" },
+        { package: "abcd1234/docs", access: "write" },
+      ],
+    ],
   ])("keeps %s through fromWire and toWire", (_name, grants) => {
     expect(toWire(fromWire(grants, OWNED))).toEqual(grants);
   });
 
   it("keeps a form through toWire and fromWire", () => {
-    const form = fromWire([{ package: "abcd1234/cli", access: "admin" }], OWNED);
+    const form = fromWire([
+      { package: "abcd1234/cli", access: "admin" },
+    ], OWNED);
     expect(fromWire(toWire(form), OWNED)).toEqual(form);
   });
 });
@@ -107,7 +126,9 @@ describe("isEmpty", () => {
   });
 
   it("is true when every row is none", () => {
-    expect(isEmpty(state({ perPackage: { "abcd1234/app": "none" } }))).toBe(true);
+    expect(isEmpty(state({
+      perPackage: { "abcd1234/app": "none" },
+    }))).toBe(true);
   });
 
   it("is false with the switch on", () => {
@@ -115,7 +136,9 @@ describe("isEmpty", () => {
   });
 
   it("is false when a row carries a level", () => {
-    expect(isEmpty(state({ perPackage: { "abcd1234/app": "none", "abcd1234/cli": "read" } }))).toBe(false);
+    expect(isEmpty(state({
+      perPackage: { "abcd1234/app": "none", "abcd1234/cli": "read" },
+    }))).toBe(false);
   });
 });
 

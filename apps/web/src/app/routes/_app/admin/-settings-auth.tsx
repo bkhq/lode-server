@@ -2,7 +2,12 @@ import { useTranslation } from "react-i18next";
 import { ErrorBanner, SettingsCard, useSettingsByPrefix } from "./-settings-shared";
 
 const SESSION_FIELDS: readonly { key: string; label: string; sensitive: boolean; placeholder: string }[] = [
-  { key: "session.max_age", label: "settings:auth.fieldSessionMaxAge", sensitive: false, placeholder: "86400" },
+  {
+    key: "session.max_age",
+    label: "settings:auth.fieldSessionMaxAge",
+    sensitive: false,
+    placeholder: "86400",
+  },
 ];
 
 export function AuthSettingsTab() {

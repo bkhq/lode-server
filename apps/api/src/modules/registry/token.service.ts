@@ -30,7 +30,9 @@ const SCOPE_PREFIX = "packages:";
  * the highest level granted anywhere.
  */
 export function deriveScopes(grants: TokenGrants): string[] {
-  const levels = new Set("all" in grants ? [grants.all] : grants.map(g => g.access));
+  const levels = new Set("all" in grants
+    ? [grants.all]
+    : grants.map(g => g.access));
   if (levels.size === 0)
     return [];
   const scopes = ["packages:read"];
@@ -49,12 +51,17 @@ type GrantRow = Pick<typeof registryTokenGrants.$inferInsert, "packageId" | "acc
  * used to probe for another user's private packages.
  */
 async function resolveGrants(ctx: PolicyContext, grants: TokenGrants): Promise<GrantRow[]> {
-  if ("all" in grants)
-    return [{ packageId: null, access: grants.all }];
+  if ("all" in grants) {
+    return [
+      { packageId: null, access: grants.all },
+    ];
+  }
   const rows: GrantRow[] = [];
   for (const grant of grants) {
     const [namespace = "", slug = "", ...rest] = grant.package.split("/");
-    const resolved = rest.length === 0 ? await findPackage(ctx.db, namespace, slug) : undefined;
+    const resolved = rest.length === 0
+      ? await findPackage(ctx.db, namespace, slug)
+      : undefined;
     if (!resolved || !(await packageAccess.can(ctx, "package:manage", resolved.package.id)))
       throw new AppError(`Package ${grant.package} does not exist or is not yours to grant`, 422, "INVALID_GRANT");
     rows.push({ packageId: resolved.package.id, access: grant.access });
@@ -67,17 +74,26 @@ export async function listTokens(db: AppDatabase, userId?: string): Promise<Regi
   const tokens = await db
     .select()
     .from(apiTokens)
-    .where(userId === undefined ? undefined : eq(apiTokens.userId, userId))
+    .where(userId === undefined
+      ? undefined
+      : eq(apiTokens.userId, userId))
     .orderBy(asc(apiTokens.createdAt), asc(apiTokens.id))
     .all();
   if (tokens.length === 0)
     return [];
   const grants = await db
-    .select({ tokenId: registryTokenGrants.tokenId, access: registryTokenGrants.access, namespace: registryNamespaces.slug, slug: registryPackages.slug })
+    .select({
+      tokenId: registryTokenGrants.tokenId,
+      access: registryTokenGrants.access,
+      namespace: registryNamespaces.slug,
+      slug: registryPackages.slug,
+    })
     .from(registryTokenGrants)
     .leftJoin(registryPackages, eq(registryPackages.id, registryTokenGrants.packageId))
     .leftJoin(registryNamespaces, eq(registryNamespaces.id, registryPackages.namespaceId))
-    .where(userId === undefined ? undefined : inArray(registryTokenGrants.tokenId, tokens.map(t => t.id)))
+    .where(userId === undefined
+      ? undefined
+      : inArray(registryTokenGrants.tokenId, tokens.map(t => t.id)))
     .all();
   return tokens.map((token) => {
     const mine = grants.filter(g => g.tokenId === token.id);
@@ -147,7 +163,15 @@ export async function replaceGrants(ctx: PolicyContext, id: string, grants: Toke
       await tx.insert(registryTokenGrants).values(rows.map(row => ({ ...row, tokenId: id }))).run();
     // The tokens service has no update, and the scopes have to change with
     // the grants in one step, so the row is written here.
-    await tx.update(apiTokens).set({ scopes: JSON.stringify([...kept, ...deriveScopes(grants)]), ...(name === undefined ? {} : { name }) }).where(eq(apiTokens.id, id)).run();
+    await tx.update(apiTokens).set({
+      scopes: JSON.stringify([
+        ...kept,
+        ...deriveScopes(grants),
+      ]),
+      ...(name === undefined
+        ? {}
+        : { name }),
+    }).where(eq(apiTokens.id, id)).run();
   });
   return await getToken(db, id);
 }

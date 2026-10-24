@@ -100,7 +100,9 @@ describe("/api/health/ready returns 503 when the system is not yet unlocked", ()
     const deadline = Date.now() + 15_000;
     while (Date.now() < deadline) {
       try {
-        const res = await fetch(`${BASE}/api/health`, { signal: AbortSignal.timeout(1500) });
+        const res = await fetch(`${BASE}/api/health`, {
+          signal: AbortSignal.timeout(1500),
+        });
         if (res.status === 200)
           return;
       }

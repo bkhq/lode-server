@@ -79,7 +79,9 @@ export const commitBodySchema = z.object({
   generation: z.number().int().positive(),
   parent: z.string().regex(RE_SHA256, "parent is a commit id: 64 lowercase hex characters").optional(),
   created: z.string().min(1).max(64),
-  channels: z.record(idSchema("channel"), z.object({ latest: z.string() })),
+  channels: z.record(idSchema("channel"), z.object({
+    latest: z.string(),
+  })),
   versions: z.record(idSchema("version"), z.object({
     notes: z.string().max(20000).optional(),
     assets: z.array(commitAssetSchema).min(1).max(100),
@@ -137,7 +139,13 @@ async function withAssetSignatures(db: AppDatabase, packageId: string, manifest:
   if (names.length === 0)
     return manifest;
   const rows = await db
-    .select({ version: registryVersions.version, name: registryAssets.name, sig: registryAssets.sig, keyId: registryAssets.keyId, alg: registryAssets.alg })
+    .select({
+      version: registryVersions.version,
+      name: registryAssets.name,
+      sig: registryAssets.sig,
+      keyId: registryAssets.keyId,
+      alg: registryAssets.alg,
+    })
     .from(registryAssets)
     .innerJoin(registryVersions, eq(registryAssets.versionId, registryVersions.id))
     .where(and(eq(registryVersions.packageId, packageId), inArray(registryVersions.version, names)))
@@ -168,7 +176,15 @@ export async function servedCommit(db: AppDatabase, head: RegistryCommit, assetB
 }
 
 function sameRuntime(a: RuntimeSpec | null | undefined, b: RuntimeSpec | null | undefined): boolean {
-  const fields = (rt: RuntimeSpec | null | undefined) => rt ? [rt.runtime, rt.version, rt.version_check, rt.download, rt.sha256] : null;
+  const fields = (rt: RuntimeSpec | null | undefined) => rt
+    ? [
+        rt.runtime,
+        rt.version,
+        rt.version_check,
+        rt.download,
+        rt.sha256,
+      ]
+    : null;
   return JSON.stringify(fields(a)) === JSON.stringify(fields(b));
 }
 
@@ -227,7 +243,9 @@ async function checkCommit(db: AppDatabase, pkg: RegistryPackage, body: CommitBo
     const assets: ManifestAsset[] = [];
     for (const asset of entry.assets) {
       const row = stored.find(r => r.name === asset.name);
-      const mismatch = row ? assetMismatch(name, asset, row) : `${name}/${asset.name} has not been uploaded`;
+      const mismatch = row
+        ? assetMismatch(name, asset, row)
+        : `${name}/${asset.name} has not been uploaded`;
       if (mismatch !== undefined)
         throw invalid(mismatch);
       assets.push({
@@ -241,7 +259,10 @@ async function checkCommit(db: AppDatabase, pkg: RegistryPackage, body: CommitBo
         ...(asset.runtime !== undefined && { runtime: asset.runtime }),
       });
     }
-    manifest.versions[name] = { ...(entry.notes !== undefined && { notes: entry.notes }), assets };
+    manifest.versions[name] = {
+      ...(entry.notes !== undefined && { notes: entry.notes }),
+      assets,
+    };
   }
   return { manifest, versions };
 }
@@ -258,7 +279,9 @@ async function verifyCommit(db: AppDatabase, packageId: string, body: CommitBody
 
 function summarize(manifest: Manifest, parent: RegistryCommit | undefined): CommitSummary {
   const versions = Object.keys(manifest.versions).sort();
-  const before = parent ? commitSummary(parent).versions : [];
+  const before = parent
+    ? commitSummary(parent).versions
+    : [];
   return {
     channels: Object.fromEntries(Object.entries(manifest.channels).map(([name, { latest }]) => [name, latest])),
     versions,
@@ -284,8 +307,11 @@ export async function uploadCommit(db: AppDatabase, pkg: RegistryPackage, body: 
   if (body.name !== pkg.slug)
     throw invalid(`The manifest is for "${body.name}", not this package's slug "${pkg.slug}"`);
   const head = await headCommit(db, pkg.id);
-  if ((body.parent ?? null) !== (head?.id ?? null) || body.generation !== (head?.generation ?? 0) + 1)
-    throw conflict(head ? `The head is commit ${head.generation} (${head.id}); build on it` : "The package has no commits yet: the first is generation 1 without a parent");
+  if ((body.parent ?? null) !== (head?.id ?? null) || body.generation !== (head?.generation ?? 0) + 1) {
+    throw conflict(head
+      ? `The head is commit ${head.generation} (${head.id}); build on it`
+      : "The package has no commits yet: the first is generation 1 without a parent");
+  }
   if (!(await verifyCommit(db, pkg.id, body, commitMessage)))
     throw new AppError("The commit's signatures do not verify under any signing key of the package", 400, "INVALID_SIGNATURE");
   const { manifest, versions } = await checkCommit(db, pkg, body);
@@ -305,13 +331,23 @@ export async function uploadCommit(db: AppDatabase, pkg: RegistryPackage, body: 
     };
     const commit = await db.transaction(async (tx) => {
       const inserted = await tx.insert(registryCommits).values(row).returning().get();
-      if (drafts.length > 0)
-        await tx.update(registryVersions).set({ status: "published", publishedAt: new Date().toISOString() }).where(and(inArray(registryVersions.id, drafts.map(v => v.id)), eq(registryVersions.status, "draft"))).run();
+      if (drafts.length > 0) {
+        await tx.update(registryVersions).set({
+          status: "published",
+          publishedAt: new Date().toISOString(),
+        }).where(and(inArray(registryVersions.id, drafts.map(v => v.id)), eq(registryVersions.status, "draft"))).run();
+      }
       const channels = Object.entries(manifest.channels);
       await tx.delete(registryChannels).where(and(eq(registryChannels.packageId, pkg.id), notInArray(registryChannels.name, channels.map(([name]) => name)))).run();
       for (const [name, { latest }] of channels) {
         const versionId = versions.find(v => v.version === latest)!.id;
-        await tx.insert(registryChannels).values({ packageId: pkg.id, name, versionId }).onConflictDoUpdate({ target: [registryChannels.packageId, registryChannels.name], set: { versionId, updatedAt: new Date().toISOString() } }).run();
+        await tx.insert(registryChannels).values({ packageId: pkg.id, name, versionId }).onConflictDoUpdate({
+          target: [registryChannels.packageId, registryChannels.name],
+          set: {
+            versionId,
+            updatedAt: new Date().toISOString(),
+          },
+        }).run();
       }
       return inserted;
     });

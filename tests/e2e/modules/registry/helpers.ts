@@ -160,13 +160,19 @@ export function packagePath(pkg: Pick<PackageView, "namespace" | "slug">): strin
 export async function createToken(client: ApiClient, grants: Grants): Promise<TokenView> {
   const res = await client.json<Envelope<TokenView>>("/api/registry/tokens", {
     method: "POST",
-    body: { name: uniqueSlug("e2e-token"), grants },
+    body: {
+      name: uniqueSlug("e2e-token"),
+      grants,
+    },
   });
   return res.data;
 }
 
 export async function createDraft(caller: Caller, pkg: PackageView, version: string, notes?: string): Promise<VersionView> {
-  return await data(await sendJson(caller, "POST", `${packagePath(pkg)}/versions`, { version, ...(notes !== undefined && { notes }) }), `create draft ${version}`);
+  return await data(await sendJson(caller, "POST", `${packagePath(pkg)}/versions`, {
+    version,
+    ...(notes !== undefined && { notes }),
+  }), `create draft ${version}`);
 }
 
 export interface UploadOptions { sha256?: string; sig?: string; run?: string; exec?: string }
@@ -214,7 +220,12 @@ export async function deletePackage(client: ApiClient, pkg: PackageView): Promis
 
 /** A read-feed request: no session, only the bearer header when a token is given. */
 export async function feed(path: string, token?: string, headers: Record<string, string> = {}): Promise<Response> {
-  return await fetch(`${FEED_BASE}${path}`, { headers: { ...(token !== undefined && { Authorization: `Bearer ${token}` }), ...headers } });
+  return await fetch(`${FEED_BASE}${path}`, {
+    headers: {
+      ...(token !== undefined && { Authorization: `Bearer ${token}` }),
+      ...headers,
+    },
+  });
 }
 
 export async function manifestOf(pkg: Pick<PackageView, "namespace" | "slug">, token?: string): Promise<Manifest> {
@@ -253,7 +264,10 @@ export async function generateSigningKey(): Promise<SigningKey> {
 export async function registerKey(client: ApiClient, pkg: Pick<PackageView, "namespace" | "slug">, publicKey: string): Promise<{ id: string; key_id: string }> {
   const res = await client.json<Envelope<{ id: string; key_id: string }>>(`${packagePath(pkg)}/keys`, {
     method: "POST",
-    body: { public_key: publicKey, name: uniqueSlug("e2e-key") },
+    body: {
+      public_key: publicKey,
+      name: uniqueSlug("e2e-key"),
+    },
   });
   return res.data;
 }

@@ -4,7 +4,14 @@ import type { Logger } from "@/shared/lib/logger";
 import { afterEach, describe, expect, test } from "bun:test";
 import { startFileGcSweep, stopFileGcSweep } from "./gc";
 
-const noop = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
+const noop = {
+  debug() {},
+  info() {},
+  warn() {},
+  error() {},
+  fatal() {},
+  flush() {},
+} as unknown as Logger;
 
 // A db that records any attempt to query it. The sweep must never touch it
 // after stopFileGcSweep() has been awaited.
@@ -18,7 +25,10 @@ function recordingDb(): { db: AppDatabase; touches: () => number } {
       return () => trap;
     },
   });
-  return { db: trap as unknown as AppDatabase, touches: () => n };
+  return {
+    db: trap as unknown as AppDatabase,
+    touches: () => n,
+  };
 }
 
 afterEach(async () => {

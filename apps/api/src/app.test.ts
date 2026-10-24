@@ -30,7 +30,14 @@ afterEach(() => {
 });
 
 function deps(): AppDeps {
-  const logger = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
+  const logger = {
+    debug() {},
+    info() {},
+    warn() {},
+    error() {},
+    fatal() {},
+    flush() {},
+  } as unknown as Logger;
   // Sweeps and the scheduler stay off: nothing here should outlive the test.
   const config = configSchema.parse({
     NODE_ENV: "test",
@@ -38,7 +45,9 @@ function deps(): AppDeps {
     FILE_GC_INTERVAL_SECONDS: "0",
     REGISTRY_UPLOAD_SWEEP_INTERVAL_SECONDS: "0",
   });
-  const encryption = { isSystemLocked: () => false } as unknown as AppDeps["encryption"];
+  const encryption = {
+    isSystemLocked: () => false,
+  } as unknown as AppDeps["encryption"];
   return { config, db, logger, encryption };
 }
 

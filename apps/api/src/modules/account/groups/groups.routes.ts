@@ -38,7 +38,9 @@ const groupMemberSchema = z.object({
   joinedAt: z.string(),
 });
 
-const groupIdParam = z.object({ id: z.string() });
+const groupIdParam = z.object({
+  id: z.string(),
+});
 
 const createGroupSchema = z.object({
   name: z.string().min(1).max(100),
@@ -80,7 +82,9 @@ export function groupRoutes() {
       description: "All groups with member counts. Admin only.",
       security: SECURITY.session,
       responses: {
-        ...jsonOk(z.array(groupSchema.extend({ memberCount: z.number() })), "Groups"),
+        ...jsonOk(z.array(groupSchema.extend({
+          memberCount: z.number(),
+        })), "Groups"),
         ...errors(401, 403),
       },
     }),
@@ -117,7 +121,9 @@ export function groupRoutes() {
 
       const group = await createGroup(db, {
         name: body.name,
-        ...body.description ? { description: body.description } : {},
+        ...body.description
+          ? { description: body.description }
+          : {},
       });
       const actor = c.get("user")!;
       await audit(db, c.get("logger"), {
@@ -194,8 +200,12 @@ export function groupRoutes() {
       }
 
       const updated = await updateGroup(db, id, {
-        ...body.name ? { name: body.name } : {},
-        ...body.description !== undefined ? { description: body.description } : {},
+        ...body.name
+          ? { name: body.name }
+          : {},
+        ...body.description !== undefined
+          ? { description: body.description }
+          : {},
       });
       const actor = c.get("user")!;
       await audit(db, c.get("logger"), {
@@ -344,7 +354,10 @@ export function groupRoutes() {
       },
     }),
     adminRequired,
-    validator("param", z.object({ id: z.string(), userId: z.string() })),
+    validator("param", z.object({
+      id: z.string(),
+      userId: z.string(),
+    })),
     async (c) => {
       const db = c.get("db");
       const { id, userId } = c.req.valid("param");

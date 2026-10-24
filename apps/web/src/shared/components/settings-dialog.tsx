@@ -71,10 +71,28 @@ function ProfileTab() {
     return null;
 
   const profileItems = [
-    { icon: UserIcon, label: t("settings:profile.username"), value: user.username },
-    { icon: Mail, label: t("settings:profile.email"), value: user.email },
-    { icon: Shield, label: t("settings:profile.role"), value: user.role === "admin" ? t("settings:profile.roleAdmin") : t("settings:profile.roleUser") },
-    { icon: UsersRound, label: t("settings:profile.groups"), value: user.groups.map(g => g.name).join(", ") || "—" },
+    {
+      icon: UserIcon,
+      label: t("settings:profile.username"),
+      value: user.username,
+    },
+    {
+      icon: Mail,
+      label: t("settings:profile.email"),
+      value: user.email,
+    },
+    {
+      icon: Shield,
+      label: t("settings:profile.role"),
+      value: user.role === "admin"
+        ? t("settings:profile.roleAdmin")
+        : t("settings:profile.roleUser"),
+    },
+    {
+      icon: UsersRound,
+      label: t("settings:profile.groups"),
+      value: user.groups.map(g => g.name).join(", ") || "—",
+    },
   ];
 
   return (
@@ -168,13 +186,17 @@ function TotpTab() {
     try {
       const res = await http<{ success: boolean; data: SetupData }>("/account/me/totp", {
         method: "POST",
-        body: JSON.stringify({ name: deviceName.trim() }),
+        body: JSON.stringify({
+          name: deviceName.trim(),
+        }),
       });
       setSetup(res.data);
       setAddStep("verify");
     }
     catch (err) {
-      setError(err instanceof Error ? err.message : "Failed");
+      setError(err instanceof Error
+        ? err.message
+        : "Failed");
     }
     finally {
       setSubmitting(false);
@@ -305,7 +327,9 @@ function TotpTab() {
                       <div className="text-xs text-muted-foreground">{formatDate(device.createdAt)}</div>
                     </div>
                     <Badge variant={device.verified ? "default" : "secondary"} className="text-xs shrink-0">
-                      {device.verified ? t("totp:verified") : t("totp:unverified")}
+                      {device.verified
+                        ? t("totp:verified")
+                        : t("totp:unverified")}
                     </Badge>
                   </div>
                   {deleteId === device.id
@@ -381,7 +405,9 @@ function TotpVerifyStep({
           <div className="flex items-center gap-2">
             <code className="flex-1 rounded bg-background px-2 py-1.5 text-xs font-mono tracking-wider select-all break-all">{setup.secret}</code>
             <Button variant="ghost" size="icon-xs" onClick={handleCopy} title={t("common.copy")}>
-              {copied ? <Check className="size-3.5 text-green-600" /> : <Copy className="size-3.5" />}
+              {copied
+                ? <Check className="size-3.5 text-green-600" />
+                : <Copy className="size-3.5" />}
             </Button>
           </div>
         </div>

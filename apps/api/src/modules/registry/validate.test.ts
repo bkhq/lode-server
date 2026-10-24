@@ -6,17 +6,48 @@ import { commandOverrideError, displayNameError, idError, MAX_DISPLAY_NAME_LENGT
 // unnoticed.
 describe("idError", () => {
   test("accepts real versions and names", () => {
-    for (const id of ["1.5.0", "1.6.0-beta.2", "1.6.0-rc.1", "0.0.0-dev", "v1.5.0", "2024.1", "nightly", "vNext", "runtime", "bun"])
+    for (const id of [
+      "1.5.0",
+      "1.6.0-beta.2",
+      "1.6.0-rc.1",
+      "0.0.0-dev",
+      "v1.5.0",
+      "2024.1",
+      "nightly",
+      "vNext",
+      "runtime",
+      "bun",
+    ])
       expect(idError("version", id)).toBeUndefined();
   });
 
   test("rejects traversal and funny bytes", () => {
-    for (const id of ["", "..", ".", "../../etc", "/abs", "a/b", "a\\b", ".hidden", "-flag", "a\u0000b", "foo/../bar"])
+    for (const id of [
+      "",
+      "..",
+      ".",
+      "../../etc",
+      "/abs",
+      "a/b",
+      "a\\b",
+      ".hidden",
+      "-flag",
+      "a\u0000b",
+      "foo/../bar",
+    ])
       expect(idError("version", id)).toBeString();
   });
 
   test("rejects anything outside the ASCII charset", () => {
-    for (const id of ["a b", "café", "a b", "a:b", "a@b", "a+b", "你好"])
+    for (const id of [
+      "a b",
+      "café",
+      "a b",
+      "a:b",
+      "a@b",
+      "a+b",
+      "你好",
+    ])
       expect(idError("version", id)).toBeString();
   });
 
@@ -38,12 +69,32 @@ describe("idError", () => {
 
 describe("packageSlugError", () => {
   test("accepts an ordinary slug", () => {
-    for (const slug of ["tool", "my-tool", "a", "2fast", "tool-42", "a--b", "a-", "a".repeat(MAX_ID_LENGTH)])
+    for (const slug of [
+      "tool",
+      "my-tool",
+      "a",
+      "2fast",
+      "tool-42",
+      "a--b",
+      "a-",
+      "a".repeat(MAX_ID_LENGTH),
+    ])
       expect(packageSlugError(slug)).toBeUndefined();
   });
 
   test("allows only lowercase letters, digits and '-'", () => {
-    for (const slug of ["Tool", "TOOL", "my_tool", "my.tool", "my-tool_2.0", "a b", "a/b", "..", "caf\u00E9", "a\u0000b"])
+    for (const slug of [
+      "Tool",
+      "TOOL",
+      "my_tool",
+      "my.tool",
+      "my-tool_2.0",
+      "a b",
+      "a/b",
+      "..",
+      "caf\u00E9",
+      "a\u0000b",
+    ])
       expect(packageSlugError(slug)).toBeString();
   });
 
@@ -60,7 +111,14 @@ describe("packageSlugError", () => {
 
 describe("displayNameError", () => {
   test("accepts free text", () => {
-    for (const name of ["Tool", "My Tool (v2)", "a", "\u5DE5\u5177", "caf\u00E9 \u{1F527}", "x".repeat(MAX_DISPLAY_NAME_LENGTH)])
+    for (const name of [
+      "Tool",
+      "My Tool (v2)",
+      "a",
+      "\u5DE5\u5177",
+      "caf\u00E9 \u{1F527}",
+      "x".repeat(MAX_DISPLAY_NAME_LENGTH),
+    ])
       expect(displayNameError(name)).toBeUndefined();
   });
 
@@ -72,7 +130,13 @@ describe("displayNameError", () => {
   test("refuses an empty name, a long one and control characters", () => {
     expect(displayNameError("")).toBeString();
     expect(displayNameError("x".repeat(MAX_DISPLAY_NAME_LENGTH + 1))).toBeString();
-    for (const name of ["a\nb", "a\tb", "a\u0000b", "a\u007Fb", "a\u0085b"])
+    for (const name of [
+      "a\nb",
+      "a\tb",
+      "a\u0000b",
+      "a\u007Fb",
+      "a\u0085b",
+    ])
       expect(displayNameError(name)).toBeString();
     expect(displayNameError("a\u0007b")).not.toContain("\u0007");
   });
@@ -92,7 +156,16 @@ describe("commandOverrideError", () => {
   });
 
   test("rejects control characters", () => {
-    for (const value of ["a\nb", "a\tb", "a\rb", "a\u0000b", "a\u007Fb", "a\u0085b", "a\u009Fb", "\n"])
+    for (const value of [
+      "a\nb",
+      "a\tb",
+      "a\rb",
+      "a\u0000b",
+      "a\u007Fb",
+      "a\u0085b",
+      "a\u009Fb",
+      "\n",
+    ])
       expect(commandOverrideError("exec", value)).toBeString();
     expect(commandOverrideError("exec", "a\u0007b")).not.toContain("\u0007");
   });

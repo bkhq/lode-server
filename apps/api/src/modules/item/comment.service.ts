@@ -41,7 +41,9 @@ export async function listComments(
   itemId: string,
   opts: ListCommentsOptions,
 ): Promise<readonly ItemCommentRow[]> {
-  const conditions = [eq(itemComments.itemId, itemId)];
+  const conditions = [
+    eq(itemComments.itemId, itemId),
+  ];
   if (!opts.includeInternal) {
     conditions.push(eq(itemComments.isInternal, false));
   }

@@ -52,7 +52,11 @@ export async function listAllNamespaces(db: AppDatabase): Promise<AdminNamespace
   const packages = await listAllPackages(db);
   return rows.map((row) => {
     const own = packages.filter(p => p.namespace.id === row.namespace.id);
-    return { ...row, packages: own.length, storageBytes: own.reduce((total, p) => total + p.storageBytes, 0) };
+    return {
+      ...row,
+      packages: own.length,
+      storageBytes: own.reduce((total, p) => total + p.storageBytes, 0),
+    };
   });
 }
 
@@ -71,7 +75,10 @@ export async function setNamespaceStatus(
   if (namespace.status === status)
     return { namespace, changed: false };
   await db.update(registryNamespaces).set({ status }).where(eq(registryNamespaces.id, namespace.id)).run();
-  return { namespace: { ...namespace, status }, changed: true };
+  return {
+    namespace: { ...namespace, status },
+    changed: true,
+  };
 }
 
 export interface QuotaOverride {

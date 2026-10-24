@@ -50,14 +50,24 @@ describe("upsertUser DEFAULT_ADMIN bootstrap", () => {
     // deployment. Listing two people makes two admins, not a race for one.
     const first = await upsertUser(
       db,
-      { sub: "sub-admin", preferred_username: "admin", email: "admin@example.com", email_verified: true },
+      {
+        sub: "sub-admin",
+        preferred_username: "admin",
+        email: "admin@example.com",
+        email_verified: true,
+      },
       authConfig(["admin@example.com", "second@example.com"]),
       logger,
     );
 
     const second = await upsertUser(
       db,
-      { sub: "sub-second", preferred_username: "second", email: "second@example.com", email_verified: true },
+      {
+        sub: "sub-second",
+        preferred_username: "second",
+        email: "second@example.com",
+        email_verified: true,
+      },
       authConfig(["admin@example.com", "second@example.com"]),
       logger,
     );
@@ -75,7 +85,12 @@ describe("upsertUser DEFAULT_ADMIN bootstrap", () => {
 
     const configured = await upsertUser(
       db,
-      { sub: "sub-roy", preferred_username: "roy", email: "a@roy.me", email_verified: true },
+      {
+        sub: "sub-roy",
+        preferred_username: "roy",
+        email: "a@roy.me",
+        email_verified: true,
+      },
       authConfig(["a@roy.me"]),
       logger,
     );
@@ -89,7 +104,12 @@ describe("upsertUser DEFAULT_ADMIN bootstrap", () => {
     // Their next login must honour the setting instead of leaving them stuck.
     const created = await upsertUser(
       db,
-      { sub: "sub-alice", preferred_username: "alice", email: "alice@example.com", email_verified: true },
+      {
+        sub: "sub-alice",
+        preferred_username: "alice",
+        email: "alice@example.com",
+        email_verified: true,
+      },
       authConfig([]),
       logger,
     );
@@ -97,7 +117,12 @@ describe("upsertUser DEFAULT_ADMIN bootstrap", () => {
 
     const promoted = await upsertUser(
       db,
-      { sub: "sub-alice", preferred_username: "alice", email: "alice@example.com", email_verified: true },
+      {
+        sub: "sub-alice",
+        preferred_username: "alice",
+        email: "alice@example.com",
+        email_verified: true,
+      },
       authConfig(["alice@example.com"]),
       logger,
     );
@@ -123,7 +148,12 @@ describe("upsertUser DEFAULT_ADMIN bootstrap", () => {
     // verified email, never by a username that happens to spell it.
     const user = await upsertUser(
       db,
-      { sub: "sub-mallory", preferred_username: "a@roy.me", email: "mallory@example.com", email_verified: true },
+      {
+        sub: "sub-mallory",
+        preferred_username: "a@roy.me",
+        email: "mallory@example.com",
+        email_verified: true,
+      },
       authConfig(["a@roy.me"]),
       logger,
     );
@@ -145,13 +175,23 @@ describe("upsertUser DEFAULT_ADMIN bootstrap", () => {
     // the UI would lose the role on their next login.
     const first = await upsertUser(
       db,
-      { sub: "sub-alice", preferred_username: "alice", email: "alice@example.com", email_verified: true },
+      {
+        sub: "sub-alice",
+        preferred_username: "alice",
+        email: "alice@example.com",
+        email_verified: true,
+      },
       authConfig(["alice@example.com"]),
       logger,
     );
     const later = await upsertUser(
       db,
-      { sub: "sub-alice", preferred_username: "alice", email: "alice@example.com", email_verified: true },
+      {
+        sub: "sub-alice",
+        preferred_username: "alice",
+        email: "alice@example.com",
+        email_verified: true,
+      },
       authConfig([]),
       logger,
     );
@@ -173,7 +213,12 @@ describe("upsertUser DEFAULT_ADMIN bootstrap", () => {
 
     const admin = await upsertUser(
       db,
-      { sub: "sub-admin", preferred_username: "admin", email: "admin@example.com", email_verified: true },
+      {
+        sub: "sub-admin",
+        preferred_username: "admin",
+        email: "admin@example.com",
+        email_verified: true,
+      },
       authConfig(["admin@example.com"]),
       logger,
     );
@@ -186,7 +231,13 @@ describe("upsertUser DEFAULT_ADMIN bootstrap", () => {
     // 1. OAuth bootstrap admin
     const first = await upsertUser(
       db,
-      { sub: "google-12345", preferred_username: "admin", email: "admin@example.com", email_verified: true, name: "Admin" },
+      {
+        sub: "google-12345",
+        preferred_username: "admin",
+        email: "admin@example.com",
+        email_verified: true,
+        name: "Admin",
+      },
       authConfig(["admin@example.com"]),
       logger,
     );
@@ -207,7 +258,12 @@ describe("upsertUser DEFAULT_ADMIN bootstrap", () => {
     // unique index.
     const reclaimed = await upsertUser(
       db,
-      { sub: "google-12345", preferred_username: "admin", email: "admin@example.com", name: "Admin" },
+      {
+        sub: "google-12345",
+        preferred_username: "admin",
+        email: "admin@example.com",
+        name: "Admin",
+      },
       authConfig(["admin@example.com"]),
       logger,
     );
@@ -224,14 +280,24 @@ describe("upsertUser DEFAULT_ADMIN bootstrap", () => {
     // had a Google sub; the new login carries an Okta sub.
     const original = await upsertUser(
       db,
-      { sub: "google-aaa", preferred_username: "alice", email: "alice@example.com", email_verified: true },
+      {
+        sub: "google-aaa",
+        preferred_username: "alice",
+        email: "alice@example.com",
+        email_verified: true,
+      },
       authConfig([]),
       logger,
     );
 
     const migrated = await upsertUser(
       db,
-      { sub: "okta-bbb", preferred_username: "alice", email: "alice@example.com", email_verified: true },
+      {
+        sub: "okta-bbb",
+        preferred_username: "alice",
+        email: "alice@example.com",
+        email_verified: true,
+      },
       authConfig([]),
       logger,
     );
@@ -248,7 +314,12 @@ describe("upsertUser DEFAULT_ADMIN bootstrap", () => {
     // SINGLE_USER_MODE on an existing deployment without wiping the DB).
     const existing = await upsertUser(
       db,
-      { sub: "google-12345", preferred_username: "admin", email: "admin@example.com", name: "Existing Admin" },
+      {
+        sub: "google-12345",
+        preferred_username: "admin",
+        email: "admin@example.com",
+        name: "Existing Admin",
+      },
       authConfig([]),
       logger,
     );
@@ -302,7 +373,12 @@ describe("upsertUser DEFAULT_ADMIN bootstrap", () => {
     // Initial bootstrap.
     const initial = await upsertUser(
       db,
-      { sub: "sub-initial", preferred_username: "initial", email: "initial@example.com", email_verified: true },
+      {
+        sub: "sub-initial",
+        preferred_username: "initial",
+        email: "initial@example.com",
+        email_verified: true,
+      },
       authConfig(["initial@example.com", "backup@example.com"]),
       logger,
     );
@@ -314,7 +390,12 @@ describe("upsertUser DEFAULT_ADMIN bootstrap", () => {
     // A different DEFAULT_ADMIN logs in for the first time.
     const backup = await upsertUser(
       db,
-      { sub: "sub-backup", preferred_username: "backup", email: "backup@example.com", email_verified: true },
+      {
+        sub: "sub-backup",
+        preferred_username: "backup",
+        email: "backup@example.com",
+        email_verified: true,
+      },
       authConfig(["initial@example.com", "backup@example.com"]),
       logger,
     );
@@ -334,7 +415,12 @@ describe("upsertUser DEFAULT_ADMIN bootstrap", () => {
     // email_verified false, distinct admin email (avoids unique-index clash).
     const stillUser = await upsertUser(
       db,
-      { sub: "attacker-sub-2", preferred_username: "attacker2", email: "admin2@example.com", email_verified: false },
+      {
+        sub: "attacker-sub-2",
+        preferred_username: "attacker2",
+        email: "admin2@example.com",
+        email_verified: false,
+      },
       authConfig(["admin@example.com", "admin2@example.com"]),
       logger,
     );
@@ -345,7 +431,12 @@ describe("upsertUser DEFAULT_ADMIN bootstrap", () => {
     // Legitimate verified admin.
     const victim = await upsertUser(
       db,
-      { sub: "victim-sub", preferred_username: "victim", email: "victim@example.com", email_verified: true },
+      {
+        sub: "victim-sub",
+        preferred_username: "victim",
+        email: "victim@example.com",
+        email_verified: true,
+      },
       authConfig(["victim@example.com"]),
       logger,
     );
@@ -392,7 +483,12 @@ describe("upsertUser and accounts that sign in with a password", () => {
     // not hand over the local admin.
     await localAdmin();
     await expect(
-      upsertUser(db, { sub: "attacker", preferred_username: "admin", email: "evil@x.io", email_verified: true }, authConfig([]), logger),
+      upsertUser(db, {
+        sub: "attacker",
+        preferred_username: "admin",
+        email: "evil@x.io",
+        email_verified: true,
+      }, authConfig([]), logger),
     ).rejects.toMatchObject({ code: "ACCOUNT_CONFLICT" });
     const row = (await db.select().from(users).where(eq(users.id, "loc")).get())!;
     expect(row.oauthSub).toBe("local:loc");
@@ -401,13 +497,23 @@ describe("upsertUser and accounts that sign in with a password", () => {
   test("nor with an unverified email that happens to match", async () => {
     await localAdmin();
     await expect(
-      upsertUser(db, { sub: "attacker", preferred_username: "someone", email: "admin@corp.test", email_verified: false }, authConfig([]), logger),
+      upsertUser(db, {
+        sub: "attacker",
+        preferred_username: "someone",
+        email: "admin@corp.test",
+        email_verified: false,
+      }, authConfig([]), logger),
     ).rejects.toMatchObject({ code: "ACCOUNT_CONFLICT" });
   });
 
   test("a verified email the IdP vouches for links the account, which keeps its password", async () => {
     await localAdmin();
-    const user = await upsertUser(db, { sub: "real", preferred_username: "admin", email: "admin@corp.test", email_verified: true }, authConfig([]), logger);
+    const user = await upsertUser(db, {
+      sub: "real",
+      preferred_username: "admin",
+      email: "admin@corp.test",
+      email_verified: true,
+    }, authConfig([]), logger);
     expect(user.id).toBe("loc");
     const row = (await db.select().from(users).where(eq(users.id, "loc")).get())!;
     expect(row.oauthSub).toBe("real");
@@ -416,7 +522,12 @@ describe("upsertUser and accounts that sign in with a password", () => {
   });
 
   test("another IdP identity with the same username cannot take over an account bound to an IdP subject", async () => {
-    const victim = await upsertUser(db, { sub: "victim-sub", preferred_username: "alice", email: "alice@corp.test", email_verified: true }, authConfig(["alice@corp.test"]), logger);
+    const victim = await upsertUser(db, {
+      sub: "victim-sub",
+      preferred_username: "alice",
+      email: "alice@corp.test",
+      email_verified: true,
+    }, authConfig(["alice@corp.test"]), logger);
     expect(victim.role).toBe("admin");
     await expect(
       upsertUser(db, { sub: "attacker-sub", preferred_username: "alice" }, authConfig(["alice@corp.test"]), logger),
@@ -426,14 +537,34 @@ describe("upsertUser and accounts that sign in with a password", () => {
   });
 
   test("a verified email still links an account whose IdP subject changed", async () => {
-    const before = await upsertUser(db, { sub: "old-sub", preferred_username: "alice", email: "alice@corp.test", email_verified: true }, authConfig([]), logger);
-    const after = await upsertUser(db, { sub: "new-sub", preferred_username: "alice2", email: "alice@corp.test", email_verified: true }, authConfig([]), logger);
+    const before = await upsertUser(db, {
+      sub: "old-sub",
+      preferred_username: "alice",
+      email: "alice@corp.test",
+      email_verified: true,
+    }, authConfig([]), logger);
+    const after = await upsertUser(db, {
+      sub: "new-sub",
+      preferred_username: "alice2",
+      email: "alice@corp.test",
+      email_verified: true,
+    }, authConfig([]), logger);
     expect(after.id).toBe(before.id);
   });
 
   test("a single-user row is still rebound by username", async () => {
     const now = new Date().toISOString();
-    await db.insert(users).values({ id: "old", oauthSub: "single-user", username: "owner", name: "o", email: "o@x.io", role: "user", status: "active", createdAt: now, updatedAt: now }).run();
+    await db.insert(users).values({
+      id: "old",
+      oauthSub: "single-user",
+      username: "owner",
+      name: "o",
+      email: "o@x.io",
+      role: "user",
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+    }).run();
     const user = await upsertUser(db, { sub: "idp", preferred_username: "owner" }, authConfig([]), logger);
     expect(user.id).toBe("old");
   });

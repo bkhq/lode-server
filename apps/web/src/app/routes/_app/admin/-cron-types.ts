@@ -140,7 +140,12 @@ export const STATUS_FILTERS = {
 } as const satisfies Record<string, StatusFilter>;
 
 export type StatusFilterKey = keyof typeof STATUS_FILTERS;
-export const STATUS_FILTER_ORDER: readonly StatusFilterKey[] = ["active", "failed", "success", "deleted"];
+export const STATUS_FILTER_ORDER: readonly StatusFilterKey[] = [
+  "active",
+  "failed",
+  "success",
+  "deleted",
+];
 
 export const NAME_REGEX = /^[\w-]+$/;
 export const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {

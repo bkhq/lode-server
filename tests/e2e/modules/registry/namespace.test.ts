@@ -21,7 +21,10 @@ describe("/api/registry/namespace — the system-assigned namespace", () => {
   it("cannot be claimed or renamed: there is no write route", async () => {
     const user = await getClient("user@example.com");
     for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
-      const res = await user.raw("/api/registry/namespace", { method, body: { slug: "mine" } });
+      const res = await user.raw("/api/registry/namespace", {
+        method,
+        body: { slug: "mine" },
+      });
       expect(res.status).toBe(404);
     }
   });

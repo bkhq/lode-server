@@ -67,7 +67,10 @@ export async function setUserPassword(db: AppDatabase, userId: string, password:
   const passwordHash = await hashPassword(password);
   return await db.transaction(async (tx) => {
     const result = await tx.update(users)
-      .set({ passwordHash, updatedAt: new Date().toISOString() })
+      .set({
+        passwordHash,
+        updatedAt: new Date().toISOString(),
+      })
       .where(eq(users.id, userId))
       .run();
     if (result.rowsAffected === 0)
@@ -104,7 +107,12 @@ export async function seedBootstrapAdmin(db: AppDatabase, config: Config, logger
       return;
     }
     await db.update(users)
-      .set({ passwordHash: admin.passwordHash, role: "admin", status: "active", updatedAt: now })
+      .set({
+        passwordHash: admin.passwordHash,
+        role: "admin",
+        status: "active",
+        updatedAt: now,
+      })
       .where(eq(users.id, existing.id))
       .run();
     logger.info({ username: existing.username }, "bootstrap admin refreshed from the environment");

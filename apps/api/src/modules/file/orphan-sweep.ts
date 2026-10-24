@@ -72,7 +72,13 @@ export async function runOrphanSweepOnce(
       }
       catch (err) {
         logger?.warn(
-          { err: err instanceof Error ? err.message : String(err), referenceId: ref.id, ownerType: rule.ownerType },
+          {
+            err: err instanceof Error
+              ? err.message
+              : String(err),
+            referenceId: ref.id,
+            ownerType: rule.ownerType,
+          },
           "orphan reference release failed",
         );
       }

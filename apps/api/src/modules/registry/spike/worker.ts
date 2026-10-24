@@ -33,11 +33,16 @@ const { FixedLengthStream } = globalThis as unknown as { FixedLengthStream: type
 const MIB = 1024 * 1024;
 
 function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 function hex(buffer: ArrayBuffer): string {
-  return [...new Uint8Array(buffer)].map(b => b.toString(16).padStart(2, "0")).join("");
+  return [
+    ...new Uint8Array(buffer),
+  ].map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
 /**
@@ -115,8 +120,16 @@ async function handle(request: Request, env: SpikeEnv, where: "worker" | "do"): 
 
       case "PUT /put": {
         const sha256 = url.searchParams.get("sha256");
-        const object = await bucket.put(key, uploadBody(request, url) as never, sha256 ? { sha256 } : {});
-        return json({ seen, size: object.size, sha256: object.checksums.sha256 ? hex(object.checksums.sha256) : null });
+        const object = await bucket.put(key, uploadBody(request, url) as never, sha256
+          ? { sha256 }
+          : {});
+        return json({
+          seen,
+          size: object.size,
+          sha256: object.checksums.sha256
+            ? hex(object.checksums.sha256)
+            : null,
+        });
       }
 
       case "GET /head": {
@@ -142,7 +155,11 @@ async function handle(request: Request, env: SpikeEnv, where: "worker" | "do"): 
       case "POST /mpu/complete": {
         const upload = bucket.resumeMultipartUpload(key, url.searchParams.get("uploadId") ?? "");
         const object = await upload.complete(await request.json() as R2UploadedPart[]);
-        return json({ seen, size: object.size, checksums: object.checksums.toJSON() });
+        return json({
+          seen,
+          size: object.size,
+          checksums: object.checksums.toJSON(),
+        });
       }
 
       case "GET /digest": {
@@ -152,7 +169,12 @@ async function handle(request: Request, env: SpikeEnv, where: "worker" | "do"): 
         }
         const started = Date.now();
         const sha256 = await digest(object.body as unknown as Body, url.searchParams.get("impl") ?? "digeststream");
-        return json({ seen, size: object.size, sha256, innerMs: Date.now() - started });
+        return json({
+          seen,
+          size: object.size,
+          sha256,
+          innerMs: Date.now() - started,
+        });
       }
 
       // The hashing cost alone: no R2, no network.
@@ -167,7 +189,9 @@ async function handle(request: Request, env: SpikeEnv, where: "worker" | "do"): 
     }
   }
   catch (err) {
-    const error = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    const error = err instanceof Error
+      ? `${err.name}: ${err.message}`
+      : String(err);
     return json({ seen, error }, 500);
   }
 }

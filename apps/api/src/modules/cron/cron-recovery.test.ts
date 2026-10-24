@@ -75,7 +75,9 @@ async function insertLog(
     startedAt,
     status,
     finishedAt: opts.finishedAt === undefined
-      ? (status === "running" ? null : startedAt)
+      ? (status === "running"
+          ? null
+          : startedAt)
       : opts.finishedAt,
   }).run();
   return id;
@@ -131,7 +133,12 @@ describe("auto-pause streak ordering", () => {
     let executed = false;
     const { defineAction, registerAction } = await import("./actions");
     registerAction(defineAction({
-      spec: { name: "always-fail", displayName: "f", description: "f", category: "custom" },
+      spec: {
+        name: "always-fail",
+        displayName: "f",
+        description: "f",
+        category: "custom",
+      },
       execute: async () => {
         executed = true;
         throw new Error("boom");
@@ -162,7 +169,12 @@ describe("auto-pause streak ordering", () => {
 
     const { defineAction, registerAction } = await import("./actions");
     registerAction(defineAction({
-      spec: { name: "fail-again", displayName: "f", description: "f", category: "custom" },
+      spec: {
+        name: "fail-again",
+        displayName: "f",
+        description: "f",
+        category: "custom",
+      },
       execute: async () => {
         throw new Error("boom");
       },
@@ -193,7 +205,12 @@ describe("auto-pause streak ordering", () => {
 
     const { defineAction, registerAction } = await import("./actions");
     registerAction(defineAction({
-      spec: { name: "fail-once", displayName: "f", description: "f", category: "custom" },
+      spec: {
+        name: "fail-once",
+        displayName: "f",
+        description: "f",
+        category: "custom",
+      },
       execute: async () => {
         throw new Error("boom");
       },

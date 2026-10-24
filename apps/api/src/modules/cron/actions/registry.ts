@@ -67,7 +67,9 @@ export function getActionExecutor(name: string): ActionExecutor | undefined {
 }
 
 export function getActionNames(): string[] {
-  return [...actions.keys()];
+  return [
+    ...actions.keys(),
+  ];
 }
 
 export interface DefaultAction {

@@ -48,16 +48,31 @@ function RegistryPackagesTab() {
   const [deleteTarget, setDeleteTarget] = useState<AdminPackage | null>(null);
 
   const rows = useMemo(() => {
-    const sorted = [...(data ?? [])].sort((a, b) => b.updated_at.localeCompare(a.updated_at));
-    return filterRows(sorted, filter, p => [p.owner.name, p.owner.username, p.namespace, p.slug, p.name, fullName(p)]);
+    const sorted = [
+      ...(data ?? []),
+    ].sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+    return filterRows(sorted, filter, p => [
+      p.owner.name,
+      p.owner.username,
+      p.namespace,
+      p.slug,
+      p.name,
+      fullName(p),
+    ]);
   }, [data, filter]);
 
   // A package change shows in both admin lists (package count and storage of
   // the namespace) and in the ordinary package pages.
   const invalidate = () => Promise.all([
-    queryClient.invalidateQueries({ queryKey: registryKeys.adminPackages() }),
-    queryClient.invalidateQueries({ queryKey: registryKeys.adminNamespaces() }),
-    queryClient.invalidateQueries({ queryKey: registryKeys.packages() }),
+    queryClient.invalidateQueries({
+      queryKey: registryKeys.adminPackages(),
+    }),
+    queryClient.invalidateQueries({
+      queryKey: registryKeys.adminNamespaces(),
+    }),
+    queryClient.invalidateQueries({
+      queryKey: registryKeys.packages(),
+    }),
   ]);
   const onError = (err: unknown) => {
     toast.error(registryErrorMessage(err, t, t("common.error.operationFailed")));
@@ -66,7 +81,9 @@ function RegistryPackagesTab() {
   const privateMutation = useMutation({
     mutationFn: (pkg: AdminPackage) => updatePackage(pkg.namespace, pkg.slug, { visibility: "private" }),
     onSuccess: (_, pkg) => {
-      toast.success(t("registry:packages.madePrivate", { package: fullName(pkg) }));
+      toast.success(t("registry:packages.madePrivate", {
+        package: fullName(pkg),
+      }));
       setPrivateTarget(null);
       return invalidate();
     },
@@ -76,7 +93,9 @@ function RegistryPackagesTab() {
   const deleteMutation = useMutation({
     mutationFn: (pkg: AdminPackage) => deletePackage(pkg.namespace, pkg.slug),
     onSuccess: (_, pkg) => {
-      toast.success(t("registry:packages.deleted", { package: fullName(pkg) }));
+      toast.success(t("registry:packages.deleted", {
+        package: fullName(pkg),
+      }));
       setDeleteTarget(null);
       return invalidate();
     },
@@ -85,7 +104,10 @@ function RegistryPackagesTab() {
 
   return (
     <div className="space-y-4">
-      <ErrorBanner message={error ? registryErrorMessage(error, t, t("common.error.loadFailed")) : null} />
+      <ErrorBanner message={error
+        ? registryErrorMessage(error, t, t("common.error.loadFailed"))
+        : null}
+      />
 
       <p className="text-sm text-muted-foreground">
         {t("registry:packages.hint")}
@@ -115,7 +137,9 @@ function RegistryPackagesTab() {
               : rows.length === 0
                 ? (
                     <MessageRow colSpan={COLUMNS}>
-                      {data.length === 0 ? t("registry:packages.empty") : t("registry:filter.noMatch")}
+                      {data.length === 0
+                        ? t("registry:packages.empty")
+                        : t("registry:filter.noMatch")}
                     </MessageRow>
                   )
                 : rows.map(pkg => (
@@ -128,8 +152,13 @@ function RegistryPackagesTab() {
                       </TableCell>
                       <TableCell><OwnerCell owner={pkg.owner} /></TableCell>
                       <TableCell>
-                        <Badge variant={pkg.visibility === "public" ? "secondary" : "outline"}>
-                          {pkg.visibility === "public" ? t("registry:visibility.public") : t("registry:visibility.private")}
+                        <Badge variant={pkg.visibility === "public"
+                          ? "secondary"
+                          : "outline"}
+                        >
+                          {pkg.visibility === "public"
+                            ? t("registry:visibility.public")
+                            : t("registry:visibility.private")}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{formatBytes(pkg.storage_bytes)}</TableCell>

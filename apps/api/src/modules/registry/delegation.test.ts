@@ -24,7 +24,14 @@ import { artifactMessage, canonicalCatalog, delegationMessage, encodeBase64Url, 
 import vectors from "./testdata/delegation-vectors.json";
 import "@/modules/account";
 
-const noop = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
+const noop = {
+  debug() {},
+  info() {},
+  warn() {},
+  error() {},
+  fatal() {},
+  flush() {},
+} as unknown as Logger;
 const ORIGIN = "https://pkg.example.test";
 const NOW = () => Math.floor(Date.now() / 1000);
 
@@ -37,7 +44,11 @@ beforeEach(async () => {
   await __resetRateLimitForTests();
   dir = mkdtempSync(resolve(tmpdir(), "registry-delegation-"));
   db = await createDb(resolve(dir, "app.db"));
-  config = configSchema.parse({ NODE_ENV: "test", APP_URL: ORIGIN, REGISTRY_BLOB_LOCAL_ROOT: join(dir, "blobs") });
+  config = configSchema.parse({
+    NODE_ENV: "test",
+    APP_URL: ORIGIN,
+    REGISTRY_BLOB_LOCAL_ROOT: join(dir, "blobs"),
+  });
 });
 
 afterEach(() => {
@@ -57,7 +68,14 @@ function app() {
   api.use("*", policyMiddleware({ basePath: `${config.BASE_PATH}/api` }));
   api.route("/", registryRoutes());
   api.onError(errorHandler);
-  const deps: AppDeps = { config, db, logger: noop, encryption: { isSystemLocked: () => false } as unknown as AppDeps["encryption"] };
+  const deps: AppDeps = {
+    config,
+    db,
+    logger: noop,
+    encryption: {
+      isSystemLocked: () => false,
+    } as unknown as AppDeps["encryption"],
+  };
   return buildOuterApp(api, config, undefined, undefined, buildRawApp(deps, registryFeedRoutes()));
 }
 
@@ -71,18 +89,36 @@ interface Publisher {
 /** A signed-in user whose namespace slug is their id, owning the public package `slug`. */
 async function seedPublisher(id: string, slug: string): Promise<Publisher> {
   const now = new Date().toISOString();
-  await db.insert(users).values({ id, oauthSub: `sub-${id}`, username: id, name: id, email: `${id}@t.io`, role: "user", status: "active", createdAt: now, updatedAt: now }).run();
+  await db.insert(users).values({
+    id,
+    oauthSub: `sub-${id}`,
+    username: id,
+    name: id,
+    email: `${id}@t.io`,
+    role: "user",
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  }).run();
   await db.insert(registryNamespaces).values({ id: `ns-${id}`, slug: id, ownerUserId: id }).run();
   const cookie = `session_id=${await createSession(db, id, "access", undefined, 3600)}`;
   const publisher: Publisher = {
     call: async (method, path, body) => await app().request(`/api/registry${path}`, {
       method,
       headers: { "Cookie": cookie, "Content-Type": "application/json" },
-      ...(body !== undefined && { body: JSON.stringify(body) }),
+      ...(body !== undefined && {
+        body: JSON.stringify(body),
+      }),
     }),
-    put: async (path, body, query = {}) => await app().request(`/api/registry${path}?${new URLSearchParams({ sha256: sha256Hex(body), ...query })}`, {
+    put: async (path, body, query = {}) => await app().request(`/api/registry${path}?${new URLSearchParams({
+      sha256: sha256Hex(body),
+      ...query,
+    })}`, {
       method: "PUT",
-      headers: { "Cookie": cookie, "Content-Length": String(body.length) },
+      headers: {
+        "Cookie": cookie,
+        "Content-Length": String(body.length),
+      },
       body,
     } as RequestInit),
   };
@@ -94,12 +130,19 @@ function withToken(bearer: string): Call {
   return async (method, path, body) => await app().request(`/api/registry${path}`, {
     method,
     headers: { "Authorization": `Bearer ${bearer}`, "Content-Type": "application/json" },
-    ...(body !== undefined && { body: JSON.stringify(body) }),
+    ...(body !== undefined && {
+      body: JSON.stringify(body),
+    }),
   });
 }
 
 async function token(owner: Publisher, pkg: string, access: string): Promise<string> {
-  const res = await owner.call("POST", "/tokens", { name: "ci", grants: [{ package: pkg, access }] });
+  const res = await owner.call("POST", "/tokens", {
+    name: "ci",
+    grants: [
+      { package: pkg, access },
+    ],
+  });
   expect(res.status).toBe(201);
   return ((await res.json()) as { data: { token: string } }).data.token;
 }
@@ -193,8 +236,15 @@ async function seed(): Promise<Seeded> {
 async function uploadSigned(alice: Publisher, version: string, signer?: Key, bytes = bytesOf(64, version.length)): Promise<Response> {
   expect((await alice.call("POST", `/packages/${PKG}/versions`, { version })).status).toBe(201);
   const sha256 = sha256Hex(bytes);
-  const sig = signer && await signer.sign(artifactMessage({ app: "demo", name: "tool", version, sha256 }));
-  return await alice.put(`/packages/${PKG}/versions/${version}/assets/tool`, bytes, sig === undefined ? {} : { sig });
+  const sig = signer && await signer.sign(artifactMessage({
+    app: "demo",
+    name: "tool",
+    version,
+    sha256,
+  }));
+  return await alice.put(`/packages/${PKG}/versions/${version}/assets/tool`, bytes, sig === undefined
+    ? {}
+    : { sig });
 }
 
 describe("delegation", () => {
@@ -219,7 +269,12 @@ describe("delegation", () => {
 
     expect((await alice.call("PUT", DELEGATION, await delegate(root, sub, "demo"))).status).toBe(200);
     const res = await alice.put(`/packages/${PKG}/versions/1.0.0/assets/tool`, bytesOf(64, 5), {
-      sig: await sub.sign(artifactMessage({ app: "demo", name: "tool", version: "1.0.0", sha256: sha256Hex(bytesOf(64, 5)) })),
+      sig: await sub.sign(artifactMessage({
+        app: "demo",
+        name: "tool",
+        version: "1.0.0",
+        sha256: sha256Hex(bytesOf(64, 5)),
+      })),
     });
     expect(res.status).toBe(201);
     expect(((await res.json()) as { data: { key_id: string } }).data.key_id).toBe(sub.keyId);
@@ -251,7 +306,10 @@ describe("delegation", () => {
     expect((await manifestOf(PKG)).delegation).toBeUndefined();
     expect(await refusal(await uploadSigned(alice, "1.0.0", sub))).toBe("400 INVALID_SIGNATURE");
 
-    await db.update(registryDelegations).set({ notBefore: NOW() - 7200, notAfter: NOW() }).run();
+    await db.update(registryDelegations).set({
+      notBefore: NOW() - 7200,
+      notAfter: NOW(),
+    }).run();
     expect(await dataOf<State>(await alice.call("GET", DELEGATION))).toMatchObject({ status: "expired" });
     expect((await manifestOf(PKG)).delegation).toBeUndefined();
 
@@ -371,12 +429,19 @@ describe("revocation list", () => {
     const signed = await revocations(root, NOW() - 50, [a, b]);
     expect(await refusal(await alice.call("PUT", REVOCATIONS, { ...signed, issued_at: signed.issued_at + 1 }))).toBe("400 INVALID_SIGNATURE");
     expect(await refusal(await alice.call("PUT", REVOCATIONS, await revocations(await keygen(), NOW() - 50, [a, b])))).toBe("400 INVALID_SIGNATURE");
-    expect((await alice.call("PUT", REVOCATIONS, { ...signed, revoked: ["not-a-key-id"] })).status).toBe(422);
+    expect((await alice.call("PUT", REVOCATIONS, {
+      ...signed,
+      revoked: ["not-a-key-id"],
+    })).status).toBe(422);
     expect((await alice.call("PUT", REVOCATIONS, { ...signed, schema: "lode-revocations/v2" })).status).toBe(422);
-    expect(await dataOf<View>(await alice.call("GET", REVOCATIONS))).toMatchObject({ revoked: [a] });
+    expect(await dataOf<View>(await alice.call("GET", REVOCATIONS))).toMatchObject({
+      revoked: [a],
+    });
 
     expect((await alice.call("PUT", REVOCATIONS, signed)).status).toBe(200);
-    expect(await dataOf<View>(await alice.call("GET", REVOCATIONS))).toMatchObject({ revoked: [a, b] });
+    expect(await dataOf<View>(await alice.call("GET", REVOCATIONS))).toMatchObject({
+      revoked: [a, b],
+    });
   });
 
   test("a private package's list needs a read token, like its manifest", async () => {
@@ -384,7 +449,9 @@ describe("revocation list", () => {
     expect((await alice.call("PATCH", `/packages/${PKG}`, { visibility: "private" })).status).toBe(200);
     expect((await alice.call("PUT", REVOCATIONS, await revocations(root, NOW(), ["0123456789abcdef"]))).status).toBe(200);
     expect((await feedList()).status).toBe(404);
-    const res = await app().request(`/r/${PKG}/revocations.json`, { headers: { Authorization: `Bearer ${await token(alice, PKG, "read")}` } });
+    const res = await app().request(`/r/${PKG}/revocations.json`, {
+      headers: { Authorization: `Bearer ${await token(alice, PKG, "read")}` },
+    });
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toBe("private, no-store");
   });
@@ -403,7 +470,12 @@ describe("asset re-sign", () => {
   const SIGNATURE = `/packages/${PKG}/versions/1.0.0/assets/tool/signature`;
 
   async function signatureFor(signer: Key, bytes: Uint8Array): Promise<string> {
-    return await signer.sign(artifactMessage({ app: "demo", name: "tool", version: "1.0.0", sha256: sha256Hex(bytes) }));
+    return await signer.sign(artifactMessage({
+      app: "demo",
+      name: "tool",
+      version: "1.0.0",
+      sha256: sha256Hex(bytes),
+    }));
   }
 
   test("a published asset moves to a new sub-key, and the manifest signature stays live", async () => {

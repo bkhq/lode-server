@@ -101,7 +101,9 @@ describe("docs module", () => {
   });
 
   it("lets any origin read the spec, since the viewer fetches it cross-origin", async () => {
-    const res = await buildApp().request("/openapi.json", { headers: { Origin: "https://client.scalar.com" } });
+    const res = await buildApp().request("/openapi.json", {
+      headers: { Origin: "https://client.scalar.com" },
+    });
     expect(res.headers.get("access-control-allow-origin")).toBe("*");
   });
 
@@ -122,7 +124,9 @@ describe("docs module — the raw API", () => {
     });
     // The raw API is mounted on the outer app, not on `api`, so the spec
     // only sees it when handed the raw routes.
-    mountDocs(api, cfg, { raw: rawRoutes() });
+    mountDocs(api, cfg, {
+      raw: rawRoutes(),
+    });
     api.route("/", systemRoutes());
     return api;
   }
@@ -152,7 +156,13 @@ describe("docs module — the raw API", () => {
     const api = new Hono<AppEnv>();
     const raw = new Hono<AppEnv>();
     mountDocs(api, cfg, { raw });
-    raw.get("/late", describeRoute({ tags: ["Raw"], summary: "Late", responses: { 200: { description: "ok" } } }), c => c.text("ok"));
+    raw.get("/late", describeRoute({
+      tags: ["Raw"],
+      summary: "Late",
+      responses: {
+        200: { description: "ok" },
+      },
+    }), c => c.text("ok"));
     const spec = await (await api.request("/openapi.json")).json() as { paths: Record<string, unknown> };
     expect(Object.keys(spec.paths)).toContain("/raw/late");
   });

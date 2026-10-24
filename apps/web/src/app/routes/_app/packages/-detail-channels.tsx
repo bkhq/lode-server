@@ -66,7 +66,9 @@ export function ChannelsTab({ ns, pkg, canWrite, versions, channels }: ChannelsT
   };
 
   const target = editing?.channel ?? name;
-  const nameError = editing?.channel === null ? channelNameError(name) : undefined;
+  const nameError = editing?.channel === null
+    ? channelNameError(name)
+    : undefined;
 
   const mutation = useMutation({
     mutationFn: () => setChannel(ns, pkg, target, version),

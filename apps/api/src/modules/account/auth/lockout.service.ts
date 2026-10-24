@@ -41,7 +41,10 @@ export async function isLocked(db: AppDatabase, key: string): Promise<LockoutSta
     await db.delete(authLockouts).where(eq(authLockouts.key, key));
     return UNLOCKED;
   }
-  return { locked: true, retryAfterSeconds: Math.ceil(remaining / 1000) };
+  return {
+    locked: true,
+    retryAfterSeconds: Math.ceil(remaining / 1000),
+  };
 }
 
 /**
@@ -57,17 +60,27 @@ export async function recordFailure(
 ): Promise<LockoutState> {
   const row = await db.select().from(authLockouts).where(eq(authLockouts.key, key)).get();
   const failures = (row?.failures ?? 0) + 1;
-  const lockedUntil = failures >= policy.threshold ? Date.now() + policy.windowMs : null;
+  const lockedUntil = failures >= policy.threshold
+    ? Date.now() + policy.windowMs
+    : null;
   if (row) {
     await db.update(authLockouts)
-      .set({ failures, lockedUntil, updatedAt: new Date().toISOString() })
+      .set({
+        failures,
+        lockedUntil,
+        updatedAt: new Date().toISOString(),
+      })
       .where(eq(authLockouts.key, key));
   }
   else {
     await db.insert(authLockouts).values({ key, failures, lockedUntil });
   }
-  if (lockedUntil !== null)
-    return { locked: true, retryAfterSeconds: Math.ceil(policy.windowMs / 1000) };
+  if (lockedUntil !== null) {
+    return {
+      locked: true,
+      retryAfterSeconds: Math.ceil(policy.windowMs / 1000),
+    };
+  }
   return UNLOCKED;
 }
 

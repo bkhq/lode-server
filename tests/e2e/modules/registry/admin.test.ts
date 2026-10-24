@@ -32,11 +32,18 @@ describe("/api/registry/admin — platform administration", () => {
       ["DELETE", `/api/registry/admin/tokens/${adminToken.id}`],
     ] as const;
     for (const [method, path] of routes) {
-      const body = method === "PUT" ? { max_packages: 1 } : undefined;
+      const body = method === "PUT"
+        ? { max_packages: 1 }
+        : undefined;
       expect((await fetch(`${user.base}${path}`, { method })).status).toBeOneOf([401, 403]);
       expect((await user.raw(path, { method, body })).status).toBe(403);
       // Not even the administrator's own token.
-      expect((await withToken(adminToken.token, path, { method, ...(body && { body: JSON.stringify(body) }) })).status).toBe(403);
+      expect((await withToken(adminToken.token, path, {
+        method,
+        ...(body && {
+          body: JSON.stringify(body),
+        }),
+      })).status).toBe(403);
     }
     await admin.json(`/api/registry/tokens/${adminToken.id}`, { method: "DELETE" });
   });
@@ -51,13 +58,25 @@ describe("/api/registry/admin — platform administration", () => {
 
     const packages = (await admin.json<Envelope<AdminPackage[]>>("/api/registry/admin/packages")).data;
     const listed = packages.find(p => p.id === pkg.id);
-    expect(listed).toMatchObject({ namespace: pkg.namespace, slug: pkg.slug, visibility: "private", storage_bytes: 2 * bytes.length });
-    expect(listed!.owner).toMatchObject({ id: await userId(user), username: expect.any(String) });
+    expect(listed).toMatchObject({
+      namespace: pkg.namespace,
+      slug: pkg.slug,
+      visibility: "private",
+      storage_bytes: 2 * bytes.length,
+    });
+    expect(listed!.owner).toMatchObject({
+      id: await userId(user),
+      username: expect.any(String),
+    });
 
     const namespaces = (await admin.json<Envelope<AdminNamespace[]>>("/api/registry/admin/namespaces")).data;
     const mine = namespaces.find(n => n.slug === pkg.namespace)!;
     const own = packages.filter(p => p.namespace === pkg.namespace);
-    expect(mine).toMatchObject({ status: "active", packages: own.length, storage_bytes: own.reduce((sum, p) => sum + p.storage_bytes, 0) });
+    expect(mine).toMatchObject({
+      status: "active",
+      packages: own.length,
+      storage_bytes: own.reduce((sum, p) => sum + p.storage_bytes, 0),
+    });
     expect(mine.owner.id).toBe(await userId(user));
 
     // Takedown, as the owner would do it: roll the pointer back, yank, delete.
@@ -90,7 +109,10 @@ describe("/api/registry/admin — platform administration", () => {
       // The user sees the limits that now apply to them.
       expect((await user.json<Envelope<{ limits: Limits }>>("/api/registry/quota")).data.limits).toEqual(set.data.limits);
 
-      const another = await user.raw("/api/registry/packages", { method: "POST", body: { slug: "one-too-many", name: "x" } });
+      const another = await user.raw("/api/registry/packages", {
+        method: "POST",
+        body: { slug: "one-too-many", name: "x" },
+      });
       expect(await refusal(another)).toEqual({ status: 409, code: "PACKAGE_QUOTA_EXCEEDED" });
       expect(await refusal(await putAsset(user, pkg, "1.0.0", "big.bin", text("nine byte")))).toEqual({ status: 413, code: "ASSET_TOO_LARGE" });
       expect((await putAsset(user, pkg, "1.0.0", "a.bin", text("eight by"))).status).toBe(201);
@@ -98,10 +120,19 @@ describe("/api/registry/admin — platform administration", () => {
       expect(await refusal(await putAsset(user, pkg, "1.0.0", "b.bin", text("eight by")))).toEqual({ status: 409, code: "STORAGE_QUOTA_EXCEEDED" });
 
       // A limit left out goes back to the platform default; the ceiling holds.
-      const partial = await admin.json<Envelope<UserQuota>>(quotaPath, { method: "PUT", body: { max_packages: 60 } });
+      const partial = await admin.json<Envelope<UserQuota>>(quotaPath, {
+        method: "PUT",
+        body: { max_packages: 60 },
+      });
       expect(partial.data.override).toEqual({ max_packages: 60, max_storage_bytes: null, max_asset_bytes: null });
-      expect((await admin.raw(quotaPath, { method: "PUT", body: { max_asset_bytes: 500 * 1024 ** 2 + 1 } })).status).toBe(422);
-      expect((await admin.raw(quotaPath, { method: "PUT", body: { max_packages: -1 } })).status).toBe(422);
+      expect((await admin.raw(quotaPath, {
+        method: "PUT",
+        body: { max_asset_bytes: 500 * 1024 ** 2 + 1 },
+      })).status).toBe(422);
+      expect((await admin.raw(quotaPath, {
+        method: "PUT",
+        body: { max_packages: -1 },
+      })).status).toBe(422);
       expect((await admin.raw("/api/registry/admin/users/does-not-exist/quota")).status).toBe(404);
     }
     finally {
@@ -115,7 +146,10 @@ describe("/api/registry/admin — platform administration", () => {
     const user = await getClient("user@example.com");
     const admin = await getClient("admin@example.com");
     const pkg = await createPackage(user);
-    await release(user, pkg, "1.0.0", { name: "app.bin", bytes: text("one") });
+    await release(user, pkg, "1.0.0", {
+      name: "app.bin",
+      bytes: text("one"),
+    });
     const token = await createToken(user, { all: "admin" });
     const manifest = `/${pkg.namespace}/${pkg.slug}/manifest.json`;
     expect((await feed(manifest)).status).toBe(200);
@@ -128,13 +162,25 @@ describe("/api/registry/admin — platform administration", () => {
       expect((await feed(`/${pkg.namespace}/${pkg.slug}/1.0.0/app.bin`)).status).toBe(404);
       // The owner still reads, and changes nothing.
       expect((await user.raw(packagePath(pkg))).status).toBe(200);
-      expect(await refusal(await user.raw(packagePath(pkg), { method: "PATCH", body: { description: "x" } }))).toEqual({ status: 403, code: "NAMESPACE_SUSPENDED" });
-      expect(await refusal(await user.raw(`${packagePath(pkg)}/versions`, { method: "POST", body: { version: "2.0.0" } }))).toEqual({ status: 403, code: "NAMESPACE_SUSPENDED" });
-      expect(await refusal(await user.raw("/api/registry/packages", { method: "POST", body: { slug: "while-suspended", name: "x" } }))).toEqual({ status: 403, code: "NAMESPACE_SUSPENDED" });
+      expect(await refusal(await user.raw(packagePath(pkg), {
+        method: "PATCH",
+        body: { description: "x" },
+      }))).toEqual({ status: 403, code: "NAMESPACE_SUSPENDED" });
+      expect(await refusal(await user.raw(`${packagePath(pkg)}/versions`, {
+        method: "POST",
+        body: { version: "2.0.0" },
+      }))).toEqual({ status: 403, code: "NAMESPACE_SUSPENDED" });
+      expect(await refusal(await user.raw("/api/registry/packages", {
+        method: "POST",
+        body: { slug: "while-suspended", name: "x" },
+      }))).toEqual({ status: 403, code: "NAMESPACE_SUSPENDED" });
       expect(await refusal(await withToken(token.token, packagePath(pkg)))).toEqual({ status: 403, code: "NAMESPACE_SUSPENDED" });
       expect(await refusal(await withToken(token.token, "/api/registry/packages"))).toEqual({ status: 403, code: "NAMESPACE_SUSPENDED" });
       // The administrator still acts on it.
-      expect((await admin.raw(packagePath(pkg), { method: "PATCH", body: { description: "under review" } })).status).toBe(200);
+      expect((await admin.raw(packagePath(pkg), {
+        method: "PATCH",
+        body: { description: "under review" },
+      })).status).toBe(200);
     }
     finally {
       const restored = await admin.json<Envelope<{ status: string }>>(`/api/registry/admin/namespaces/${pkg.namespace}/restore`, { method: "POST" });
@@ -153,12 +199,16 @@ describe("/api/registry/admin — platform administration", () => {
     const user = await getClient("user@example.com");
     const admin = await getClient("admin@example.com");
     const pkg = await createPackage(user);
-    const token = await createToken(user, [{ package: `${pkg.namespace}/${pkg.slug}`, access: "write" }]);
+    const token = await createToken(user, [
+      { package: `${pkg.namespace}/${pkg.slug}`, access: "write" },
+    ]);
     const id = await userId(user);
 
     const theirs = await admin.json<Envelope<(TokenView & { user_id: string })[]>>(`/api/registry/admin/tokens?user_id=${id}`);
     expect(theirs.data.every(t => t.user_id === id)).toBe(true);
-    expect(theirs.data.find(t => t.id === token.id)?.grants).toEqual([{ package: `${pkg.namespace}/${pkg.slug}`, access: "write" }]);
+    expect(theirs.data.find(t => t.id === token.id)?.grants).toEqual([
+      { package: `${pkg.namespace}/${pkg.slug}`, access: "write" },
+    ]);
     const everyone = await admin.json<Envelope<TokenView[]>>("/api/registry/admin/tokens");
     expect(everyone.data.some(t => t.id === token.id)).toBe(true);
     expect(JSON.stringify(everyone)).not.toContain(token.token);

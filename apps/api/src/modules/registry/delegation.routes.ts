@@ -42,7 +42,10 @@ const revocationListBodySchema = z.strictObject({
   sig: z.string().min(1).max(512),
 });
 
-const packageParamSchema = z.object({ ns: z.string(), pkg: z.string() });
+const packageParamSchema = z.object({
+  ns: z.string(),
+  pkg: z.string(),
+});
 
 // ─── Response schemas ───
 
@@ -52,7 +55,12 @@ const delegationSchema = z.object({
   issuer: z.string().nullable(),
   not_before: z.number(),
   not_after: z.number(),
-  status: z.enum(["live", "pending", "expired", "revoked"]),
+  status: z.enum([
+    "live",
+    "pending",
+    "expired",
+    "revoked",
+  ]),
   updated_at: z.string(),
 });
 
@@ -76,7 +84,12 @@ function delegationView(delegation: Delegation, status: z.infer<typeof delegatio
 }
 
 function revocationListView(list: RevocationList): z.infer<typeof revocationListSchema> {
-  return { issued_at: list.issuedAt, revoked: JSON.parse(list.revoked) as string[], key_id: list.keyId, updated_at: list.updatedAt };
+  return {
+    issued_at: list.issuedAt,
+    revoked: JSON.parse(list.revoked) as string[],
+    key_id: list.keyId,
+    updated_at: list.updatedAt,
+  };
 }
 
 const PACKAGE_RESOURCE = { type: "registry_package", name: "" };
@@ -99,14 +112,22 @@ export function registryDelegationRoutes() {
       summary: "State of the package's delegation",
       description: "The delegation that lets a sub-key sign for the package, or `null`. `key_id` is the sub-key, `root_key_id` the registered key whose signature it carries; `not_before` / `not_after` are Unix seconds. `status`: `live` (served in the manifest; the sub-key signs like a registered key), `pending` (its window has not started), `expired` (its window has passed) or `revoked` (its root key was revoked, or the revocation list names the sub-key). A token needs a `read` grant on the package.",
       security: SECURITY.session,
-      responses: { ...jsonOk(delegationSchema.nullable()), ...errors(401, 403, 404) },
+      responses: {
+        ...jsonOk(delegationSchema.nullable()),
+        ...errors(401, 403, 404),
+      },
     }),
     validator("param", packageParamSchema),
     async (c) => {
       const db = c.get("db");
       const { package: pkg } = await requirePackageAccess(c, "read");
       const stored = await findDelegation(db, pkg.id);
-      return c.json({ success: true, data: stored ? delegationView(stored, await delegationStatus(db, stored)) : null });
+      return c.json({
+        success: true,
+        data: stored
+          ? delegationView(stored, await delegationStatus(db, stored))
+          : null,
+      });
     },
   );
 
@@ -120,7 +141,10 @@ export function registryDelegationRoutes() {
         "Refused with 400 `INVALID_DELEGATION` when `name` is not the package slug, the key is not ed25519 or no active signing key of the package made the signature; 400 `DELEGATION_EXPIRED` when `not_after` has passed; 400 `KEY_REVOKED` when the revocation list names the sub-key; 409 `KEY_REGISTERED` when the sub-key is, or was, a registered key of the package. Needs `write` access.",
       ].join("\n\n"),
       security: SECURITY.session,
-      responses: { ...jsonOk(delegationSchema), ...errors(400, 401, 403, 404, 409, 422) },
+      responses: {
+        ...jsonOk(delegationSchema),
+        ...errors(400, 401, 403, 404, 409, 422),
+      },
     }),
     validator("param", packageParamSchema),
     validator("json", delegationBodySchema),
@@ -133,7 +157,10 @@ export function registryDelegationRoutes() {
         root_key_id: stored.rootKeyId,
         not_after: stored.notAfter,
       });
-      return c.json({ success: true, data: delegationView(stored, await delegationStatus(db, stored)) });
+      return c.json({
+        success: true,
+        data: delegationView(stored, await delegationStatus(db, stored)),
+      });
     },
   );
 
@@ -144,7 +171,12 @@ export function registryDelegationRoutes() {
       summary: "Remove the package's delegation",
       description: "The manifest no longer carries it and the sub-key's signatures stop verifying, here and on hosts: assets and a manifest signature it made fail under `require_signature = \"enforce\"` until re-signed. Needs `write` access.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.object({ removed: z.boolean() })), ...errors(401, 403, 404) },
+      responses: {
+        ...jsonOk(z.object({
+          removed: z.boolean(),
+        })),
+        ...errors(401, 403, 404),
+      },
     }),
     validator("param", packageParamSchema),
     async (c) => {
@@ -152,7 +184,10 @@ export function registryDelegationRoutes() {
       const removed = await deleteDelegation(c.get("db"), access.package.id);
       if (removed)
         await auditRelease(c, access, "registry.delegation.removed", { ...PACKAGE_RESOURCE, id: access.package.id });
-      return c.json({ success: true, data: { removed } });
+      return c.json({
+        success: true,
+        data: { removed },
+      });
     },
   );
 
@@ -165,13 +200,21 @@ export function registryDelegationRoutes() {
       summary: "The package's revocation list",
       description: "The revoked sub-key ids, with the list's `issued_at` (Unix seconds) and signer, or `null`. Hosts read the signed list itself from the feed, `/r/:ns/:pkg/revocations.json`. A token needs a `read` grant on the package.",
       security: SECURITY.session,
-      responses: { ...jsonOk(revocationListSchema.nullable()), ...errors(401, 403, 404) },
+      responses: {
+        ...jsonOk(revocationListSchema.nullable()),
+        ...errors(401, 403, 404),
+      },
     }),
     validator("param", packageParamSchema),
     async (c) => {
       const { package: pkg } = await requirePackageAccess(c, "read");
       const stored = await findRevocationList(c.get("db"), pkg.id);
-      return c.json({ success: true, data: stored ? revocationListView(stored) : null });
+      return c.json({
+        success: true,
+        data: stored
+          ? revocationListView(stored)
+          : null,
+      });
     },
   );
 
@@ -185,7 +228,10 @@ export function registryDelegationRoutes() {
         "It must be signed by an active registered key, or by a sub-key with its own valid `delegation` for the package slug that the stored list does not revoke (400 `INVALID_SIGNATURE`). Hosts keep every id they have seen and ignore a list not newer than theirs, so a list must be issued after the stored one (409 `REVOCATIONS_OUTDATED`), not more than an hour ahead of the server's clock (400 `REVOCATIONS_FUTURE`), and keep every stored id (400 `REVOCATIONS_SHRINK`). Ids are key ids, 16 lowercase hex characters. There is no way to remove a list. Needs `write` access.",
       ].join("\n\n"),
       security: SECURITY.session,
-      responses: { ...jsonOk(revocationListSchema), ...errors(400, 401, 403, 404, 409, 422) },
+      responses: {
+        ...jsonOk(revocationListSchema),
+        ...errors(400, 401, 403, 404, 409, 422),
+      },
     }),
     validator("param", packageParamSchema),
     validator("json", revocationListBodySchema),
@@ -197,7 +243,10 @@ export function registryDelegationRoutes() {
         key_id: stored.keyId,
         revoked: JSON.parse(stored.revoked) as string[],
       });
-      return c.json({ success: true, data: revocationListView(stored) });
+      return c.json({
+        success: true,
+        data: revocationListView(stored),
+      });
     },
   );
 
@@ -213,10 +262,15 @@ export function registryDelegationRoutes() {
         "It is verified like an upload's, over the package slug, the asset name, the version and the asset's stored `sha256`, `run` and `exec`, under an active registered key or the sub-key of the live delegation (400 `INVALID_SIGNATURE`). The bytes and the manifest's catalog do not change, so a manifest signature stays live. Needs `write` access.",
       ].join("\n\n"),
       security: SECURITY.session,
-      responses: { ...jsonOk(assetSchema), ...errors(400, 401, 403, 404, 409, 422) },
+      responses: {
+        ...jsonOk(assetSchema),
+        ...errors(400, 401, 403, 404, 409, 422),
+      },
     }),
     validator("param", versionParamSchema.extend({ asset: assetNameSchema })),
-    validator("json", z.strictObject({ sig: z.string().trim().min(1).max(512) })),
+    validator("json", z.strictObject({
+      sig: z.string().trim().min(1).max(512),
+    })),
     async (c) => {
       const access = await requirePackageAccess(c, "write");
       const { ver, asset: name } = c.req.valid("param");
@@ -225,7 +279,10 @@ export function registryDelegationRoutes() {
         key_id: asset.keyId,
         previous_key_id: previousKeyId,
       });
-      return c.json({ success: true, data: assetView(asset) });
+      return c.json({
+        success: true,
+        data: assetView(asset),
+      });
     },
   );
 

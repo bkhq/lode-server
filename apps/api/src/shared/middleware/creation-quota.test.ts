@@ -26,7 +26,9 @@ afterEach(() => {
 const KEY = "issue:minute:user-1";
 
 function req(max: number, key = KEY) {
-  return [{ key, windowMs: 60_000, max }];
+  return [
+    { key, windowMs: 60_000, max },
+  ];
 }
 
 async function stored(key = KEY) {

@@ -103,10 +103,16 @@ export async function startUpload(db: AppDatabase, config: UploadConfig, target:
         r2UploadId,
         expiresAt: new Date(Date.now() + config.REGISTRY_UPLOAD_TTL_SECONDS * 1000).toISOString(),
       }).returning().get();
-      return { upload, partSize, partCount: partCountOf(input.size) };
+      return {
+        upload,
+        partSize,
+        partCount: partCountOf(input.size),
+      };
     }
     catch (err) {
-      await abortUploadsInStore(store, [{ key, r2UploadId }]);
+      await abortUploadsInStore(store, [
+        { key, r2UploadId },
+      ]);
       throw err;
     }
   }
@@ -133,7 +139,9 @@ export async function putUploadPart(db: AppDatabase, config: BlobStoreConfig, ta
   if (n < 1 || n > count)
     throw new AppError(`This upload has parts 1 to ${count}`, 422, "INVALID_PART_NUMBER");
   // Every part is full but the last, which is the remainder.
-  const expected = n < count ? partSize : upload.size - (count - 1) * partSize;
+  const expected = n < count
+    ? partSize
+    : upload.size - (count - 1) * partSize;
   if (size !== expected)
     throw new AppError(`Part ${n} of this upload must be exactly ${expected} bytes`, 422, "INVALID_PART_SIZE");
 
@@ -155,8 +163,13 @@ export async function putUploadPart(db: AppDatabase, config: BlobStoreConfig, ta
     const current = await tx.select({ parts: registryUploads.parts }).from(registryUploads).where(eq(registryUploads.id, upload.id)).get();
     if (!current)
       return false;
-    const parts = [...partsOf(current).filter(part => part.partNumber !== n), { partNumber: n, etag }].sort((a, b) => a.partNumber - b.partNumber);
-    await tx.update(registryUploads).set({ parts: JSON.stringify(parts) }).where(eq(registryUploads.id, upload.id)).run();
+    const parts = [
+      ...partsOf(current).filter(part => part.partNumber !== n),
+      { partNumber: n, etag },
+    ].sort((a, b) => a.partNumber - b.partNumber);
+    await tx.update(registryUploads).set({
+      parts: JSON.stringify(parts),
+    }).where(eq(registryUploads.id, upload.id)).run();
     return true;
   });
   // Aborted or completed while the part was streaming.
@@ -186,20 +199,26 @@ export async function completeUpload(db: AppDatabase, config: BlobStoreConfig, t
     if (!upload)
       throw new NotFoundError("Upload");
     if (expired(upload)) {
-      await abortUploadsInStore(store, [{ key, r2UploadId: upload.r2UploadId }]);
+      await abortUploadsInStore(store, [
+        { key, r2UploadId: upload.r2UploadId },
+      ]);
       await db.delete(registryUploads).where(thisUpload).run();
       throw uploadExpired();
     }
     const current = await db.select({ status: registryVersions.status }).from(registryVersions).where(eq(registryVersions.id, version.id)).get();
     // Assembling would replace the bytes of a published asset of that name.
     if (current?.status !== "draft") {
-      await abortUploadsInStore(store, [{ key, r2UploadId: upload.r2UploadId }]);
+      await abortUploadsInStore(store, [
+        { key, r2UploadId: upload.r2UploadId },
+      ]);
       await db.delete(registryUploads).where(thisUpload).run();
       throw notDraft(version.version);
     }
     // The signature was checked at start; its key may have been revoked, or its delegation lapsed, since.
     if (upload.keyId !== null && !(await isActiveKey(db, pkg.id, upload.keyId))) {
-      await abortUploadsInStore(store, [{ key, r2UploadId: upload.r2UploadId }]);
+      await abortUploadsInStore(store, [
+        { key, r2UploadId: upload.r2UploadId },
+      ]);
       await db.delete(registryUploads).where(thisUpload).run();
       throw new AppError("The key this upload was signed with is no longer a signing key of the package", 400, "INVALID_SIGNATURE");
     }
@@ -217,7 +236,9 @@ export async function completeUpload(db: AppDatabase, config: BlobStoreConfig, t
     catch (err) {
       // Nothing was assembled, and an asset of that name is still intact.
       if (err instanceof BlobMultipartError) {
-        await abortUploadsInStore(store, [{ key, r2UploadId: upload.r2UploadId }]);
+        await abortUploadsInStore(store, [
+          { key, r2UploadId: upload.r2UploadId },
+        ]);
         await db.delete(registryUploads).where(thisUpload).run();
         throw unusable();
       }
@@ -272,7 +293,12 @@ export async function abortUpload(db: AppDatabase, config: BlobStoreConfig, targ
   const { upload, version, package: pkg } = target;
   const release = claim(version.id, upload.assetName);
   try {
-    await abortUploadsInStore(getActiveBlobStore(config), [{ key: assetBlobKey(pkg.id, version.id, upload.assetName), r2UploadId: upload.r2UploadId }]);
+    await abortUploadsInStore(getActiveBlobStore(config), [
+      {
+        key: assetBlobKey(pkg.id, version.id, upload.assetName),
+        r2UploadId: upload.r2UploadId,
+      },
+    ]);
     await db.delete(registryUploads).where(eq(registryUploads.id, upload.id)).run();
   }
   finally {
@@ -289,7 +315,13 @@ const SWEEP_BATCH = 500;
  */
 export async function runUploadSweepOnce(db: AppDatabase, config: BlobStoreConfig, now: Date = new Date(), limit = SWEEP_BATCH): Promise<number> {
   const expired = await db
-    .select({ id: registryUploads.id, packageId: registryVersions.packageId, versionId: registryUploads.versionId, assetName: registryUploads.assetName, r2UploadId: registryUploads.r2UploadId })
+    .select({
+      id: registryUploads.id,
+      packageId: registryVersions.packageId,
+      versionId: registryUploads.versionId,
+      assetName: registryUploads.assetName,
+      r2UploadId: registryUploads.r2UploadId,
+    })
     .from(registryUploads)
     .innerJoin(registryVersions, eq(registryVersions.id, registryUploads.versionId))
     .where(lte(registryUploads.expiresAt, now.toISOString()))
@@ -308,7 +340,12 @@ export async function runUploadSweepOnce(db: AppDatabase, config: BlobStoreConfi
       continue;
     }
     try {
-      await abortUploadsInStore(store, [{ key: assetBlobKey(upload.packageId, upload.versionId, upload.assetName), r2UploadId: upload.r2UploadId }]);
+      await abortUploadsInStore(store, [
+        {
+          key: assetBlobKey(upload.packageId, upload.versionId, upload.assetName),
+          r2UploadId: upload.r2UploadId,
+        },
+      ]);
       await db.delete(registryUploads).where(eq(registryUploads.id, upload.id)).run();
       swept++;
     }

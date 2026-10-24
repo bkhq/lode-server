@@ -56,7 +56,12 @@ function escapeLabelValue(value: string): string {
 export function counterAdd(name: string, help: string, value = 1, labels?: Record<string, string | number>): void {
   let metric = registry.get(name);
   if (!metric) {
-    metric = { type: "counter", name, help, values: new Map() };
+    metric = {
+      type: "counter",
+      name,
+      help,
+      values: new Map(),
+    };
     registry.set(name, metric);
   }
   if (metric.type !== "counter")
@@ -68,7 +73,12 @@ export function counterAdd(name: string, help: string, value = 1, labels?: Recor
 export function gaugeSet(name: string, help: string, value: number, labels?: Record<string, string | number>): void {
   let metric = registry.get(name);
   if (!metric) {
-    metric = { type: "gauge", name, help, values: new Map() };
+    metric = {
+      type: "gauge",
+      name,
+      help,
+      values: new Map(),
+    };
     registry.set(name, metric);
   }
   if (metric.type !== "gauge")
@@ -107,7 +117,11 @@ export function histogramObserve(name: string, help: string, value: number, labe
   const key = labelKey(labels);
   let entry = metric.values.get(key);
   if (!entry) {
-    entry = { counts: Array.from({ length: metric.buckets.length }).fill(0) as number[], sum: 0, count: 0 };
+    entry = {
+      counts: Array.from({ length: metric.buckets.length }).fill(0) as number[],
+      sum: 0,
+      count: 0,
+    };
     metric.values.set(key, entry);
   }
   for (let i = 0; i < metric.buckets.length; i++) {
@@ -119,7 +133,9 @@ export function histogramObserve(name: string, help: string, value: number, labe
 }
 
 function formatLine(name: string, key: string, value: number): string {
-  return key ? `${name}{${key}} ${value}\n` : `${name} ${value}\n`;
+  return key
+    ? `${name}{${key}} ${value}\n`
+    : `${name} ${value}\n`;
 }
 
 export function renderPrometheus(): string {
@@ -135,7 +151,9 @@ export function renderPrometheus(): string {
             : `le="${metric.buckets[i]}"`;
           lines.push(`${metric.name}_bucket{${labels}} ${entry.counts[i]}`);
         }
-        const inf = key ? `${key},le="+Inf"` : `le="+Inf"`;
+        const inf = key
+          ? `${key},le="+Inf"`
+          : `le="+Inf"`;
         lines.push(`${metric.name}_bucket{${inf}} ${entry.count}`);
         lines.push(formatLine(`${metric.name}_sum`, key, entry.sum).trimEnd());
         lines.push(formatLine(`${metric.name}_count`, key, entry.count).trimEnd());

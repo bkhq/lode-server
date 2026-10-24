@@ -245,7 +245,10 @@ async function digestOf(res: Response): Promise<{ sha256: string; size: number }
     hasher.update(chunk);
     size += chunk.length;
   }
-  return { sha256: hasher.digest("hex"), size };
+  return {
+    sha256: hasher.digest("hex"),
+    size,
+  };
 }
 
 interface Started { uploadId: string; partSize: number; partCount: number }
@@ -317,7 +320,13 @@ const cases: Case[] = [
       const grant = await call("/api/policy/tuples", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ namespace: "resource_group", objectId: id, relation: "viewer", subjectNamespace: "user", subjectId: "smoke-subject" }),
+        body: JSON.stringify({
+          namespace: "resource_group",
+          objectId: id,
+          relation: "viewer",
+          subjectNamespace: "user",
+          subjectId: "smoke-subject",
+        }),
       });
       if (grant.status !== 201)
         throw new SmokeError(`grant returned ${grant.status}: ${await grant.text()}`);
@@ -345,7 +354,13 @@ const cases: Case[] = [
         const res = await call("/api/policy/tuples", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ namespace: "resource_group", objectId, relation, subjectNamespace: "user", subjectId: "smoke-subject" }),
+          body: JSON.stringify({
+            namespace: "resource_group",
+            objectId,
+            relation,
+            subjectNamespace: "user",
+            subjectId: "smoke-subject",
+          }),
         });
         if (res.status !== 201)
           throw new SmokeError(`create returned ${res.status}: ${await res.text()}`);
@@ -418,7 +433,10 @@ const cases: Case[] = [
       // with `app` the package slug, `name` the asset filename and empty
       // `run` / `exec`.
       const pair = await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]) as CryptoKeyPair;
-      const key = await post(`/packages/${pkg}/keys`, { public_key: base64Url(await crypto.subtle.exportKey("raw", pair.publicKey)), name: "smoke" });
+      const key = await post(`/packages/${pkg}/keys`, {
+        public_key: base64Url(await crypto.subtle.exportKey("raw", pair.publicKey)),
+        name: "smoke",
+      });
       if (key.status !== 201)
         throw new SmokeError(`key registration returned ${key.status}: ${await key.text()}`);
       const keyId = (await json<{ data: { key_id: string } }>(key)).data.key_id;
@@ -458,7 +476,9 @@ const cases: Case[] = [
       const assets = manifest.versions[version]?.assets ?? [];
       assert(assets.length === 2, `the manifest lists ${assets.length} assets, expected 2`);
 
-      const cached = await fetch(manifestUrl, { headers: { "If-None-Match": etag } });
+      const cached = await fetch(manifestUrl, {
+        headers: { "If-None-Match": etag },
+      });
       assert(cached.status === 304, `a matching If-None-Match returned ${cached.status}`);
       await cached.arrayBuffer();
 
@@ -469,7 +489,10 @@ const cases: Case[] = [
       assert(plainAsset !== undefined, "the unsigned asset is missing from the manifest");
       assert(!("sig" in plainAsset) && !("key_id" in plainAsset), "an unsigned asset carries signature fields");
 
-      for (const [asset, bytes, sha] of [[plainAsset, plain, plainSha], [signedAsset, signed, signedSha]] as const) {
+      for (const [asset, bytes, sha] of [
+        [plainAsset, plain, plainSha],
+        [signedAsset, signed, signedSha],
+      ] as const) {
         assert(asset.sha256 === sha && asset.size === bytes.length, `${asset.name}: the manifest's sha256 or size is wrong`);
         assert(asset.url === `${new URL(asset.url).origin}/r/${pkg}/${version}/${asset.name}`, `${asset.name}: unexpected url ${asset.url}`);
         // Downloaded through the url the manifest gives, as lode does.
@@ -685,7 +708,9 @@ async function prepareTarget(): Promise<Target> {
     pkg = `${created.namespace}/${slug}`;
     cleanups.push(async () => {
       const res = await call(`/api/registry/packages/${pkg}`, { method: "DELETE" });
-      note(res.status < 300 ? `deleted the package ${pkg}` : `could not delete the package ${pkg}: ${res.status}`);
+      note(res.status < 300
+        ? `deleted the package ${pkg}`
+        : `could not delete the package ${pkg}: ${res.status}`);
       await res.text();
     });
   }
@@ -740,7 +765,14 @@ function generatedBody(size: number, onSent: (sent: number) => void): ReadableSt
 async function expectUsable({ send, pkg, published }: Target, after: string): Promise<void> {
   const requests: [string, RequestInit][] = [
     ["/api/health", {}],
-    [`/api/registry/packages/${pkg}/channels/${PREVIEW_CHANNEL}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: published }) }],
+    [
+      `/api/registry/packages/${pkg}/channels/${PREVIEW_CHANNEL}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ version: published }),
+      },
+    ],
     [`/api/registry/packages/${pkg}/versions/${published}`, {}],
   ];
   for (let round = 0; round < 3; round++) {
@@ -751,7 +783,9 @@ async function expectUsable({ send, pkg, published }: Target, after: string): Pr
         res = await send(path, init);
       }
       catch (err) {
-        throw new SmokeError(`${what} failed: ${err instanceof Error ? err.message : String(err)}`);
+        throw new SmokeError(`${what} failed: ${err instanceof Error
+          ? err.message
+          : String(err)}`);
       }
       const text = await res.text();
       assert(res.status === 200, `${what} returned ${res.status}: ${text.slice(0, 300)}`);
@@ -800,13 +834,19 @@ const previewCases: Record<"large" | "refusedBody", Case> = {
           probe("/api/health", async () => await fetch(`${baseUrl}/api/health`)),
           probe("the manifest", async () => await readFeed(manifestUrl)),
         ]);
-        if (await Promise.race([completion.then(() => true), sleep(PROBE_INTERVAL_MS, false)]))
+        if (await Promise.race([
+          completion.then(() => true),
+          sleep(PROBE_INTERVAL_MS, false),
+        ])) {
           break;
+        }
       }
 
       const asset = await expectData<{ size: number; sha256: string }>(await completion, 201, "completion");
       assert(asset.size === size && asset.sha256 === sha256, "the completed asset does not carry the declared size and sha256");
-      const slowest = probes.reduce((a, b) => (b.ms > a.ms ? b : a));
+      const slowest = probes.reduce((a, b) => (b.ms > a.ms
+        ? b
+        : a));
       note(`completion: ${seconds(completedIn)}`);
       note(`slowest of ${probes.length} probes during completion: ${Math.round(slowest.ms)} ms (${slowest.what})`);
       const failed = probes.find(p => p.status !== 200);
@@ -838,7 +878,10 @@ const previewCases: Record<"large" | "refusedBody", Case> = {
       const path = `/api/registry/packages/${t.pkg}/versions/${t.published}/assets/smoke-refused.bin?sha256=${"0".repeat(64)}`;
       const upload = (body: ReadableStream<Uint8Array>, signal: AbortSignal | null = null): Promise<Response> => t.send(path, {
         method: "PUT",
-        headers: { "Content-Type": "application/octet-stream", "Content-Length": String(REFUSED_BODY_SIZE) },
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "Content-Length": String(REFUSED_BODY_SIZE),
+        },
         body,
         signal,
       });
@@ -867,7 +910,9 @@ const previewCases: Record<"large" | "refusedBody", Case> = {
         await res.text().catch(() => {});
       }
       catch (err) {
-        assert(aborter.signal.aborted, `the upload failed before it was aborted: ${err instanceof Error ? err.message : String(err)}`);
+        assert(aborter.signal.aborted, `the upload failed before it was aborted: ${err instanceof Error
+          ? err.message
+          : String(err)}`);
         outcome = "the request was abandoned";
       }
       note(`client abort after ${mib(ABORT_AFTER)} of ${mib(REFUSED_BODY_SIZE)}: ${outcome}, ${Math.round(performance.now() - aborting)} ms`);
@@ -878,7 +923,9 @@ const previewCases: Record<"large" | "refusedBody", Case> = {
 
 function argValue(name: string): string | undefined {
   const i = process.argv.indexOf(name);
-  return i === -1 ? undefined : process.argv[i + 1];
+  return i === -1
+    ? undefined
+    : process.argv[i + 1];
 }
 
 // Cases for a deployment mounted under a base path. `baseUrl` already ends
@@ -923,7 +970,9 @@ const baseCases: Case[] = [
     },
   },
   {
-    name: homePage === "root" ? "the origin root is the SPA's home page" : "the origin root sends the visitor to the app",
+    name: homePage === "root"
+      ? "the origin root is the SPA's home page"
+      : "the origin root sends the visitor to the app",
     async run() {
       const origin = new URL(baseUrl).origin;
       const prefix = new URL(baseUrl).pathname;
@@ -981,7 +1030,12 @@ interface Options { url: string; oidc: boolean; large: boolean; refusedBody: boo
 
 /** Anything not understood ends the run: a mistyped flag must not pass as a default run. */
 function parseArgs(argv: string[]): Options {
-  const options: Options = { url: "", oidc: false, large: false, refusedBody: false };
+  const options: Options = {
+    url: "",
+    oidc: false,
+    large: false,
+    refusedBody: false,
+  };
   const fail = (msg: string): never => {
     console.error(`${msg}\n\n${USAGE}`);
     process.exit(2);
@@ -1023,16 +1077,44 @@ function parseArgs(argv: string[]): Options {
 
 /** The cases of this run, and the selected checks it cannot do. */
 function selectSuite(options: Options): { suite: Case[]; skipped: Case[] } {
-  const selected = [...(options.large ? [previewCases.large] : []), ...(options.refusedBody ? [previewCases.refusedBody] : [])];
-  if (selected.length === 0)
-    return { suite: options.oidc ? oidcCases : cases, skipped: [] };
+  const selected = [
+    ...(options.large
+      ? [previewCases.large]
+      : []),
+    ...(options.refusedBody
+      ? [previewCases.refusedBody]
+      : []),
+  ];
+  if (selected.length === 0) {
+    return {
+      suite: options.oidc ? oidcCases : cases,
+      skipped: [],
+    };
+  }
   // The checks need the app up and, unless a token stands in, a session:
   // the first two default cases.
-  if (TOKEN)
-    return { suite: [...cases.slice(0, 1), ...selected], skipped: [] };
-  if (options.oidc)
-    return { suite: cases.slice(0, 1), skipped: selected };
-  return { suite: [...cases.slice(0, 2), ...selected], skipped: [] };
+  if (TOKEN) {
+    return {
+      suite: [
+        ...cases.slice(0, 1),
+        ...selected,
+      ],
+      skipped: [],
+    };
+  }
+  if (options.oidc) {
+    return {
+      suite: cases.slice(0, 1),
+      skipped: selected,
+    };
+  }
+  return {
+    suite: [
+      ...cases.slice(0, 2),
+      ...selected,
+    ],
+    skipped: [],
+  };
 }
 
 async function main(): Promise<void> {
@@ -1056,7 +1138,13 @@ async function main(): Promise<void> {
       recursive: true,
       force: true,
     });
-    const args = ["dev", "--port", String(PORT), "--ip", "127.0.0.1"];
+    const args = [
+      "dev",
+      "--port",
+      String(PORT),
+      "--ip",
+      "127.0.0.1",
+    ];
     if (basePath) {
       // The deploy workflow rewrites these two lines the same way: assets
       // from the prefix-aware build, and the Worker first for "/" and the
@@ -1084,7 +1172,13 @@ async function main(): Promise<void> {
   }
 
   const { suite, skipped }: { suite: Case[]; skipped: Case[] } = basePath
-    ? { suite: [...baseCases, ...feedBaseCases], skipped: [] }
+    ? {
+        suite: [
+          ...baseCases,
+          ...feedBaseCases,
+        ],
+        skipped: [],
+      }
     : selectSuite(options);
 
   let failures = 0;
@@ -1098,13 +1192,18 @@ async function main(): Promise<void> {
       catch (err) {
         failures++;
         console.error(`  FAIL  ${c.name}`);
-        console.error(`        ${err instanceof Error ? err.message : String(err)}`);
+        console.error(`        ${err instanceof Error
+          ? err.message
+          : String(err)}`);
       }
     }
     for (const c of skipped)
       console.log(`  skip  ${c.name}\n        an OIDC deployment has no password to log in with: set SMOKE_REGISTRY_TOKEN and SMOKE_REGISTRY_PACKAGE`);
-    for (const cleanup of cleanups)
-      await cleanup().catch(err => note(`cleanup failed: ${err instanceof Error ? err.message : String(err)}`));
+    for (const cleanup of cleanups) {
+      await cleanup().catch(err => note(`cleanup failed: ${err instanceof Error
+        ? err.message
+        : String(err)}`));
+    }
     if (leftBehind.length > 0)
       console.log(`\nLeft behind, unless the run failed before publishing them (a token cannot delete a published version):\n${leftBehind.map(l => `  ${l}`).join("\n")}\nThe channel keeps its version from being deleted on its own: delete the whole package (a dedicated one) from a session of its owner or of an administrator.`);
   }
@@ -1114,7 +1213,9 @@ async function main(): Promise<void> {
   }
 
   console.log(`\n${suite.length - failures}/${suite.length} passed`);
-  process.exit(failures === 0 ? 0 : 1);
+  process.exit(failures === 0
+    ? 0
+    : 1);
 }
 
 await main();

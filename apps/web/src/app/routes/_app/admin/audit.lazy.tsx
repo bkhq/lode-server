@@ -110,12 +110,20 @@ function AuditPage() {
       setTotal(res.meta.total);
     }
     catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error.loadFailed"));
+      setError(err instanceof Error
+        ? err.message
+        : t("common.error.loadFailed"));
     }
     finally {
       setLoading(false);
     }
-  }, [page, debouncedActor, actionFilter, resultFilter, t]);
+  }, [
+    page,
+    debouncedActor,
+    actionFilter,
+    resultFilter,
+    t,
+  ]);
 
   useEffect(() => {
     void fetchEvents();
@@ -137,7 +145,10 @@ function AuditPage() {
       detail: e.detail ?? "",
     }));
     const headers = Object.keys(rows[0] ?? {}).join(",");
-    const csv = [headers, ...rows.map(r => Object.values(r).map(v => `"${String(v).replace(RE_DOUBLE_QUOTE, "\"\"")}"`).join(","))].join("\n");
+    const csv = [
+      headers,
+      ...rows.map(r => Object.values(r).map(v => `"${String(v).replace(RE_DOUBLE_QUOTE, "\"\"")}"`).join(",")),
+    ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -205,7 +216,9 @@ function AuditPage() {
         >
           <SelectTrigger className="w-40">
             <SelectValue>
-              {(v: string) => v === "__all__" ? t("allActions") : v}
+              {(v: string) => v === "__all__"
+                ? t("allActions")
+                : v}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -279,7 +292,12 @@ function AuditPage() {
                   )
                 </span>
                 <span className="font-medium text-muted-foreground">{t("col.result")}</span>
-                <Badge variant={detailEvent.result === "success" ? "default" : "destructive"}>{detailEvent.result}</Badge>
+                <Badge variant={detailEvent.result === "success"
+                  ? "default"
+                  : "destructive"}
+                >
+                  {detailEvent.result}
+                </Badge>
                 <span className="font-medium text-muted-foreground">IP</span>
                 <span className="font-mono">{detailEvent.ip}</span>
                 <span className="font-medium text-muted-foreground">{t("col.time")}</span>
@@ -335,7 +353,10 @@ function AuditPage() {
                         {event.resourceName || event.resourceId}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={event.result === "success" ? "default" : "destructive"}>
+                        <Badge variant={event.result === "success"
+                          ? "default"
+                          : "destructive"}
+                        >
                           {event.result}
                         </Badge>
                       </TableCell>

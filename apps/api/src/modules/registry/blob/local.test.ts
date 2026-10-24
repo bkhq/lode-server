@@ -29,7 +29,10 @@ function filesUnderRoot(): string[] {
 }
 
 async function put(key: string, bytes: Uint8Array): Promise<void> {
-  await store.put(key, streamOf(bytes), { size: bytes.length, sha256: sha256Hex(bytes) });
+  await store.put(key, streamOf(bytes), {
+    size: bytes.length,
+    sha256: sha256Hex(bytes),
+  });
 }
 
 describe("local blob store: put / get / delete", () => {
@@ -58,7 +61,10 @@ describe("local blob store: put / get / delete", () => {
 
   test("digest mismatch leaves no object", async () => {
     const bytes = bytesOf(4000);
-    const attempt = store.put("pkg/a", streamOf(bytes), { size: bytes.length, sha256: sha256Hex(bytesOf(4000, 9)) });
+    const attempt = store.put("pkg/a", streamOf(bytes), {
+      size: bytes.length,
+      sha256: sha256Hex(bytesOf(4000, 9)),
+    });
     await expect(attempt).rejects.toBeInstanceOf(BlobDigestMismatchError);
     await expect(attempt).rejects.toBeInstanceOf(BlobPutError);
     expect(await store.get("pkg/a")).toBeUndefined();
@@ -68,15 +74,24 @@ describe("local blob store: put / get / delete", () => {
   test("a failed put keeps the object that was there before", async () => {
     const first = bytesOf(100);
     await put("pkg/a", first);
-    await expect(store.put("pkg/a", streamOf(bytesOf(100, 2)), { size: 100, sha256: sha256Hex(first) }))
+    await expect(store.put("pkg/a", streamOf(bytesOf(100, 2)), {
+      size: 100,
+      sha256: sha256Hex(first),
+    }))
       .rejects
       .toBeInstanceOf(BlobDigestMismatchError);
     expect(await readAll((await store.get("pkg/a"))!.body)).toEqual(first);
   });
 
-  test.each([["shorter", 4001], ["longer", 3999]])("size mismatch: body %s than declared", async (_label, size) => {
+  test.each([
+    ["shorter", 4001],
+    ["longer", 3999],
+  ])("size mismatch: body %s than declared", async (_label, size) => {
     const bytes = bytesOf(4000);
-    await expect(store.put("pkg/a", streamOf(bytes), { size, sha256: sha256Hex(bytes) }))
+    await expect(store.put("pkg/a", streamOf(bytes), {
+      size,
+      sha256: sha256Hex(bytes),
+    }))
       .rejects
       .toBeInstanceOf(BlobDigestMismatchError);
     expect(await store.get("pkg/a")).toBeUndefined();
@@ -89,7 +104,10 @@ describe("local blob store: put / get / delete", () => {
         controller.error(new Error("client went away"));
       },
     });
-    const attempt = store.put("pkg/a", body, { size: 10, sha256: sha256Hex(bytesOf(10)) });
+    const attempt = store.put("pkg/a", body, {
+      size: 10,
+      sha256: sha256Hex(bytesOf(10)),
+    });
     await expect(attempt).rejects.toBeInstanceOf(BlobPutError);
     await expect(attempt).rejects.not.toBeInstanceOf(BlobDigestMismatchError);
     expect(filesUnderRoot()).toEqual([]);
@@ -103,7 +121,13 @@ describe("local blob store: put / get / delete", () => {
   });
 
   test("deletePrefix removes exactly the keys under the prefix", async () => {
-    for (const key of ["pkg/1/2/a", "pkg/1/2/sub/b", "pkg/1/20/c", "pkg/1/3/d", "pkg/10/1/e"]) {
+    for (const key of [
+      "pkg/1/2/a",
+      "pkg/1/2/sub/b",
+      "pkg/1/20/c",
+      "pkg/1/3/d",
+      "pkg/10/1/e",
+    ]) {
       await put(key, bytesOf(10));
     }
 
@@ -129,7 +153,10 @@ describe("local blob store: put / get / delete", () => {
     "pkg/a/",
   ])("key %p is refused", async (key) => {
     const bytes = bytesOf(10);
-    await expect(store.put(key, streamOf(bytes), { size: 10, sha256: sha256Hex(bytes) })).rejects.toThrow("Invalid blob key");
+    await expect(store.put(key, streamOf(bytes), {
+      size: 10,
+      sha256: sha256Hex(bytes),
+    })).rejects.toThrow("Invalid blob key");
     await expect(store.get(key)).rejects.toThrow("Invalid blob key");
     await expect(store.delete(key)).rejects.toThrow("Invalid blob key");
     await expect(store.createMultipart(key)).rejects.toThrow("Invalid blob key");
@@ -150,7 +177,12 @@ describe("local blob store: multipart", () => {
   }
 
   test("three parts, one of them uploaded twice", async () => {
-    const [one, staleTwo, two, three] = [bytesOf(5000, 1), bytesOf(5000, 2), bytesOf(5000, 3), bytesOf(1200, 4)];
+    const [one, staleTwo, two, three] = [
+      bytesOf(5000, 1),
+      bytesOf(5000, 2),
+      bytesOf(5000, 3),
+      bytesOf(1200, 4),
+    ];
     const { uploadId } = await store.createMultipart(key);
 
     const first = await putPart(uploadId, 1, one);
@@ -183,9 +215,25 @@ describe("local blob store: multipart", () => {
 
   test.each([
     ["no parts", []],
-    ["parts out of order", [{ partNumber: 2, etag: "x" }, { partNumber: 1, etag: "y" }]],
-    ["a part that was never uploaded", [{ partNumber: 7, etag: "x" }]],
-    ["an etag that is not one", [{ partNumber: 1, etag: "../../objects/pkg" }]],
+    [
+      "parts out of order",
+      [
+        { partNumber: 2, etag: "x" },
+        { partNumber: 1, etag: "y" },
+      ],
+    ],
+    [
+      "a part that was never uploaded",
+      [
+        { partNumber: 7, etag: "x" },
+      ],
+    ],
+    [
+      "an etag that is not one",
+      [
+        { partNumber: 1, etag: "../../objects/pkg" },
+      ],
+    ],
   ])("completing with %s fails", async (_label, parts) => {
     const { uploadId } = await store.createMultipart(key);
     await expect(store.completeMultipart(key, uploadId, parts)).rejects.toBeInstanceOf(BlobMultipartError);
@@ -212,7 +260,9 @@ describe("local blob store: multipart", () => {
     await store.abortMultipart(key, uploadId);
     expect(filesUnderRoot()).toEqual([]);
     await expect(store.putPart(key, uploadId, 3, streamOf(bytesOf(1)), 1)).rejects.toBeInstanceOf(BlobMultipartError);
-    await expect(store.completeMultipart(key, uploadId, [{ partNumber: 1, etag: "x" }])).rejects.toBeInstanceOf(BlobMultipartError);
+    await expect(store.completeMultipart(key, uploadId, [
+      { partNumber: 1, etag: "x" },
+    ])).rejects.toBeInstanceOf(BlobMultipartError);
     // Aborting twice is a no-op.
     await store.abortMultipart(key, uploadId);
   });

@@ -165,7 +165,9 @@ export async function listGroupMembershipsForUsers(
   const filter = and(
     eq(groupMembers.subjectNamespace, "user"),
     eq(groupMembers.subjectRelation, DIRECT_MEMBER),
-    userIds && userIds.length > 0 ? inArray(groupMembers.subjectId, [...userIds]) : undefined,
+    userIds && userIds.length > 0
+      ? inArray(groupMembers.subjectId, [...userIds])
+      : undefined,
   );
   const rows = await db
     .select({ userId: groupMembers.subjectId, groupId: groupMembers.groupId })

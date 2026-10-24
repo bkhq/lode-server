@@ -42,7 +42,9 @@ async function readablePackage(c: Context<AppEnv>): Promise<RegistryPackage> {
 }
 
 function cacheControl(pkg: RegistryPackage, whenPublic: string): string {
-  return pkg.visibility === "public" ? whenPublic : PRIVATE_CACHE;
+  return pkg.visibility === "public"
+    ? whenPublic
+    : PRIVATE_CACHE;
 }
 
 async function strongEtag(body: string): Promise<string> {

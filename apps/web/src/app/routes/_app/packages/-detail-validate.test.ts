@@ -12,16 +12,41 @@ import {
 } from "./-detail-validate";
 
 function asset(name: string, size: number): Asset {
-  return { name, size, sha256: "a".repeat(64), sig: null, key_id: null, alg: null, run: null, exec: null, created_at: "2026-01-01T00:00:00Z" };
+  return {
+    name,
+    size,
+    sha256: "a".repeat(64),
+    sig: null,
+    key_id: null,
+    alg: null,
+    run: null,
+    exec: null,
+    created_at: "2026-01-01T00:00:00Z",
+  };
 }
 
 function version(id: string, status: Version["status"], assets: Asset[] = []): Version {
-  return { id, version: id, status, notes: null, published_at: null, created_at: "2026-01-01T00:00:00Z", assets };
+  return {
+    id,
+    version: id,
+    status,
+    notes: null,
+    published_at: null,
+    created_at: "2026-01-01T00:00:00Z",
+    assets,
+  };
 }
 
 describe("versionError", () => {
   it("accepts lode ids", () => {
-    for (const id of ["1.0.0", "v2", "2026.10.1-rc_1", "A", "_x", "a".repeat(MAX_ID_LENGTH)])
+    for (const id of [
+      "1.0.0",
+      "v2",
+      "2026.10.1-rc_1",
+      "A",
+      "_x",
+      "a".repeat(MAX_ID_LENGTH),
+    ])
       expect(versionError(id)).toBeUndefined();
   });
 
@@ -35,7 +60,13 @@ describe("versionError", () => {
   });
 
   it("rejects characters outside [A-Za-z0-9._-]", () => {
-    for (const id of ["1.0 0", "1/0", "1+build", "v1\n", "版本"])
+    for (const id of [
+      "1.0 0",
+      "1/0",
+      "1+build",
+      "v1\n",
+      "版本",
+    ])
       expect(versionError(id)).toBe("charset");
   });
 
@@ -76,7 +107,11 @@ describe("displayNameError", () => {
 
 describe("version helpers", () => {
   it("keeps only published versions", () => {
-    const versions = [version("3", "draft"), version("2", "published"), version("1", "yanked")];
+    const versions = [
+      version("3", "draft"),
+      version("2", "published"),
+      version("1", "yanked"),
+    ];
     expect(publishedVersions(versions).map(v => v.version)).toEqual(["2"]);
   });
 
@@ -92,7 +127,10 @@ describe("version helpers", () => {
 
   it("sums asset sizes", () => {
     expect(totalSize([])).toBe(0);
-    expect(totalSize([asset("a", 10), asset("b", 32)])).toBe(42);
+    expect(totalSize([
+      asset("a", 10),
+      asset("b", 32),
+    ])).toBe(42);
   });
 
   it("shortens a sha256 to its first 12 characters", () => {

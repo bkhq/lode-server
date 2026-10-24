@@ -55,7 +55,11 @@ export async function ensureNamespace(
     try {
       const inserted = await db
         .insert(registryNamespaces)
-        .values({ id: nanoid(), slug: generate(), ownerUserId: userId })
+        .values({
+          id: nanoid(),
+          slug: generate(),
+          ownerUserId: userId,
+        })
         .onConflictDoNothing({ target: registryNamespaces.ownerUserId })
         .returning()
         .get();
@@ -112,9 +116,14 @@ export interface Usage {
  * Packages holding nothing are absent from the map.
  */
 export async function getStorageByPackage(db: AppDatabase, namespaceId?: string): Promise<Map<string, number>> {
-  const inNamespace = namespaceId === undefined ? undefined : eq(registryPackages.namespaceId, namespaceId);
+  const inNamespace = namespaceId === undefined
+    ? undefined
+    : eq(registryPackages.namespaceId, namespaceId);
   const stored = await db
-    .select({ packageId: registryVersions.packageId, bytes: sum(registryAssets.size).mapWith(Number) })
+    .select({
+      packageId: registryVersions.packageId,
+      bytes: sum(registryAssets.size).mapWith(Number),
+    })
     .from(registryAssets)
     .innerJoin(registryVersions, eq(registryVersions.id, registryAssets.versionId))
     .innerJoin(registryPackages, eq(registryPackages.id, registryVersions.packageId))
@@ -122,7 +131,10 @@ export async function getStorageByPackage(db: AppDatabase, namespaceId?: string)
     .groupBy(registryVersions.packageId)
     .all();
   const inFlight = await db
-    .select({ packageId: registryVersions.packageId, bytes: sum(registryUploads.size).mapWith(Number) })
+    .select({
+      packageId: registryVersions.packageId,
+      bytes: sum(registryUploads.size).mapWith(Number),
+    })
     .from(registryUploads)
     .innerJoin(registryVersions, eq(registryVersions.id, registryUploads.versionId))
     .innerJoin(registryPackages, eq(registryPackages.id, registryVersions.packageId))
@@ -130,7 +142,10 @@ export async function getStorageByPackage(db: AppDatabase, namespaceId?: string)
     .groupBy(registryVersions.packageId)
     .all();
   const bytes = new Map<string, number>();
-  for (const row of [...stored, ...inFlight])
+  for (const row of [
+    ...stored,
+    ...inFlight,
+  ])
     bytes.set(row.packageId, (bytes.get(row.packageId) ?? 0) + row.bytes);
   return bytes;
 }
@@ -140,9 +155,16 @@ export async function getUsage(db: AppDatabase, userId: string): Promise<Usage> 
   const namespace = await getNamespaceForUser(db, userId);
   if (!namespace)
     return { packages: 0, storageBytes: 0 };
-  const held = await db.select({ n: count() }).from(registryPackages).where(eq(registryPackages.namespaceId, namespace.id)).get();
+  const held = await db.select({
+    n: count(),
+  }).from(registryPackages).where(eq(registryPackages.namespaceId, namespace.id)).get();
   const storage = await getStorageByPackage(db, namespace.id);
-  return { packages: held?.n ?? 0, storageBytes: [...storage.values()].reduce((a, b) => a + b, 0) };
+  return {
+    packages: held?.n ?? 0,
+    storageBytes: [
+      ...storage.values(),
+    ].reduce((a, b) => a + b, 0),
+  };
 }
 
 /**
@@ -200,7 +222,9 @@ export async function createPackage(
     // Count and insert in one transaction, so two concurrent creates cannot
     // both pass the limit.
     await db.transaction(async (tx) => {
-      const held = await tx.select({ n: count() }).from(registryPackages).where(eq(registryPackages.namespaceId, namespace.id)).get();
+      const held = await tx.select({
+        n: count(),
+      }).from(registryPackages).where(eq(registryPackages.namespaceId, namespace.id)).get();
       if ((held?.n ?? 0) >= quota.maxPackages)
         throw new AppError(`You can own at most ${quota.maxPackages} packages`, 409, "PACKAGE_QUOTA_EXCEEDED");
       await tx.insert(registryPackages).values({
@@ -223,7 +247,11 @@ export async function createPackage(
   // Without its owner tuple the package would be unreachable to everyone
   // but an administrator, so a failed grant takes the row back out.
   try {
-    await packageAccess.grant(ctx, { subject: userSubject(namespace.ownerUserId), relation: "owner", objectId: id });
+    await packageAccess.grant(ctx, {
+      subject: userSubject(namespace.ownerUserId),
+      relation: "owner",
+      objectId: id,
+    });
   }
   catch (err) {
     await db.delete(registryPackages).where(eq(registryPackages.id, id)).run();
@@ -271,12 +299,22 @@ export interface StoredUpload {
 /** The multipart uploads in flight under a package, or under one version. */
 export async function inFlightUploads(db: AppDatabase, scope: { packageId: string } | { versionId: string }): Promise<StoredUpload[]> {
   const rows = await db
-    .select({ packageId: registryVersions.packageId, versionId: registryUploads.versionId, assetName: registryUploads.assetName, r2UploadId: registryUploads.r2UploadId })
+    .select({
+      packageId: registryVersions.packageId,
+      versionId: registryUploads.versionId,
+      assetName: registryUploads.assetName,
+      r2UploadId: registryUploads.r2UploadId,
+    })
     .from(registryUploads)
     .innerJoin(registryVersions, eq(registryVersions.id, registryUploads.versionId))
-    .where("versionId" in scope ? eq(registryUploads.versionId, scope.versionId) : eq(registryVersions.packageId, scope.packageId))
+    .where("versionId" in scope
+      ? eq(registryUploads.versionId, scope.versionId)
+      : eq(registryVersions.packageId, scope.packageId))
     .all();
-  return rows.map(row => ({ key: assetBlobKey(row.packageId, row.versionId, row.assetName), r2UploadId: row.r2UploadId }));
+  return rows.map(row => ({
+    key: assetBlobKey(row.packageId, row.versionId, row.assetName),
+    r2UploadId: row.r2UploadId,
+  }));
 }
 
 /**
@@ -312,7 +350,9 @@ export async function retireVersions(tx: Parameters<Parameters<AppDatabase["tran
     .where(and(
       eq(registryVersions.packageId, packageId),
       ne(registryVersions.status, "draft"),
-      versionId === undefined ? undefined : eq(registryVersions.id, versionId),
+      versionId === undefined
+        ? undefined
+        : eq(registryVersions.id, versionId),
     ))
     .all();
   // Stays well below the 100 bound parameters a Durable Object query takes.
