@@ -4,10 +4,10 @@ import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { eq } from "drizzle-orm";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { users } from "@/modules/account/users/schema";
 import { ValidationError } from "@/shared/lib/errors";
+import { nanoid } from "@/shared/lib/id";
 import {
   addResourceGroupMember,
   createResourceGroup,
@@ -18,8 +18,6 @@ import {
   updateResourceGroup,
 } from "./resource-group.service";
 import { DIRECT_SUBJECT, relationTuples, resourceGroups } from "./schema";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 let db: AppDatabase;
 let dbPath: string;

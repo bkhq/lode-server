@@ -4,12 +4,12 @@ import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { and, eq } from "drizzle-orm";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { users } from "@/modules/account/users/schema";
 import { items } from "@/modules/item/schema";
 import { listTuples } from "@/modules/policy/policy.service";
 import { relationTuples } from "@/modules/policy/schema";
+import { nanoid } from "@/shared/lib/id";
 import {
   assertItemExists,
   createItem,
@@ -23,8 +23,6 @@ import {
   softDeleteItem,
   updateItem,
 } from "./item.service";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 let db: AppDatabase;
 let dbPath: string;
@@ -260,6 +258,14 @@ describe("listItemsByIds / listItemsByType", () => {
 
     const docs = await listItemsByType(db, { type: "document" });
     expect(docs.total).toBe(1);
+  });
+
+  test("listItemsByType matches % and _ in the search literally", async () => {
+    const userId = await seedUser("Alice");
+    await createItem(db, { type: "issue", title: "Ship 50% of fixes", status: "open", creatorId: userId });
+    await createItem(db, { type: "issue", title: "Ship 500 fixes", status: "open", creatorId: userId });
+    const r = await listItemsByType(db, { type: "issue", search: "50%" });
+    expect(r.data.map(i => i.title)).toEqual(["Ship 50% of fixes"]);
   });
 
   test("listItemsByType paginates", async () => {

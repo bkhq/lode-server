@@ -13,6 +13,26 @@ This repository is a fork: the dated entries directly below are Lode
 Server's own, and everything from `Unreleased` down is the upstream
 template's history, kept unchanged.
 
+## 2026-10-24 [api] [web] [deps] [docs]
+
+### Changed
+
+Merged the upstream template (`zzci/bun-tpl`) from `4d78d5d` to `a5ee9e1`;
+its entries are in the template history below. For Lode Server this brings:
+
+- Account API tokens can be renamed, rescoped and rotated from the account
+  dialog (`PATCH /api/account/me/tokens/:id`, `POST .../rotate`). Package
+  access still comes from a token's registry grants; rescoping there only
+  narrows what the grants allow. Rotation keeps the token id, so its grants
+  stay.
+- `/api/docs` redirects to an external viewer (`DOCS_VIEWER`) handed
+  `/api/openapi.json`, which any origin may now read.
+- Sliding sessions independent of the IdP access token.
+- Audit events record the client IP behind a trusted proxy; registry audit
+  entries share the template's `auditMeta`.
+- Dependency updates: shadcn, qrcode, geist and the i18next language detector
+  dropped upstream.
+
 ## 2026-10-22 [api] [web] [docs]
 
 ### Added
@@ -1124,6 +1144,14 @@ exists yet.
   after the session provider. **Schema:** new `api_tokens` table in the
   regenerated `0000_init` migration; a deployed database needs it created by
   hand.
+  A token can be renamed and rescoped after creation, from the token list or
+  at `PATCH /api/account/me/tokens/:id`; the secret and expiry stay the same,
+  new scopes apply from its next request, and each change is audited as
+  `api_token.updated`. Rotation (`POST /api/account/me/tokens/:id/rotate`, or
+  the rotate button) replaces the secret under the same id, name and scopes:
+  the old secret stops working at once, the new one is shown once, and the
+  expiry is set anew — which also revives an expired token. Audited as
+  `api_token.rotated`. Expired tokens are marked as such in the list.
 
 - Group memberships from the identity provider. With `OAUTH_GROUPS_CLAIM`
   set, each OIDC login makes the user's memberships in IdP-managed groups
@@ -1203,6 +1231,12 @@ exists yet.
   deployments drive jobs through `POST /api/cron/jobs/:id/trigger` instead.
 
 ### Changed
+
+- `/api/docs` no longer serves an API reference page. It redirects to an
+  external viewer (`https://client.scalar.com/?url=`, set in `DOCS_VIEWER`)
+  handed the absolute URL of `/api/openapi.json`, which now allows any origin
+  to read it. `@scalar/hono-api-reference` and the docs page's CSP exception
+  are gone. The spec URL is built from `APP_URL` when set.
 
 - On Cloudflare Workers, a configuration change now resets the Durable
   Object. It keeps the `env` it was constructed with while resident, and the
@@ -1309,6 +1343,32 @@ exists yet.
   recreate, and import — the importer migrates the dump).
 
 ### Fixed
+
+- With `TRUST_PROXY=true`, audit events recorded the proxy's address instead
+  of the client's: every audit write read the IP without the proxy config.
+  They now share `auditMeta(c)`, and `getClientIp` requires the config so a
+  call site cannot leave it out again.
+- Searching documents, issues, items or users for text containing `%` or `_`
+  found nothing (documents, issues, items) or matched too much (users): the
+  services escaped the wildcards but SQLite only honours an escape character
+  the query names. Searches now go through `likeEscaped` in
+  `shared/lib/like.ts`, which adds `ESCAPE '\'`.
+
+- Signed-in users were logged out about an hour after an OIDC login, even
+  mid-use: the session expired with the IdP's access token, and without a
+  refresh token (most IdPs issue one only for `offline_access`) it was
+  deleted. Every sign-in method now gets `session.max_age` (default one day)
+  as an idle timeout — a session in use is extended, and its cookie
+  rewritten, once half of it has passed — with a 30-day absolute limit from
+  sign-in. Expired sessions are deleted rather than renewed through a
+  refresh-token grant, and abandoned ones are swept when a session is
+  created. Admins who set `session.max_age` as a total lifetime should
+  revisit it: it now measures inactivity.
+
+- The API tokens tab no longer pushes its content out of the settings
+  dialog when a token holds many scopes: scopes render as wrapping badges
+  (collapsed past three), the scope picker scrolls within a bounded list with
+  select-all, and the dialog scrolls instead of growing past the viewport.
 
 - `BASE_PATH` did not work on Cloudflare Workers. The SPA's HTML referenced
   `/u/assets/…` while the asset pipeline served files from the build root, so
@@ -1507,6 +1567,17 @@ exists yet.
   in-flight sweep, and a tick that fires while one is running is skipped.
 
 ### Removed
+
+- Dependencies trimmed, 1123 -> 837 packages in the lockfile. The `shadcn`
+  CLI is gone: its `tailwind.css` is vendored as `apps/web/src/shadcn.css`;
+  add components with `bunx shadcn@latest add`. `qrcode` is replaced by the
+  dependency-free `uqr`, so the TOTP QR code is now an SVG data URL
+  (`data:image/svg+xml;base64,...`). `i18next-browser-languagedetector` is
+  replaced by `shared/lib/language-detector.ts` (stored choice, then the
+  browser's languages). The unused `@fontsource-variable/geist` and the
+  undeclared-in-code `@hono/standard-validator` are dropped. Modules and tests
+  now share `nanoid` and `ulidTimestamp` from `shared/lib/id.ts` instead of
+  their own copies.
 
 - Orphaned code with no importers: `shared/lib/api-response.ts` and
   `shared/lib/pagination.ts` (a response-envelope layer superseded by the

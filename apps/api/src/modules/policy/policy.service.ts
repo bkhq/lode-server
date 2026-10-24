@@ -1,11 +1,9 @@
 import type { AppDatabase } from "@/db";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
-import { customAlphabet } from "nanoid";
 import { DIRECT_SUBJECT, relationTuples } from "@/modules/policy/schema";
 import { isUniqueViolation, ValidationError } from "@/shared/lib/errors";
+import { nanoid } from "@/shared/lib/id";
 import { getNamespace, getValidRelations } from "./namespace-config";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 export interface CreateTupleInput {
   readonly namespace: string;

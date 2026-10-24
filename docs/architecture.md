@@ -144,6 +144,22 @@ Unauthenticated user
 
 Sessions are stored in SQLite. The browser stores only the HTTP-only session cookie.
 
+### Session lifetime
+
+A session lasts `session.max_age` (Settings → Authentication, seeded from
+`SESSION_MAX_AGE`, default one day) for every sign-in method. It is an idle
+timeout: once half of it has passed, the next request extends the session and
+rewrites the cookie for a full period, so a session is written at most twice
+per period and ends only after `session.max_age` without use. Independently, no
+session lives longer than 30 days from sign-in, so a change made at the identity
+provider — a disabled account, new group memberships — reaches the app at
+least that often.
+
+The IdP's access token does not bound the session. It is used to read the
+user's profile at sign-in and revoked, with the refresh token if one was
+issued, at sign-out. An expired session is deleted and the user signs in
+again; it is not renewed with a refresh-token grant.
+
 ### Session token storage
 
 Each session row carries the upstream OAuth `access_token` and `refresh_token` as plain columns. Their protection at rest depends on `DB_ENCRYPTION`:

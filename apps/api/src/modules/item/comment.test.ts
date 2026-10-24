@@ -4,7 +4,6 @@ import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { and, eq } from "drizzle-orm";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { users } from "@/modules/account/users/schema";
 import { uploadAndReference } from "@/modules/file/file.service";
@@ -19,8 +18,7 @@ import {
 } from "@/modules/item/comment.service";
 import { createItem } from "@/modules/item/item.service";
 import { itemComments } from "@/modules/item/schema";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
+import { nanoid } from "@/shared/lib/id";
 
 let db: AppDatabase;
 let dbPath: string;

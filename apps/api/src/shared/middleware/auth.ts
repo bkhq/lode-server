@@ -14,7 +14,7 @@ export const authRequired = createMiddleware<AppEnv>(async (c, next) => {
   const user = await getAuthProvider()(db, c);
   if (!user) {
     const logger = c.get("logger");
-    logger?.warn({ ip: getClientIp(c), path: c.req.path, method: c.req.method }, "auth rejected: no valid session");
+    logger?.warn({ ip: getClientIp(c, c.get("config")), path: c.req.path, method: c.req.method }, "auth rejected: no valid session");
     throw new UnauthorizedError();
   }
   c.set("user", user);

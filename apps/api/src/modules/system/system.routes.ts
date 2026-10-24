@@ -34,7 +34,7 @@ async function auditLodeAction(c: Context<AppEnv>, action: string, detail: Recor
     resourceId: "supervisor",
     resourceName: "lode supervisor",
     detail,
-    ip: getClientIp(c),
+    ip: getClientIp(c, c.get("config")),
     userAgent: c.req.header("user-agent") ?? "",
     result: "success",
   });

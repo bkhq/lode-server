@@ -4,14 +4,12 @@ import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { eq } from "drizzle-orm";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { cronJobLogs, cronJobs } from "@/db/schema";
+import { nanoid } from "@/shared/lib/id";
 import { __resetAndReinitActionsForTests } from "./actions";
 import { __resetCronForTests, startCron } from "./cron.service";
 import { executeTask } from "./executor";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 let db: AppDatabase;
 let dbPath: string;

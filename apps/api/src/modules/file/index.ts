@@ -9,6 +9,7 @@ import { getDriver, setActiveDriver } from "./storage/registry";
 // required.
 import "./storage/local";
 
+export { getOwnedReference, readUploadedFile, sendAttachment } from "./attachment-routes";
 export { fileRoutes } from "./file.routes";
 export type { FileServiceConfig } from "./file.service";
 export {

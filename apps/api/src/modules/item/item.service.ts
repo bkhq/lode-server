@@ -1,17 +1,13 @@
+import type { SQL } from "drizzle-orm";
 import type { AppDatabase } from "@/db";
-import { and, count, desc, eq, inArray, isNotNull, isNull, like, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { items } from "@/modules/item/schema";
 import { DIRECT_SUBJECT, relationTuples } from "@/modules/policy/schema";
 import { NotFoundError, ValidationError } from "@/shared/lib/errors";
 import { nanoid, ulid } from "@/shared/lib/id";
+import { escapeLike, likeEscaped } from "@/shared/lib/like";
 
 export type ItemRow = typeof items.$inferSelect;
-
-const LIKE_SPECIAL_RE = /[%_]/g;
-
-function escapeLike(v: string): string {
-  return v.replace(LIKE_SPECIAL_RE, "\\$&");
-}
 
 /**
  * Optimistic-concurrency conflict result. Returned by {@link updateItem} when
@@ -56,39 +52,62 @@ export interface CreateItemInput {
 export async function createItem(db: AppDatabase, input: CreateItemInput): Promise<ItemRow> {
   return await db.transaction(async (tx) => {
     const id = input.id ?? ulid();
-    const shortId = input.shortId ?? nanoid();
-    const now = new Date().toISOString();
-
-    await tx.insert(items).values({
+    await insertItem(tx, {
       id,
-      shortId,
+      shortId: input.shortId ?? nanoid(),
       type: input.type,
       title: input.title,
       status: input.status,
       creatorId: input.creatorId,
-      version: 1,
-      deletedAt: null,
-      updatedAt: now,
-    }).run();
-
-    // Write the `(item, X, owner, user, creator)` tuple in the same
-    // transaction as the items row. We inline the insert rather than call
-    // policy.createTuple because the latter expects the top-level
-    // AppDatabase shape (close / checkpoint), and we need the atomic guarantee.
-    await tx.insert(relationTuples).values({
-      id: nanoid(),
-      namespace: "item",
-      objectId: id,
-      relation: "owner",
-      subjectNamespace: "user",
-      subjectId: input.creatorId,
-      subjectRelation: DIRECT_SUBJECT,
-      createdBy: input.creatorId,
-      createdAt: now,
-    }).run();
-
+      now: new Date().toISOString(),
+    });
     return (await tx.select().from(items).where(eq(items.id, id)).get())!;
   });
+}
+
+type Tx = Parameters<Parameters<AppDatabase["transaction"]>[0]>[0];
+
+interface NewItem {
+  readonly id: string;
+  readonly shortId: string;
+  readonly type: string;
+  readonly title: string;
+  readonly status: string;
+  readonly creatorId: string;
+  readonly now: string;
+}
+
+/**
+ * Insert an item row and its `(item, X, owner, user, creator)` tuple inside
+ * the caller's transaction, so a sub-type can add its detail row and extra
+ * tuples atomically. The tuple insert is inlined rather than going through
+ * policy.createTuple, which expects the top-level AppDatabase shape (close /
+ * checkpoint).
+ */
+export async function insertItem(tx: Tx, item: NewItem): Promise<void> {
+  await tx.insert(items).values({
+    id: item.id,
+    shortId: item.shortId,
+    type: item.type,
+    title: item.title,
+    status: item.status,
+    creatorId: item.creatorId,
+    version: 1,
+    deletedAt: null,
+    updatedAt: item.now,
+  }).run();
+
+  await tx.insert(relationTuples).values({
+    id: nanoid(),
+    namespace: "item",
+    objectId: item.id,
+    relation: "owner",
+    subjectNamespace: "user",
+    subjectId: item.creatorId,
+    subjectRelation: DIRECT_SUBJECT,
+    createdBy: item.creatorId,
+    createdAt: item.now,
+  }).run();
 }
 
 /** Get a live (non-soft-deleted) item by its internal id. */
@@ -248,36 +267,7 @@ export async function listItemsByIds(
   if (ids.length === 0) {
     return { data: [], total: 0 };
   }
-  const { type, status, search } = filter;
-  const page = Math.max(1, filter.page ?? 1);
-  const limit = Math.min(100, Math.max(1, filter.limit ?? 20));
-
-  const conditions = [inArray(items.id, [...ids]), isNull(items.deletedAt)];
-  if (type)
-    conditions.push(eq(items.type, type));
-  if (status)
-    conditions.push(eq(items.status, status));
-  if (search && search.length > 0) {
-    // TODO(fts): swap LIKE for items_fts MATCH once the FTS5 virtual-table
-    // gap is closed (see plan §G "FTS gap"). LIKE on title is fine for the
-    // current row count.
-    conditions.push(like(items.title, `%${escapeLike(search)}%`));
-  }
-
-  const where = and(...conditions);
-  const totalRow = await db.select({ value: count() }).from(items).where(where).get();
-  const total = totalRow?.value ?? 0;
-
-  const data = await db
-    .select()
-    .from(items)
-    .where(where)
-    .orderBy(desc(items.id))
-    .limit(limit)
-    .offset((page - 1) * limit)
-    .all();
-
-  return { data, total };
+  return await queryItems(db, filter, inArray(items.id, [...ids]));
 }
 
 /**
@@ -290,15 +280,29 @@ export async function listItemsByType(
   db: AppDatabase,
   filter: ListItemsFilter & { type: string },
 ): Promise<{ data: readonly ItemRow[]; total: number }> {
+  return await queryItems(db, filter);
+}
+
+/** One page of live items matching `filter`, narrowed by `scope` when given. */
+async function queryItems(
+  db: AppDatabase,
+  filter: ListItemsFilter,
+  scope?: SQL,
+): Promise<{ data: readonly ItemRow[]; total: number }> {
   const { type, status, search } = filter;
   const page = Math.max(1, filter.page ?? 1);
   const limit = Math.min(100, Math.max(1, filter.limit ?? 20));
 
-  const conditions = [eq(items.type, type), isNull(items.deletedAt)];
+  const conditions = [scope, isNull(items.deletedAt)];
+  if (type)
+    conditions.push(eq(items.type, type));
   if (status)
     conditions.push(eq(items.status, status));
   if (search && search.length > 0) {
-    conditions.push(like(items.title, `%${escapeLike(search)}%`));
+    // TODO(fts): swap LIKE for items_fts MATCH once the FTS5 virtual-table
+    // gap is closed (see plan §G "FTS gap"). LIKE on title is fine for the
+    // current row count.
+    conditions.push(likeEscaped(items.title, `%${escapeLike(search)}%`));
   }
 
   const where = and(...conditions);

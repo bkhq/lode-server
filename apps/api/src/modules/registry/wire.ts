@@ -4,7 +4,7 @@ import type { EffectiveQuota, Usage } from "./registry.service";
 import type { ChannelPointer, RegistryAsset, VersionWithAssets } from "./release.service";
 import type { AppEnv } from "@/shared/lib/types";
 import { z } from "zod";
-import { getClientIp } from "@/shared/lib/client-ip";
+import { auditMeta as requestMeta } from "@/modules/audit/audit.service";
 
 // Wire shapes shared by the module's route files. Field names follow the
 // plan's column names (`key_id`, `require_signature`), so a field reads the
@@ -169,8 +169,7 @@ export function auditMeta(c: Context<AppEnv>) {
   return {
     actorId: actor.id,
     actorName: actor.name,
-    ip: getClientIp(c),
-    userAgent: c.req.header("user-agent") ?? "unknown",
+    ...requestMeta(c),
     result: "success" as const,
   };
 }

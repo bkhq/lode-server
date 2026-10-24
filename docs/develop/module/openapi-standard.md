@@ -8,8 +8,8 @@ The API keeps its plain `new Hono<AppEnv>()` route factories. OpenAPI is
 layered on with [`hono-openapi`](https://hono.dev/examples/hono-openapi)
 middleware plus the shared helpers in
 [`apps/api/src/shared/lib/openapi.ts`](../../../apps/api/src/shared/lib/openapi.ts).
-The spec is served at `/api/openapi.json` and the Scalar UI at `/api/docs`
-(see [`modules/docs`](../../../apps/api/src/modules/docs/docs.routes.ts)).
+The spec is served at `/api/openapi.json`; `/api/docs` redirects to an
+external viewer that loads it (see [`modules/docs`](../../../apps/api/src/modules/docs/docs.routes.ts)).
 
 Reference implementations: [`system.routes.ts`](../../../apps/api/src/modules/system/system.routes.ts)
 (public + token + non-envelope responses) and
@@ -106,13 +106,15 @@ that builds `/openapi.json` only collects routes carrying `describeRoute`.
 - [ ] `responses` includes the success helper **and** the realistic error codes.
 - [ ] Input schema validated via `validator(...)` (or, for bespoke parsing, left as-is).
 - [ ] Handler reads validated input via `c.req.valid(target)`.
-- [ ] Route appears in `/api/openapi.json` and renders in `/api/docs`.
+- [ ] Route appears in `/api/openapi.json` and renders in the viewer behind `/api/docs`.
 
 ## Where docs are wired
 
-- Spec + UI: `apps/api/src/modules/docs/docs.routes.ts` (`mountDocs`).
+- Spec + viewer redirect: `apps/api/src/modules/docs/docs.routes.ts` (`mountDocs`).
 - Mounted **before** the route modules in `app.ts` so docs stay outside every
   module's `use("*")` auth/unlock guards (Hono middleware only applies to
   routes registered after it).
-- Scalar loads a CDN bundle; its strict-CSP exception is scoped to `/api/docs`
-  via `docsCspRelax` (registered before `secureHeaders`).
+- The app ships no docs UI. `/api/docs` redirects to `DOCS_VIEWER`
+  (`https://client.scalar.com/?url=`) with the spec's absolute URL, built from
+  `APP_URL` when set. The viewer fetches the spec from the browser, so
+  `/api/openapi.json` answers with `Access-Control-Allow-Origin: *`.

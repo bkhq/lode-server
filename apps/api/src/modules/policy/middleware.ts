@@ -15,7 +15,7 @@ function buildPolicyRequest(c: Context<AppEnv>): PolicyRequest {
   const correlationId = c.get("requestId");
   // `+?` preserves the optional modifier; the default mapped type drops `?`
   // and `exactOptionalPropertyTypes` then rejects `string | undefined`.
-  const req: { -readonly [K in keyof PolicyRequest]+?: PolicyRequest[K] } = { ip: getClientIp(c) };
+  const req: { -readonly [K in keyof PolicyRequest]+?: PolicyRequest[K] } = { ip: getClientIp(c, c.get("config")) };
   if (userAgent !== undefined)
     req.userAgent = userAgent;
   if (correlationId !== undefined)

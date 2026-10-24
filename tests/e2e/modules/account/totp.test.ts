@@ -33,7 +33,7 @@ describe("TOTP enrolment + verify (live)", () => {
     expect(created.data.id.length).toBe(8);
     expect(created.data.secret.length).toBeGreaterThan(0);
     expect(created.data.uri).toMatch(/^otpauth:\/\//);
-    expect(created.data.qrCode).toMatch(/^data:image\/png;base64,/);
+    expect(created.data.qrCode).toMatch(/^data:image\/svg\+xml;base64,/);
 
     const deviceId = created.data.id;
     const secret = created.data.secret;

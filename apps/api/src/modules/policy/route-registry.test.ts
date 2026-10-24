@@ -1,8 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { customAlphabet } from "nanoid";
+import { nanoid } from "@/shared/lib/id";
 import { getRouteBindingsForResource, registerRouteBinding } from "./route-registry";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 describe("registerRouteBinding", () => {
   // The binding table is a process-wide singleton shared with every other

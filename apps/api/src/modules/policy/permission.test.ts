@@ -5,15 +5,13 @@ import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { and, eq } from "drizzle-orm";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { users } from "@/modules/account/users/schema";
+import { nanoid } from "@/shared/lib/id";
 import { loadNamespaces } from "./namespace-config";
 import { createPermissionCache, defineResource } from "./permission";
 import { NOOP_POLICY_LOGGER } from "./policy-logger";
 import { relationTuples } from "./schema";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 const testNamespaces = [
   { name: "user" },

@@ -16,18 +16,9 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Separator } from "@/shared/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
-import { formatDate } from "@/shared/lib/format";
+import { formatDate, getInitials } from "@/shared/lib/format";
 import { http } from "@/shared/lib/http";
 import { useAuthStore } from "@/shared/stores/auth";
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map(n => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
 
 export function SettingsDialog({
   open,
@@ -44,13 +35,13 @@ export function SettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("nav.settings")}</DialogTitle>
           <DialogDescription className="sr-only">{t("nav.settings")}</DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="profile">
+        <Tabs defaultValue="profile" className="min-w-0">
           <TabsList variant="line">
             <TabsTrigger value="profile">{t("settings:tabProfile")}</TabsTrigger>
             <TabsTrigger value="security">{t("settings:tabSecurity")}</TabsTrigger>

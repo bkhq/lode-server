@@ -4,7 +4,7 @@ import process from "node:process";
 import cac from "cac";
 import { consola } from "consola";
 import { BUILD_INFO } from "./build-info";
-import { ROOT_DIR } from "./root";
+import { resolveMigrationsFolder } from "./db/migrations-folder";
 
 const migrateLog = consola.withTag("migrate");
 
@@ -136,16 +136,4 @@ function listFsPendingMigrations(): string[] | null {
   catch {
     return null;
   }
-}
-
-/**
- * Locate the Drizzle migrations folder for both layouts: a packaged lode
- * artifact ships `drizzle/` at ROOT_DIR (next to index.js); the dev/source
- * tree keeps it under `apps/api/drizzle`.
- */
-function resolveMigrationsFolder(): string {
-  const packaged = resolve(ROOT_DIR, "drizzle");
-  if (existsSync(resolve(packaged, "meta/_journal.json")))
-    return packaged;
-  return resolve(ROOT_DIR, "apps/api/drizzle");
 }

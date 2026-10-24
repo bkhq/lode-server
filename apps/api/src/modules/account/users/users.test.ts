@@ -3,13 +3,11 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { addGroupMember, createGroup } from "@/modules/account/groups/groups.service";
 import { users } from "@/modules/account/users/schema";
+import { nanoid } from "@/shared/lib/id";
 import { getUserById, getUserGroups, listUsers, updateUser } from "./users.service";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 let db: AppDatabase;
 let dbPath: string;
@@ -72,6 +70,14 @@ describe("listUsers", () => {
 
     const byEmail = await listUsers(db, { q: "bob@", page: 1, limit: 20 });
     expect(byEmail.data.length).toBe(1);
+  });
+
+  test("matches % and _ in the search literally", async () => {
+    await seedUser({ name: "Ann", email: "ann_lee@test.com", username: "ann" });
+    await seedUser({ name: "Bea", email: "bea@test.com", username: "bea" });
+
+    const r = await listUsers(db, { q: "_", page: 1, limit: 20 });
+    expect(r.data.map(u => u.name)).toEqual(["Ann"]);
   });
 
   test("filters by role", async () => {

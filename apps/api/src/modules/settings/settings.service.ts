@@ -1,6 +1,7 @@
 import type { AppDatabase } from "@/db";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { settings } from "@/modules/settings/schema";
+import { likeEscaped } from "@/shared/lib/like";
 
 export interface SettingRow {
   readonly key: string;
@@ -26,7 +27,7 @@ export async function getSetting(db: AppDatabase, key: string): Promise<string |
 
 export async function getSettings(db: AppDatabase, prefix?: string): Promise<SettingRow[]> {
   const rows = prefix
-    ? await db.select().from(settings).where(sql`${settings.key} LIKE ${`${prefix}%`} ESCAPE '\\'`).all()
+    ? await db.select().from(settings).where(likeEscaped(settings.key, `${prefix}%`)).all()
     : await db.select().from(settings).all();
   return rows;
 }

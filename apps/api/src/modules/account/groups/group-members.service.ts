@@ -1,10 +1,8 @@
 import type { AppDatabase } from "@/db";
 import { and, eq, inArray, ne, or, sql } from "drizzle-orm";
-import { customAlphabet } from "nanoid";
 import { DIRECT_MEMBER, groupMembers } from "@/modules/account/groups/schema";
 import { isUniqueViolation } from "@/shared/lib/errors";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
+import { nanoid } from "@/shared/lib/id";
 
 // The drizzle transaction callback receives a tx handle that is API-compatible
 // with `db` for queries but not structurally `AppDatabase`. Helpers that must

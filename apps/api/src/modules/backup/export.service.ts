@@ -16,8 +16,10 @@
  */
 import type { AnyColumn } from "drizzle-orm";
 import type { AppDatabase } from "@/db";
+import type { EncryptionState } from "@/modules/encryption/state";
 import { createClient } from "@libsql/client";
 import { asc, getTableColumns, getTableName, gt } from "drizzle-orm";
+import { AppError } from "@/shared/lib/errors";
 import { getDataModules, resolveModulesWithDeps } from "./registry";
 
 export async function verifyDek(dbPath: string, dekHex: string): Promise<void> {
@@ -27,6 +29,38 @@ export async function verifyDek(dbPath: string, dekHex: string): Promise<void> {
   }
   finally {
     client.close();
+  }
+}
+
+/**
+ * Before a backup export or restore on an encrypted database, the caller
+ * proves they hold the DEK: they encrypt it to a one-time challenge key, and
+ * the decrypted key must open the database. Throws the API error for each
+ * way that fails; does nothing when encryption is disabled.
+ */
+export async function verifyDekChallenge(
+  enc: EncryptionState,
+  dbPath: string,
+  challengeId: string | undefined,
+  encryptedDek: string | undefined,
+): Promise<void> {
+  if (enc.isEncryptionDisabled())
+    return;
+  if (!challengeId || !encryptedDek)
+    throw new AppError("Encryption verification required", 400, "ENCRYPTION_REQUIRED");
+
+  const { eciesDecrypt, hexToBytes } = await import("@app/shared");
+
+  const ephPrivKey = enc.consumeChallenge(challengeId);
+  if (!ephPrivKey)
+    throw new AppError("Challenge expired or invalid. Refresh and try again.", 400, "INVALID_CHALLENGE");
+
+  try {
+    const dekBytes = await eciesDecrypt(ephPrivKey, hexToBytes(encryptedDek));
+    await verifyDek(dbPath, Array.from(dekBytes, b => b.toString(16).padStart(2, "0")).join(""));
+  }
+  catch {
+    throw new AppError("Invalid decryption key", 403, "INVALID_KEY");
   }
 }
 

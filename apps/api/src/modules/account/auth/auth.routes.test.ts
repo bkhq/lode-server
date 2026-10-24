@@ -9,12 +9,10 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { users } from "@/modules/account/users/schema";
+import { nanoid } from "@/shared/lib/id";
 import { __IdTokenErrorForTests, __readIdTokenSubForTests, __resetSingleUserLockoutForTests, authRoutes, isSingleUserLocked } from "./auth.routes";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 const stubLogger = {
   debug: () => {},

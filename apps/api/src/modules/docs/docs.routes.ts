@@ -1,38 +1,19 @@
 import type { MiddlewareHandler } from "hono";
 import type { Config } from "@/config";
 import type { AppEnv } from "@/shared/lib/types";
-import { Scalar } from "@scalar/hono-api-reference";
 import { Hono } from "hono";
 import { openAPIRouteHandler } from "hono-openapi";
 import { BUILD_INFO } from "@/build-info";
 import { TAGS } from "@/shared/lib/openapi";
 
-// Scalar serves an HTML shell that loads its bundle from a CDN and injects
-// inline init scripts. The app's strict global CSP (`script-src 'self'`,
-// see buildOuterApp) would block both, leaving a blank page. This relaxed
-// policy is scoped to the `/docs` route only.
-//
-// `secureHeaders` writes its CSP *after* `await next()`, so an inner handler
-// cannot override it. `docsCspRelax` therefore has to be registered on the
-// outer app *before* `secureHeaders` — that way its own post-`next()` body
-// runs last and wins. See app.ts.
-const DOCS_CSP = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-  "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-  "img-src 'self' data: https://cdn.jsdelivr.net",
-  "font-src 'self' data: https://cdn.jsdelivr.net",
-  "connect-src 'self'",
-  "worker-src 'self' blob:",
-].join("; ");
-
-export const docsCspRelax: MiddlewareHandler = async (c, next) => {
-  await next();
-  c.header("Content-Security-Policy", DOCS_CSP);
-};
+// The docs UI is an external viewer handed the spec's absolute URL, so the
+// app ships no UI of its own. Other viewers that take `?url=`:
+// `https://petstore.swagger.io/?url=` (Swagger UI) and
+// `https://redocly.github.io/redoc/?url=` (Redoc).
+export const DOCS_VIEWER = "https://client.scalar.com/?url=";
 
 /**
- * Mount the OpenAPI spec (`/openapi.json`) and the Scalar API reference
+ * Mount the OpenAPI spec (`/openapi.json`) and a redirect to the docs viewer
  * (`/docs`) onto the API app. Call this *after* every module's routes are
  * mounted on `api`, since `openAPIRouteHandler` walks `api`'s route table to
  * build the spec (routes without `describeRoute` are omitted).
@@ -46,15 +27,19 @@ export function mountDocs(api: Hono<AppEnv>, config: Config, extra: { raw?: Hono
   const base = `${config.BASE_PATH}/api`;
   let handler: MiddlewareHandler | undefined;
 
-  api.get("/openapi.json", (c, next) => {
+  api.get("/openapi.json", async (c, next) => {
     handler ??= specHandler(extra.raw === undefined ? api : combined(api, extra.raw), config, base);
-    return handler(c, next);
+    const res = await handler(c, next);
+    // The viewer fetches the spec from the user's browser, from its own
+    // origin. The spec is public, and the read carries no credentials.
+    res?.headers.set("Access-Control-Allow-Origin", "*");
+    return res;
   });
 
-  api.get(
-    "/docs",
-    Scalar({ url: `${base}/openapi.json`, pageTitle: `${config.APP_NAME} API` }),
-  );
+  api.get("/docs", (c) => {
+    const origin = new URL(config.APP_URL ?? c.req.url).origin;
+    return c.redirect(`${DOCS_VIEWER}${encodeURIComponent(`${origin}${base}/openapi.json`)}`);
+  });
 }
 
 function combined(api: Hono<AppEnv>, raw: Hono<AppEnv>): Hono<AppEnv> {

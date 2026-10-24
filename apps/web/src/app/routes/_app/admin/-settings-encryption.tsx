@@ -508,6 +508,71 @@ export function EncryptionSettingsTab() {
     </Dialog>
   );
 
+  const exportSectionUI = (
+    <div className="rounded-lg border p-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <Download className="size-4 text-muted-foreground" />
+        <h3 className="font-semibold">{t("settings:encryption.export.title")}</h3>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        {encryptionDisabled ? t("settings:encryption.export.noEncryption") : t("settings:encryption.export.description")}
+      </p>
+
+      {exportError && <ErrorBanner message={exportError} />}
+      {exportSuccess && (
+        <div className="rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-600">
+          {t("settings:encryption.export.success")}
+        </div>
+      )}
+
+      {encryptionDisabled
+        ? moduleSelectionUI
+        : (
+            <div className="space-y-3">
+              {moduleSelectionUI}
+
+              <div className="space-y-1">
+                <Label className="text-xs">{t("settings:encryption.export.password")}</Label>
+                <Input
+                  type="password"
+                  value={exportPassword}
+                  onChange={e => setExportPassword(e.target.value)}
+                  placeholder={t("settings:encryption.export.passwordPlaceholder")}
+                />
+              </div>
+            </div>
+          )}
+
+      <div className="flex justify-end">
+        <Button
+          size="sm"
+          disabled={(!encryptionDisabled && exportPassword.length === 0) || exporting || resolvedExportModules.size === 0}
+          onClick={() => setExportConfirmOpen(true)}
+        >
+          <Download className="mr-1 size-3" />
+          {exporting ? t("settings:encryption.export.exporting") : t("settings:encryption.export.button")}
+        </Button>
+      </div>
+    </div>
+  );
+
+  const exportConfirmDialog = (
+    <Dialog open={exportConfirmOpen} onOpenChange={setExportConfirmOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("settings:encryption.export.confirmTitle")}</DialogTitle>
+          <DialogDescription>{t("settings:encryption.export.confirmDescription")}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline">{t("common.cancel")}</Button>} />
+          <Button onClick={() => void handleExport()}>
+            {t("settings:encryption.export.confirmButton")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
   if (encryptionDisabled) {
     return (
       <div className="space-y-6 pt-4">
@@ -526,46 +591,11 @@ export function EncryptionSettingsTab() {
           </div>
         </div>
 
-        <div className="rounded-lg border p-4 space-y-4">
-          <div className="flex items-center gap-2">
-            <Download className="size-4 text-muted-foreground" />
-            <h3 className="font-semibold">{t("settings:encryption.export.title")}</h3>
-          </div>
-          <p className="text-sm text-muted-foreground">{t("settings:encryption.export.noEncryption")}</p>
-
-          {exportError && <ErrorBanner message={exportError} />}
-          {exportSuccess && (
-            <div className="rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-600">
-              {t("settings:encryption.export.success")}
-            </div>
-          )}
-
-          {moduleSelectionUI}
-
-          <div className="flex justify-end">
-            <Button size="sm" disabled={exporting || resolvedExportModules.size === 0} onClick={() => setExportConfirmOpen(true)}>
-              <Download className="mr-1 size-3" />
-              {exporting ? t("settings:encryption.export.exporting") : t("settings:encryption.export.button")}
-            </Button>
-          </div>
-        </div>
+        {exportSectionUI}
 
         {importSectionUI}
 
-        <Dialog open={exportConfirmOpen} onOpenChange={setExportConfirmOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t("settings:encryption.export.confirmTitle")}</DialogTitle>
-              <DialogDescription>{t("settings:encryption.export.confirmDescription")}</DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <DialogClose render={<Button variant="outline">{t("common.cancel")}</Button>} />
-              <Button onClick={() => void handleExport()}>
-                {t("settings:encryption.export.confirmButton")}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {exportConfirmDialog}
 
         {importConfirmDialog}
       </div>
@@ -644,60 +674,13 @@ export function EncryptionSettingsTab() {
       </div>
 
       {/* Export section */}
-      <div className="rounded-lg border p-4 space-y-4">
-        <div className="flex items-center gap-2">
-          <Download className="size-4 text-muted-foreground" />
-          <h3 className="font-semibold">{t("settings:encryption.export.title")}</h3>
-        </div>
-        <p className="text-sm text-muted-foreground">{t("settings:encryption.export.description")}</p>
-
-        {exportError && <ErrorBanner message={exportError} />}
-        {exportSuccess && (
-          <div className="rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-600">
-            {t("settings:encryption.export.success")}
-          </div>
-        )}
-
-        <div className="space-y-3">
-          {moduleSelectionUI}
-
-          <div className="space-y-1">
-            <Label className="text-xs">{t("settings:encryption.export.password")}</Label>
-            <Input
-              type="password"
-              value={exportPassword}
-              onChange={e => setExportPassword(e.target.value)}
-              placeholder={t("settings:encryption.export.passwordPlaceholder")}
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end">
-          <Button size="sm" disabled={exportPassword.length === 0 || exporting || resolvedExportModules.size === 0} onClick={() => setExportConfirmOpen(true)}>
-            <Download className="mr-1 size-3" />
-            {exporting ? t("settings:encryption.export.exporting") : t("settings:encryption.export.button")}
-          </Button>
-        </div>
-      </div>
+      {exportSectionUI}
 
       {/* Import section */}
       {importSectionUI}
 
       {/* Export confirmation dialog */}
-      <Dialog open={exportConfirmOpen} onOpenChange={setExportConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("settings:encryption.export.confirmTitle")}</DialogTitle>
-            <DialogDescription>{t("settings:encryption.export.confirmDescription")}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <DialogClose render={<Button variant="outline">{t("common.cancel")}</Button>} />
-            <Button onClick={() => void handleExport()}>
-              {t("settings:encryption.export.confirmButton")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {exportConfirmDialog}
 
       {/* Import confirmation dialog */}
       {importConfirmDialog}

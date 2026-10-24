@@ -247,6 +247,6 @@ function DynamicField({
   );
 }
 
-function FieldHint({ children }: { readonly children: ReactNode }) {
+export function FieldHint({ children }: { readonly children: ReactNode }) {
   return <p className="text-xs text-muted-foreground">{children}</p>;
 }

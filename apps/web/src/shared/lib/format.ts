@@ -31,3 +31,13 @@ export function formatDateTime(value: Date | string | number): string {
     minute: "2-digit",
   }).format(d);
 }
+
+/** Up to two initials for an avatar fallback. */
+export function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map(n => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}

@@ -2,8 +2,7 @@ import type { AppEnv } from "@/shared/lib/types";
 import { Hono } from "hono";
 import { z } from "zod";
 import { getUserById } from "@/modules/account/users/users.service";
-import { audit } from "@/modules/audit/audit.service";
-import { getClientIp } from "@/shared/lib/client-ip";
+import { audit, auditMeta } from "@/modules/audit/audit.service";
 import { AppError, NotFoundError } from "@/shared/lib/errors";
 import { describeRoute, errors, jsonCreated, jsonOk, SECURITY, TAGS, validator } from "@/shared/lib/openapi";
 import { adminRequired, authRequired } from "@/shared/middleware/auth";
@@ -128,8 +127,7 @@ export function groupRoutes() {
         resourceType: "group",
         resourceId: group.id,
         resourceName: group.name,
-        ip: getClientIp(c),
-        userAgent: c.req.header("user-agent") ?? "unknown",
+        ...auditMeta(c),
         result: "success",
       });
       return c.json({ success: true, data: group }, 201);
@@ -207,8 +205,7 @@ export function groupRoutes() {
         resourceType: "group",
         resourceId: id,
         resourceName: existing.name,
-        ip: getClientIp(c),
-        userAgent: c.req.header("user-agent") ?? "unknown",
+        ...auditMeta(c),
         result: "success",
       });
       return c.json({ success: true, data: updated });
@@ -247,8 +244,7 @@ export function groupRoutes() {
         resourceType: "group",
         resourceId: id,
         resourceName: existing.name,
-        ip: getClientIp(c),
-        userAgent: c.req.header("user-agent") ?? "unknown",
+        ...auditMeta(c),
         result: "success",
       });
       return c.json({ success: true, data: null });
@@ -328,8 +324,7 @@ export function groupRoutes() {
         resourceId: id,
         resourceName: group.name,
         detail: { userId: body.userId, userName: user.name },
-        ip: getClientIp(c),
-        userAgent: c.req.header("user-agent") ?? "unknown",
+        ...auditMeta(c),
         result: "success",
       });
       return c.json({ success: true, data: null }, 201);
@@ -374,8 +369,7 @@ export function groupRoutes() {
         resourceId: id,
         resourceName: group.name,
         detail: { userId },
-        ip: getClientIp(c),
-        userAgent: c.req.header("user-agent") ?? "unknown",
+        ...auditMeta(c),
         result: "success",
       });
       return c.json({ success: true, data: null });

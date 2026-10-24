@@ -3,14 +3,12 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { users } from "@/modules/account/users/schema";
 import { files } from "@/modules/file/schema";
 import { AppError } from "@/shared/lib/errors";
+import { nanoid } from "@/shared/lib/id";
 import { __resetUploadsCacheForTests, assertWithinTotalQuota, getUploadsUsedBytes, isWithinFileSize } from "./upload-limits";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 const DEFAULT_MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 

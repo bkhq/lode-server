@@ -3,10 +3,10 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { customAlphabet } from "nanoid";
 import { createDb } from "@/db";
 import { DIRECT_MEMBER, groupMembers, groups } from "@/modules/account/groups/schema";
 import { DIRECT_SUBJECT, relationTuples } from "@/modules/policy/schema";
+import { nanoid } from "@/shared/lib/id";
 import { loadNamespaces } from "./namespace-config";
 import { check, expand, listUserResources } from "./zanzibar.engine";
 
@@ -51,8 +51,6 @@ const testNamespaces = [
     },
   },
 ] as const;
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 async function ensureGroup(db: AppDatabase, id: string) {
   // `group_members.group_id` is a FK to `groups.id`; tests insert into the

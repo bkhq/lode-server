@@ -3,11 +3,9 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { customAlphabet } from "nanoid";
+import { nanoid } from "@/shared/lib/id";
 import { ConfigError } from "./errors";
 import { oauthInPlay, readPasswordHashFile, resolveSingleUserConfig } from "./single-user";
-
-const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 let workdir: string;
 

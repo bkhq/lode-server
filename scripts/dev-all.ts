@@ -7,6 +7,7 @@ import type { Subprocess } from "bun";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
+import { nslGet } from "./lib/nsl";
 
 const ROOT = resolve(import.meta.dir, "..");
 const APP_NAME = process.env.APP_NAME ?? "lode-server";
@@ -103,11 +104,6 @@ spawn(["bun", "scripts/dev-dex.ts"], "dex");
 
 // Always poll dex through the local nsl URL — the issuer may be an external
 // HTTPS URL gated by a firewall, and dev shouldn't depend on external reach.
-function nslGet(name: string): string | null {
-  const result = Bun.spawnSync(["nsl", "get", name]);
-  const url = result.stdout.toString().trim();
-  return result.exitCode === 0 && url.startsWith("http") ? url : null;
-}
 const probeUrl = nslGet(`dex-${APP_NAME}`);
 if (!probeUrl) {
   console.error("[dev-all] nsl could not resolve local dex URL; aborting");

@@ -33,6 +33,7 @@ import {
 } from "@/shared/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/shared/components/ui/tooltip";
 import { APP_DISPLAY_NAME } from "@/shared/lib/branding";
+import { getInitials } from "@/shared/lib/format";
 import { useAuthStore } from "@/shared/stores/auth";
 
 const LANGUAGES = [
@@ -54,15 +55,6 @@ function isNavActive(
 ): boolean {
   const prefix = item.matchPrefix ?? item.path;
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map(n => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
 }
 
 // ============================================================

@@ -3,12 +3,11 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { deleteUserSessions } from "@/modules/account/auth/auth.service";
 import { users } from "@/modules/account/users/schema";
-import { audit } from "@/modules/audit/audit.service";
-import { getClientIp } from "@/shared/lib/client-ip";
+import { audit, auditMeta } from "@/modules/audit/audit.service";
 import { AppError } from "@/shared/lib/errors";
 import { describeRoute, errors, resolver, SECURITY, TAGS } from "@/shared/lib/openapi";
 import { adminRequired, authRequired } from "@/shared/middleware/auth";
-import { verifyDek } from "./export.service";
+import { verifyDekChallenge } from "./export.service";
 import { importJsonBackup, validateBackupData, validateFileSize } from "./restore.service";
 
 const USER_TABLES = ["users", "groups", "user_preferences"] as const;
@@ -135,39 +134,12 @@ export function backupImportRoutes() {
         ? includeUsersRaw === "true" || includeUsersRaw === "1"
         : false;
 
-      const enc = c.get("encryption");
-      if (!enc.isEncryptionDisabled()) {
-        const challengeId = formData.get("challengeId");
-        const encryptedDek = formData.get("encryptedDek");
-
-        if (!challengeId || !encryptedDek) {
-          throw new AppError("Encryption verification required", 400, "ENCRYPTION_REQUIRED");
-        }
-
-        const { eciesDecrypt, hexToBytes } = await import("@app/shared");
-
-        const ephPrivKey = enc.consumeChallenge(String(challengeId));
-        if (!ephPrivKey) {
-          throw new AppError("Challenge expired or invalid. Refresh and try again.", 400, "INVALID_CHALLENGE");
-        }
-
-        const encryptedBytes = hexToBytes(String(encryptedDek));
-        let dekHex: string;
-        try {
-          const dekBytes = await eciesDecrypt(ephPrivKey, encryptedBytes);
-          dekHex = Array.from(dekBytes, b => b.toString(16).padStart(2, "0")).join("");
-        }
-        catch {
-          throw new AppError("Invalid decryption key", 403, "INVALID_KEY");
-        }
-
-        try {
-          await verifyDek(config.DB_PATH, dekHex);
-        }
-        catch {
-          throw new AppError("Invalid decryption key", 403, "INVALID_KEY");
-        }
-      }
+      await verifyDekChallenge(
+        c.get("encryption"),
+        config.DB_PATH,
+        formData.get("challengeId")?.toString(),
+        formData.get("encryptedDek")?.toString(),
+      );
 
       const text = await file.text();
       let parsed: unknown;
@@ -242,8 +214,7 @@ export function backupImportRoutes() {
             resourceType: "user",
             resourceId: row.id,
             resourceName: row.id,
-            ip: getClientIp(c),
-            userAgent: c.req.header("user-agent") ?? "unknown",
+            ...auditMeta(c),
             result: "success",
           });
         }
@@ -262,8 +233,7 @@ export function backupImportRoutes() {
           rowsImported: result.rowsImported,
           includeUsers,
         },
-        ip: getClientIp(c),
-        userAgent: c.req.header("user-agent") ?? "unknown",
+        ...auditMeta(c),
         result: "success",
       });
 
