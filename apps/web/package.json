@@ -1,7 +1,7 @@
 {
   "name": "@app/web",
   "type": "module",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "React 19 SPA with TanStack Router, Tailwind v4 and dual EN/ZH i18n.",
   "homepage": "https://github.com/zzci",
