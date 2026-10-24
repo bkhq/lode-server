@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@app/tsconfig": "workspace:*",
+    "@typescript/native": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
