@@ -504,6 +504,16 @@ each upstream tag; your fork's `Unreleased` block sits at the top.
   `dompurify`, `ip-address`, `body-parser`. Lockfile only; no direct
   dependency ranges changed.
 
+- Dependency overrides trimmed from ten to two. `qs`, `ip-address`,
+  `body-parser`, `fast-uri` and `@modelcontextprotocol/sdk` are no longer in
+  the tree, and `dompurify`, `source-map-js` and `hono` resolve to fixed
+  releases on their own. `esbuild` moved from ^0.25 to ^0.28, the line
+  `wrangler`, `tsx` and `vite` ask for (the old override held them back);
+  it still lifts `@esbuild-kit/core-utils`' 0.18 and `drizzle-kit`'s 0.25.
+  `undici` moved from ^7.30.1 to ^8, overriding `miniflare`'s pinned 7.29.1.
+  Verified with `drizzle-kit generate`, `workers:build` and the Workers smoke
+  test.
+
 ## v0.1.0 — 2026-05-14
 
 First tagged template release. Subsequent forks should anchor their
