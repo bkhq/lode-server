@@ -420,15 +420,17 @@ describe("revocation list", () => {
 
   test("a list only ever grows, and only forward", async () => {
     const { alice, root } = await seed();
+    // One clock reading: a second ticking over between requests must not turn "the same issued_at" into a newer one.
+    const now = NOW();
     const [a, b] = ["0123456789abcdef", "fedcba9876543210"];
-    expect((await alice.call("PUT", REVOCATIONS, await revocations(root, NOW() - 100, [a]))).status).toBe(200);
+    expect((await alice.call("PUT", REVOCATIONS, await revocations(root, now - 100, [a]))).status).toBe(200);
 
-    expect(await refusal(await alice.call("PUT", REVOCATIONS, await revocations(root, NOW() - 100, [a, b])))).toBe("409 REVOCATIONS_OUTDATED");
-    expect(await refusal(await alice.call("PUT", REVOCATIONS, await revocations(root, NOW() - 50, [b])))).toBe("400 REVOCATIONS_SHRINK");
-    expect(await refusal(await alice.call("PUT", REVOCATIONS, await revocations(root, NOW() + 7200, [a, b])))).toBe("400 REVOCATIONS_FUTURE");
-    const signed = await revocations(root, NOW() - 50, [a, b]);
+    expect(await refusal(await alice.call("PUT", REVOCATIONS, await revocations(root, now - 100, [a, b])))).toBe("409 REVOCATIONS_OUTDATED");
+    expect(await refusal(await alice.call("PUT", REVOCATIONS, await revocations(root, now - 50, [b])))).toBe("400 REVOCATIONS_SHRINK");
+    expect(await refusal(await alice.call("PUT", REVOCATIONS, await revocations(root, now + 7200, [a, b])))).toBe("400 REVOCATIONS_FUTURE");
+    const signed = await revocations(root, now - 50, [a, b]);
     expect(await refusal(await alice.call("PUT", REVOCATIONS, { ...signed, issued_at: signed.issued_at + 1 }))).toBe("400 INVALID_SIGNATURE");
-    expect(await refusal(await alice.call("PUT", REVOCATIONS, await revocations(await keygen(), NOW() - 50, [a, b])))).toBe("400 INVALID_SIGNATURE");
+    expect(await refusal(await alice.call("PUT", REVOCATIONS, await revocations(await keygen(), now - 50, [a, b])))).toBe("400 INVALID_SIGNATURE");
     expect((await alice.call("PUT", REVOCATIONS, {
       ...signed,
       revoked: ["not-a-key-id"],
