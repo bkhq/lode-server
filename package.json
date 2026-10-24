@@ -1,7 +1,7 @@
 {
   "name": "@app/monorepo",
   "type": "module",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": true,
   "description": "Bun monorepo template for OAuth-backed internal workspaces.",
   "homepage": "https://github.com/zzci",
