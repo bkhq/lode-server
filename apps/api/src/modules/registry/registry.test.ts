@@ -29,21 +29,7 @@ import { packageAccess, registryRoutes } from ".";
 import { deriveKeyId, parsePublicKey } from "./key.service";
 import { registryBackupContribution } from "./registry.backup";
 import { createPackage, ensureNamespace, generateNamespaceSlug, getEffectiveQuota } from "./registry.service";
-import {
-  registryAssets,
-  registryChannels,
-  registryDelegations,
-  registryKeys,
-  registryManifestSignatures,
-  registryNamespaces,
-  registryPackages,
-  registryQuotas,
-  registryRetiredVersions,
-  registryRevocationLists,
-  registryTokenGrants,
-  registryUploads,
-  registryVersions,
-} from "./schema";
+import { registryAssets, registryChannels, registryCommits, registryDelegations, registryKeys, registryManifestSignatures, registryNamespaces, registryPackages, registryQuotas, registryRetiredVersions, registryRevocationLists, registryTokenGrants, registryUploads, registryVersions } from "./schema";
 import "@/modules/account";
 
 const noop = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
@@ -162,6 +148,7 @@ describe("registration", () => {
       registryAssets,
       registryChannels,
       registryManifestSignatures,
+      registryCommits,
       registryDelegations,
       registryRevocationLists,
       registryUploads,

@@ -94,6 +94,8 @@ describe("discoverCreationRoutes", () => {
 
     const resources = [...new Set(discoverCreationRoutes(app).map(f => f.resource))].sort();
     expect(resources).toEqual([
+      // Registry: manifest commits, throttled like the versions they publish.
+      "commit",
       "group",
       "job",
       // Registry: signing keys, packages.

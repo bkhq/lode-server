@@ -95,7 +95,8 @@ copies it out of the `bkhq/lode` image.
 Signing assets proves what each file is. Signing the **manifest** proves
 which versions and channel pointers you published, and — with an expiry —
 that the list is recent. Operators ask for it with
-`[trust].require_manifest = "signed"` or `"fresh"`.
+`[trust].require_manifest = "signed"` (lode 0.3.0 and older also have
+`"fresh"`, which requires the expiry too).
 It is optional: without it everything above works as before.
 
 The registry generates the manifest and cannot sign it for you, so you sign
@@ -129,6 +130,10 @@ Two things to keep up once you start:
 - **Sign again before the expiry.** Run the script on a schedule well inside
   `--expires-in` (weekly for `30d`). When an expiry lapses the registry
   drops the signature and serves the manifest unsigned.
+
+With `--key`, `lode-cli publish` signs the manifest itself as a commit (see
+[Manifest commits](#manifest-commits) below), and this script no longer
+applies.
 
 The package's Install tab shows the state: signed and until when, or why it
 is not. Look at what the script prints before trusting a scheduled run with
@@ -183,6 +188,28 @@ register the sub-key as a key of the package — the registry refuses (409
 
 The Install tab shows the delegation and the revocation list; its
 `lode.toml` pins the root key and subscribes to the list.
+
+### Manifest commits
+
+With a key, `lode-cli publish` builds the whole manifest itself: it reads the
+current one from the registry, adds the release, signs it and uploads it as a
+**commit**. Each commit names its parent and counts up a `generation`; the
+registry serves the newest. The manifest is signed from the moment it is
+served, with nothing to renew, and lode refuses a manifest older than the
+newest commit it has seen, so nobody can roll hosts back by serving an old
+one.
+
+When two releases race, the registry refuses the later commit and `lode-cli`
+builds again on the new head. Once the first commit is stored, the package
+takes changes only as commits: move channels and drop versions with
+`lode-cli channel` and `lode-cli yank` (section 7). The Commits tab lists the
+history: generation, signing time, channels and the versions each commit
+added and dropped.
+
+A commit has no expiry: hosts on lode 0.3.0 or older that set
+`require_manifest = "fresh"` refuse it and need `"signed"`. To sign the manifest with a new key (after rotating a delegated
+sub-key, say), commit with it without changing anything:
+`lode-cli channel --channel stable --version <the version it points at>`.
 
 ## 4. Tokens and grants
 
@@ -240,6 +267,7 @@ LODE_REGISTRY_TOKEN=pat_... lode-cli publish \
 | `--notes` | Release notes, stored when the draft is created. |
 | `--key <file>` / `--key-env <VAR>` | The ed25519 signing key, as `lode-cli sign` takes it. With one, every asset is signed and the public key is registered for the package on the first run. Without one the assets are uploaded unsigned. |
 | `--run` / `--exec` | Launch-command overrides published with every asset of the release and bound into each signature. |
+| `--asset-runtime` | The runtime the release runs on, with `--asset-runtime-version`, `--asset-runtime-version-check`, `--asset-runtime-download` and `--asset-runtime-sha256`. lode installs it before it starts the release. Signed into each asset (`lode.artifact.v3`), so it needs a lode that knows v3. |
 | `--allow-insecure` | Permit a plain-`http` registry that is not on loopback. |
 | `<file>...` | The assets. Each is stored under its file name — the name an operator selects with `[update].asset`. |
 
@@ -256,6 +284,9 @@ Behaviour worth knowing:
   command continues into it, and an asset uploaded again replaces the one of
   the same name. The notes of an existing draft are kept. A version that is
   already published is immutable: releasing it again fails.
+- **With a key the release is a commit.** After the uploads it commits the
+  new version on the channel and prints `publish: committed <id> (generation
+  N)`. Re-running after the commit answers with the stored one.
 - A refusal is reported on stderr with the HTTP status and the registry's
   error code, and the exit status is non-zero.
 
@@ -310,6 +341,14 @@ curl -fsS -X PUT -H "Authorization: Bearer $LODE_REGISTRY_TOKEN" \
 
 The target must be published (409 `VERSION_NOT_PUBLISHED`).
 
+On a package that uses [commits](#manifest-commits) the registry refuses
+this (409 `PACKAGE_USES_COMMITS`); move the channel with a signed commit:
+
+```bash
+LODE_REGISTRY_TOKEN=pat_... lode-cli channel --package <namespace>/<slug> \
+  --channel stable --version 1.4.1 --key-env LODE_SIGNING_KEY
+```
+
 **Rolling back a pointer does not downgrade running hosts.** lode refuses to
 follow `latest` to a version older than the one it has already installed
 (its downgrade floor), so only fresh installs get the older version. To move
@@ -320,6 +359,13 @@ stop downloading. `POST …/versions/:ver/yank` needs an `admin` grant or a
 session, and is refused while a channel points at the version (409
 `VERSION_IN_CHANNEL`) — move the pointer first. `POST …/versions/:ver/restore`
 puts it back.
+
+On a package that uses commits, `lode-cli yank --package <namespace>/<slug>
+--version 1.4.0 --key-env LODE_SIGNING_KEY` drops the version from the
+manifest; hosts still running it keep their files and its assets stay
+downloadable. A channel must not point at it. The yank route still works there
+as an **emergency stop**: it stops the version's downloads at once, whatever
+points at it, without a commit, and restore lifts the stop.
 
 Deleting a published or yanked version needs a session (owner or
 administrator) and no channel pointing at it.

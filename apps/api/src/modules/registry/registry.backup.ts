@@ -2,6 +2,7 @@ import type { BackupContribution } from "@/modules/backup/registry";
 import {
   registryAssets,
   registryChannels,
+  registryCommits,
   registryDelegations,
   registryKeys,
   registryManifestSignatures,
@@ -37,6 +38,7 @@ export const registryBackupContribution: BackupContribution = {
     registryAssets,
     registryChannels,
     registryManifestSignatures,
+    registryCommits,
     registryDelegations,
     registryRevocationLists,
     registryUploads,

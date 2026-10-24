@@ -4,7 +4,7 @@ import { z } from "zod";
 import { AppError, ValidationError } from "@/shared/lib/errors";
 import { describeRoute, errors, jsonCreated, jsonOk, SECURITY, TAGS, validator } from "@/shared/lib/openapi";
 import { requirePackageAccess, requireUploadAccess } from "./access";
-import { assetNameSchema, auditRelease, overrideSchema, RE_CONTENT_LENGTH, sha256Schema, versionParamSchema } from "./release.routes";
+import { assetNameSchema, auditRelease, overrideSchema, RE_CONTENT_LENGTH, runtimeFieldsSchema, runtimeOf, sha256Schema, versionParamSchema } from "./release.routes";
 import { abortUpload, completeUpload, MULTIPART_PART_SIZE, putUploadPart, startUpload } from "./upload.service";
 import { assetSchema, assetView } from "./wire";
 
@@ -20,7 +20,7 @@ const startUploadSchema = z.object({
   sig: z.string().max(512).optional(),
   run: overrideSchema("run"),
   exec: overrideSchema("exec"),
-});
+}).and(runtimeFieldsSchema);
 
 // The plan's field names, camelCase as written there.
 const startedUploadSchema = z.object({
@@ -48,7 +48,7 @@ export function registryUploadRoutes() {
       summary: "Start a multipart upload",
       description: [
         `Opens an upload of the asset \`asset\` into a draft version, for bodies above the single-request limit and up to the asset size limit (at most 500 MiB). The answer names the upload and how to split the body: every part is \`partSize\` bytes (${MULTIPART_PART_SIZE}, 64 MiB, fixed by the server) except the last, which is the remainder; there are \`partCount\` parts.`,
-        "`asset`, `sha256`, `sig`, `run` and `exec` mean what they do on the single-request upload and are checked the same way, here, before any byte is accepted: `sha256` is the lowercase hex digest of the whole asset, and `sig` must verify under one of the package owner's active signing keys (400 `INVALID_SIGNATURE`; a package with `require_signature` refuses a start without it).",
+        "`asset`, `sha256`, `sig`, `run`, `exec` and the `runtime` fields mean what they do on the single-request upload and are checked the same way, here, before any byte is accepted: `sha256` is the lowercase hex digest of the whole asset, and `sig` must verify under one of the package owner's active signing keys (400 `INVALID_SIGNATURE`; a package with `require_signature` refuses a start without it).",
         "`size` is checked against the asset size limit (413) and the owner's storage quota (409), and is held against that quota until the upload is completed, aborted or expires. Starting an upload for an asset name that already has one in flight gives the earlier one up. An upload that is not completed in time is aborted by the server. Needs `write` access.",
       ].join("\n\n"),
       security: SECURITY.session,
@@ -73,6 +73,7 @@ export function registryUploadRoutes() {
         sig: body.sig?.trim() || null,
         run: body.run || null,
         exec: body.exec || null,
+        runtime: runtimeOf(body),
       });
       await auditRelease(c, access, "registry.upload.started", { type: "registry_upload", id: upload.id, name: `@${ver}/${upload.assetName}` }, {
         upload_id: upload.id,

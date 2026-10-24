@@ -2,7 +2,7 @@
 # Sign the manifest of one package on a lode registry: download the manifest
 # the registry generates, sign it with `lode-cli manifest-sign`, and send the
 # signature back. The registry then serves the manifest signed, which is what
-# a host with `[trust].require_manifest = "signed"` or `"fresh"` needs.
+# a host with `[trust].require_manifest = "signed"` needs.
 #
 # Run it after every release step (publish, channel move, yank, restore) —
 # each one changes the manifest and drops the signature — and on a schedule

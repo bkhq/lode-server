@@ -96,6 +96,42 @@ function quote(value: string): string {
   }).join("");
 }
 
+/** An asset's runtime, as lode's `RuntimeSpec`. */
+export interface RuntimeSpec {
+  runtime: string;
+  version?: string | undefined;
+  version_check?: string | undefined;
+  download?: string | undefined;
+  sha256?: string | undefined;
+}
+
+const RE_RUNTIME_NAME = /^[\w-][\w.-]*$/;
+const RE_LOWER_SHA256 = /^[0-9a-f]{64}$/;
+
+/**
+ * Why an asset's runtime is not acceptable, or undefined when it is. Mirrors
+ * lode's `validate_runtime_spec`: a plain binary name, no blank or control
+ * characters in the other fields, an http(s) `download` with its `sha256`.
+ */
+export function runtimeSpecError(rt: RuntimeSpec): string | undefined {
+  if (!RE_RUNTIME_NAME.test(rt.runtime))
+    return `asset runtime: ${quote(rt.runtime)} is not a plain binary name`;
+  for (const field of ["version", "version_check", "download"] as const) {
+    const value = rt[field];
+    if (value !== undefined && (codePoints(value).every(isWhitespace) || codePoints(value).some(isControl)))
+      return `asset runtime: ${field} ${quote(value)} is blank or has a control character`;
+  }
+  if (rt.sha256 !== undefined && !RE_LOWER_SHA256.test(rt.sha256))
+    return `asset runtime: sha256 ${quote(rt.sha256)} is not 64 lowercase hex characters`;
+  if (rt.download !== undefined) {
+    if (!rt.download.startsWith("https://") && !rt.download.startsWith("http://"))
+      return `asset runtime: download ${quote(rt.download)} is not an http(s) URL`;
+    if (rt.sha256 === undefined)
+      return "asset runtime: a download needs its sha256";
+  }
+  return undefined;
+}
+
 /**
  * Why an asset's `run` / `exec` launch override is not acceptable, or
  * undefined when it is. Mirrors lode's `validate_command_override`: when

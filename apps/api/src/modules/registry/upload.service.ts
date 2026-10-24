@@ -9,7 +9,7 @@ import { nanoid } from "@/shared/lib/id";
 import { BlobMultipartError, BlobPutError, getActiveBlobStore, sha256OfBlob } from "./blob";
 import { signingKeys } from "./delegation.service";
 import { abortUploadsInStore, assetBlobKey } from "./registry.service";
-import { admitUpload, claim, notDraft, requireDraft } from "./release.service";
+import { admitUpload, claim, notDraft, requireDraft, storedRuntime } from "./release.service";
 import { registryAssets, registryUploads, registryVersions } from "./schema";
 
 type UploadConfig = BlobStoreConfig & Parameters<typeof getEffectiveQuota>[2] & { REGISTRY_UPLOAD_TTL_SECONDS: number };
@@ -99,6 +99,7 @@ export async function startUpload(db: AppDatabase, config: UploadConfig, target:
         alg: signed?.alg ?? null,
         run: input.run,
         exec: input.exec,
+        runtime: storedRuntime(input.runtime),
         r2UploadId,
         expiresAt: new Date(Date.now() + config.REGISTRY_UPLOAD_TTL_SECONDS * 1000).toISOString(),
       }).returning().get();
@@ -247,6 +248,7 @@ export async function completeUpload(db: AppDatabase, config: BlobStoreConfig, t
           alg: upload.alg,
           run: upload.run,
           exec: upload.exec,
+          runtime: upload.runtime,
           blobKey: key,
         }).returning().get();
         await tx.delete(registryUploads).where(thisUpload).run();

@@ -54,6 +54,7 @@ registerTokenScope({
     { method: "POST", path: "/registry/uploads/:uploadId/complete" },
     { method: "DELETE", path: "/registry/uploads/:uploadId" },
     { method: "POST", path: "/registry/packages/:ns/:pkg/versions/:ver/publish" },
+    { method: "POST", path: "/registry/packages/:ns/:pkg/commits" },
     { method: "PUT", path: "/registry/packages/:ns/:pkg/channels/:channel" },
     { method: "DELETE", path: "/registry/packages/:ns/:pkg/versions/:ver" },
     // A release pipeline registers the public half of its signing key itself.

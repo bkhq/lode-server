@@ -24,7 +24,8 @@
     "install": "安装",
     "settings": "设置",
     "keys": "签名密钥",
-    "observe": "观测"
+    "observe": "观测",
+    "commits": "提交"
   },
   "status": {
     "draft": "草稿",
@@ -197,5 +198,20 @@
       "event": "事件",
       "detail": "详情"
     }
+  },
+  "commits": {
+    "description": "每个提交都是发布者签名的完整清单。Feed 提供最新的提交；lode-cli publish --key、yank 和 channel 会新增提交。",
+    "empty": "暂无提交。Feed 提供注册中心生成的清单。",
+    "head": "当前",
+    "col": {
+      "generation": "代数",
+      "id": "提交",
+      "created": "签名时间",
+      "channels": "通道",
+      "changes": "变更",
+      "key": "密钥"
+    },
+    "copyId": "复制提交 ID",
+    "noChanges": "无版本变更"
   }
 }

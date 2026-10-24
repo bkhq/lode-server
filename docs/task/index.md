@@ -43,3 +43,4 @@ Each task is a single line linking to its detail file. All detailed information 
 - [x] [**20261012-1852-lode-mini-pin Pin lode to v0.0.3-mini and document the publish workflow**](20261012-1852-lode-mini-pin.md) `P2`
 - [x] [**20261016-0224-delegated-signing Support lode 0.1.0 delegated signing and revocation lists**](20261016-0224-delegated-signing.md) `P1`
 - [x] [**20261022-1915-otlp-observability Accept lode status reports over OTLP/HTTP and show them per package**](20261022-1915-otlp-observability.md) `P2`
+- [x] [**20261024-1618-client-signed-manifests Store publisher-signed manifests as commits**](20261024-1618-client-signed-manifests.md) `P2`

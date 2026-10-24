@@ -10,6 +10,7 @@ import {
   getPackage,
   getQuota,
   getRevocations,
+  listCommits,
   listEvents,
   listInstances,
   listKeys,
@@ -30,6 +31,7 @@ export const registryKeys = {
   package: (ns: string, pkg: string) => [...registryKeys.packages(), ns, pkg] as const,
   versions: (ns: string, pkg: string) => [...registryKeys.package(ns, pkg), "versions"] as const,
   keys: (ns: string, pkg: string) => [...registryKeys.package(ns, pkg), "keys"] as const,
+  commits: (ns: string, pkg: string) => [...registryKeys.package(ns, pkg), "commits"] as const,
   manifestSignature: (ns: string, pkg: string) => [...registryKeys.package(ns, pkg), "manifest-signature"] as const,
   delegation: (ns: string, pkg: string) => [...registryKeys.package(ns, pkg), "delegation"] as const,
   revocations: (ns: string, pkg: string) => [...registryKeys.package(ns, pkg), "revocations"] as const,
@@ -57,6 +59,10 @@ export function eventsQuery(ns: string, pkg: string) {
 
 export function keysQuery(ns: string, pkg: string) {
   return queryOptions({ queryKey: registryKeys.keys(ns, pkg), queryFn: () => listKeys(ns, pkg) });
+}
+
+export function commitsQuery(ns: string, pkg: string) {
+  return queryOptions({ queryKey: registryKeys.commits(ns, pkg), queryFn: () => listCommits(ns, pkg) });
 }
 
 export function manifestSignatureQuery(ns: string, pkg: string) {

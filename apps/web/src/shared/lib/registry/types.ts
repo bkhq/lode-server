@@ -72,6 +72,21 @@ export interface SigningKey {
   readonly created_at: string;
 }
 
+// A publisher-signed manifest the feed serves; `head` marks the current one.
+export interface ManifestCommit {
+  readonly id: string;
+  readonly parent: string | null;
+  readonly generation: number;
+  readonly created: string;
+  readonly key_id: string;
+  readonly channels: Record<string, string>;
+  readonly versions: string[];
+  readonly added: string[];
+  readonly dropped: string[];
+  readonly uploaded_at: string;
+  readonly head: boolean;
+}
+
 // A host that reported to `/r/otlp` for the package, with its latest snapshot.
 export interface Instance {
   readonly instance_id: string;

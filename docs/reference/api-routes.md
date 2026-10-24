@@ -5,7 +5,7 @@
 > [`api.md`](api.md); this file is the flat per-route index that CI
 > verifies is up to date.
 
-> 140 routes total.
+> 143 routes total.
 
 | Method | Path |
 |---|---|
@@ -107,6 +107,9 @@
 | GET | `/api/registry/packages/:ns/:pkg` |
 | PATCH | `/api/registry/packages/:ns/:pkg` |
 | PUT | `/api/registry/packages/:ns/:pkg/channels/:channel` |
+| GET | `/api/registry/packages/:ns/:pkg/commits` |
+| POST | `/api/registry/packages/:ns/:pkg/commits` |
+| GET | `/api/registry/packages/:ns/:pkg/commits/head` |
 | DELETE | `/api/registry/packages/:ns/:pkg/delegation` |
 | GET | `/api/registry/packages/:ns/:pkg/delegation` |
 | PUT | `/api/registry/packages/:ns/:pkg/delegation` |

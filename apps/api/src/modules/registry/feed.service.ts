@@ -1,8 +1,10 @@
 import type { RegistryPackage } from "./access";
 import type { DelegationDocument } from "./delegation.service";
 import type { RegistryAsset, RegistryVersion } from "./release.service";
+import type { RuntimeSpec } from "./validate";
 import type { AppDatabase } from "@/db";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { parseRuntime } from "./release.service";
 import { registryAssets, registryChannels, registryVersions } from "./schema";
 
 /** One asset of a `lode/v1` manifest. Optional fields are left out when absent, never null. */
@@ -16,6 +18,7 @@ export interface ManifestAsset {
   alg?: string;
   run?: string;
   exec?: string;
+  runtime?: RuntimeSpec;
 }
 
 /**
@@ -33,6 +36,11 @@ export interface Manifest {
   /** Unix seconds. */
   expires?: number;
   expires_sig?: string;
+  /** A commit's id of the manifest it was built on, its number, date and signature; see `commit.service.ts`. */
+  parent?: string | undefined;
+  generation?: number;
+  created?: string;
+  commit_sig?: string;
   delegation?: DelegationDocument;
   channels: Record<string, { latest: string }>;
   versions: Record<string, { notes?: string; assets: ManifestAsset[] }>;
@@ -92,6 +100,7 @@ export async function buildManifest(db: AppDatabase, pkg: RegistryPackage, opts:
         ...(asset.alg !== null && { alg: asset.alg }),
         ...(asset.run !== null && { run: asset.run }),
         ...(asset.exec !== null && { exec: asset.exec }),
+        ...(asset.runtime !== null && { runtime: parseRuntime(asset.runtime)! }),
       })),
     };
   }

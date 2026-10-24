@@ -5,6 +5,7 @@ import type { ChannelPointer, RegistryAsset, VersionWithAssets } from "./release
 import type { AppEnv } from "@/shared/lib/types";
 import { z } from "zod";
 import { auditMeta as requestMeta } from "@/modules/audit/audit.service";
+import { parseRuntime } from "./release.service";
 
 // Wire shapes shared by the module's route files. Field names follow the
 // plan's column names (`key_id`, `require_signature`), so a field reads the
@@ -71,6 +72,13 @@ export const assetSchema = z.object({
   alg: z.string().nullable(),
   run: z.string().nullable(),
   exec: z.string().nullable(),
+  runtime: z.object({
+    runtime: z.string(),
+    version: z.string().optional(),
+    version_check: z.string().optional(),
+    download: z.string().optional(),
+    sha256: z.string().optional(),
+  }).nullable(),
   created_at: z.string(),
 });
 
@@ -144,6 +152,7 @@ export function assetView(asset: RegistryAsset): z.infer<typeof assetSchema> {
     alg: asset.alg,
     run: asset.run,
     exec: asset.exec,
+    runtime: parseRuntime(asset.runtime),
     created_at: asset.createdAt,
   };
 }

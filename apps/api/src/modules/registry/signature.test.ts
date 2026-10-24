@@ -7,6 +7,7 @@ import {
   delegationMessage,
   encodeBase64Url,
   keyIdOf,
+  manifestCommitMessage,
   manifestExpiryMessage,
   manifestMessage,
   revocationMessage,
@@ -379,5 +380,29 @@ describe("revocation list", () => {
     expect(await verifies({ ...revocationsBySub, revoked: revocationsBySub.revoked.slice(1) })).toBe(false);
     expect(await verifies({ ...revocationsBySub, issued_at: revocationsBySub.issued_at + 1 })).toBe(false);
     expect(await verifies({ ...revocationsBySub, key_id: root.keyId })).toBe(false);
+  });
+});
+
+describe("runtime and commits", () => {
+  const runtime = { runtime: "node", version: "v22.", download: "https://x/node.tar.gz", sha256: "ff" };
+
+  // The same bytes as lode's `artifact_message_appends_the_runtime_under_v3`.
+  test("an asset with a runtime is signed under lode.artifact.v3, without the download URL", () => {
+    const message = artifactMessage({ app: "myapp", name: "app.tar.gz", version: "1.0.0", sha256: "abc", run: "./app", runtime });
+    expect(decoder.decode(message)).toBe("lode.artifact.v3\nmyapp\napp.tar.gz\n1.0.0\nabc\n./app\n\nnode\nv22.\n\nff");
+  });
+
+  test("the catalog line of an asset with a runtime carries its signed fields", () => {
+    const catalog = canonicalCatalog({
+      channels: { stable: { latest: "1.0.0" } },
+      versions: { "1.0.0": { assets: [{ name: "a", sha256: "aa", runtime }, { name: "b", sha256: "bb" }] } },
+    });
+    expect(catalog).toBe("channel\tstable\t1.0.0\nversion\t1.0.0\nasset\ta\taa\t\t\tnode\tv22.\t\tff\nasset\tb\tbb\t\t\n");
+  });
+
+  // lode's `Manifest::commit_signing_message`.
+  test("the commit message frames the commit fields before the catalog", () => {
+    const message = manifestCommitMessage("myapp", "0123456789abcdef", 2, "a".repeat(64), "2026-10-24T00:00:00Z", "channel\tstable\t1.0.0\n");
+    expect(decoder.decode(message)).toBe(`lode.manifest-commit.v1\nmyapp\n0123456789abcdef\n2\n${"a".repeat(64)}\n2026-10-24T00:00:00Z\nchannel\tstable\t1.0.0\n`);
   });
 });

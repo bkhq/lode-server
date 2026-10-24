@@ -18,6 +18,7 @@ import {
 } from "@/shared/lib/registry/queries";
 import { useAuthStore } from "@/shared/stores/auth";
 import { ChannelsTab } from "./-detail-channels";
+import { CommitsTab } from "./-detail-commits";
 import { InstallTab } from "./-detail-install";
 import { KeysTab } from "./-detail-keys";
 import { ObserveTab } from "./-detail-observe";
@@ -116,6 +117,7 @@ function PackagePage() {
         <TabsList>
           <TabsTrigger value="versions">{t("package:tabs.versions")}</TabsTrigger>
           <TabsTrigger value="channels">{t("package:tabs.channels")}</TabsTrigger>
+          <TabsTrigger value="commits">{t("package:tabs.commits")}</TabsTrigger>
           {canWrite && <TabsTrigger value="keys">{t("package:tabs.keys")}</TabsTrigger>}
           <TabsTrigger value="install">{t("package:tabs.install")}</TabsTrigger>
           <TabsTrigger value="observe">{t("package:tabs.observe")}</TabsTrigger>
@@ -135,6 +137,9 @@ function PackagePage() {
           {versions.isPending
             ? <p className="text-sm text-muted-foreground">{t("common:common.loading")}</p>
             : <ChannelsTab ns={ns} pkg={slug} canWrite={canWrite} versions={versionList} channels={channelList} />}
+        </TabsContent>
+        <TabsContent value="commits">
+          <CommitsTab ns={ns} pkg={slug} />
         </TabsContent>
         <TabsContent value="install">
           <InstallTab pkg={pkg} versions={versionList} channels={channelList} canWrite={canWrite} onOpenKeys={() => setTab("keys")} />

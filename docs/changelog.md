@@ -13,6 +13,30 @@ This repository is a fork: the dated entries directly below are Lode
 Server's own, and everything from `Unreleased` down is the upstream
 template's history, kept unchanged.
 
+## 2026-10-24 16:18 [api] [web] [db] [docs]
+
+### Added
+
+- Manifest commits: `GET/POST /api/registry/packages/:ns/:pkg/commits` and
+  `GET …/commits/head` store publisher-signed manifests (`lode.manifest-commit.v1`)
+  as a fast-forward chain; the feed serves the head. A commit publishes the
+  drafts it lists and moves the channels; a conflicting parent answers 409
+  `COMMIT_CONFLICT`. Migration `0005_commits` adds `registry_commits`.
+- The package page has a Commits tab.
+- Release runtimes: assets and uploads carry an optional `runtime`
+  (`runtime`, `version`, `version_check`, `download`, `sha256`), verified over
+  `lode.artifact.v3` and served in the manifest and the catalog.
+
+### Changed
+
+- Once a package has a commit, publishing a draft, moving a channel and
+  signing the generated manifest answer 409 `PACKAGE_USES_COMMITS`; deleting a
+  version the head lists answers 409 `VERSION_IN_COMMIT`; yank becomes an
+  emergency stop that only refuses downloads.
+- Commit uploads count against the creation rate limit.
+- Docs: `require_manifest = "fresh"` is described as deprecated; lode treats
+  it as `"signed"` from the release that writes commits.
+
 ## 2026-10-24 [api] [web] [deps] [docs]
 
 ### Changed

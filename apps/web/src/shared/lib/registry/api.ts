@@ -10,6 +10,7 @@ import type {
   Grants,
   Instance,
   InstanceEvent,
+  ManifestCommit,
   ManifestSignature,
   Namespace,
   Quota,
@@ -85,6 +86,11 @@ export function deletePackage(ns: string, pkg: string): Promise<{ id: string }> 
 
 export function listKeys(ns: string, pkg: string): Promise<SigningKey[]> {
   return request(`${packagePath(ns, pkg)}/keys`);
+}
+
+export async function listCommits(ns: string, pkg: string): Promise<ManifestCommit[]> {
+  const data = await request<{ commits: ManifestCommit[] }>(`${packagePath(ns, pkg)}/commits`);
+  return data.commits;
 }
 
 export function listInstances(ns: string, pkg: string): Promise<Instance[]> {

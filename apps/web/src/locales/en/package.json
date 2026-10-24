@@ -24,7 +24,8 @@
     "install": "Install",
     "settings": "Settings",
     "keys": "Signing keys",
-    "observe": "Observability"
+    "observe": "Observability",
+    "commits": "Commits"
   },
   "status": {
     "draft": "Draft",
@@ -197,5 +198,20 @@
       "event": "Event",
       "detail": "Detail"
     }
+  },
+  "commits": {
+    "description": "Each commit is a complete manifest its publisher signed. The feed serves the newest one; lode-cli publish --key, yank and channel add commits.",
+    "empty": "No commits. The feed serves the manifest the registry generates.",
+    "head": "Head",
+    "col": {
+      "generation": "Generation",
+      "id": "Commit",
+      "created": "Signed",
+      "channels": "Channels",
+      "changes": "Changes",
+      "key": "Key"
+    },
+    "copyId": "Copy commit id",
+    "noChanges": "No version changes"
   }
 }

@@ -438,6 +438,9 @@ describe("scripts/publish.sh against the live registry", () => {
     }
 
     const manifest = await manifestOf(pkg);
+    // A lode with manifest commits signs the manifest too: one commit per release.
+    if (manifest.generation !== undefined)
+      expect(manifest.generation).toBe(2);
     const keyId = trustedKey.split(":")[0]!;
     for (const version of ["1.0.0", "2.0.0"]) {
       const assets = manifest.versions[version]!.assets;

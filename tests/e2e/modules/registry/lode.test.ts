@@ -484,16 +484,26 @@ describe.skipIf(!LODE)("registry driven by the real lode client", () => {
     const subId = manifest.versions["1.0.0"]!.assets[0]!.key_id!;
     expect(manifest.delegation?.key).toContain(subId);
 
-    // The sub-key signs the manifest too, through scripts/sign-manifest.sh.
-    const signed = Bun.spawnSync(["bash", SIGN_SCRIPT, "--registry", API_BASE, "--package", ref, "--expires-in", "1h", "--expect", "stable=1.0.0"], {
-      stdout: "pipe",
-      stderr: "pipe",
-      env: { ...process.env, PATH: `${LODE_DIR}${delimiter}${process.env.PATH ?? ""}`, LODE_REGISTRY_TOKEN: ci, LODE_SIGNING_KEY: keyFile("sub1") },
-    });
-    expect(signed.exitCode).toBe(0);
+    // The sub-key signs the manifest too. A lode with manifest commits signs a new commit
+    // (`lode-cli channel` onto the same version); an older one signs the generated manifest
+    // with scripts/sign-manifest.sh. A commit carries no expiry, so its hosts require a
+    // signed manifest.
+    const committed = manifest.generation !== undefined;
+    const signManifest = (key: string) => {
+      const command = committed
+        ? [LODE_CLI, "channel", "--registry", API_BASE, "--package", ref, "--channel", "stable", "--version", "1.0.0", "--key-env", "LODE_SIGNING_KEY"]
+        : ["bash", SIGN_SCRIPT, "--registry", API_BASE, "--package", ref, "--expires-in", "1h", "--expect", "stable=1.0.0"];
+      const signed = Bun.spawnSync(command, {
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, PATH: `${LODE_DIR}${delimiter}${process.env.PATH ?? ""}`, LODE_REGISTRY_TOKEN: ci, LODE_SIGNING_KEY: keyFile(key) },
+      });
+      expect(signed.exitCode).toBe(0);
+    };
+    signManifest("sub1");
 
     const revocationUrl = `${FEED_BASE}/${ref}/revocations.json`;
-    const host = () => operator({ pkg, requireSignature: "enforce", trustedKeys: [rootKey], requireManifest: "fresh", revocationUrl });
+    const host = () => operator({ pkg, requireSignature: "enforce", trustedKeys: [rootKey], requireManifest: committed ? "signed" : "fresh", revocationUrl });
     const op = host();
     op.start();
     await op.waitFor("bootstrap of 1.0.0", () => op.ran.length === 1);
@@ -516,12 +526,7 @@ describe.skipIf(!LODE)("registry driven by the real lode client", () => {
     expect((await api("PUT", "/delegation", JSON.parse(readFileSync(second, "utf-8")))).status).toBe(200);
     const resigned = cli(["sign", join(build, ASSET), "--app", pkg.slug, "--version", "1.0.0", "--key", join(work, "sub2.key")]);
     expect((await api("PUT", `/versions/1.0.0/assets/${ASSET}/signature`, { sig: field(resigned.output, "sig") })).status).toBe(200);
-    const renewed = Bun.spawnSync(["bash", SIGN_SCRIPT, "--registry", API_BASE, "--package", ref, "--expires-in", "1h", "--expect", "stable=1.0.0"], {
-      stdout: "pipe",
-      stderr: "pipe",
-      env: { ...process.env, PATH: `${LODE_DIR}${delimiter}${process.env.PATH ?? ""}`, LODE_REGISTRY_TOKEN: ci, LODE_SIGNING_KEY: keyFile("sub2") },
-    });
-    expect(renewed.exitCode).toBe(0);
+    signManifest("sub2");
     const again = host();
     again.start();
     await again.waitFor("bootstrap of 1.0.0", () => again.ran.length === 1);

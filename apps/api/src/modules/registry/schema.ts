@@ -71,7 +71,8 @@ export const registryVersions = sqliteTable("registry_versions", {
 ]);
 
 // Immutable once the version is published. `sig` / `key_id` / `alg` are null
-// for an unsigned asset; `run` / `exec` are lode's optional launch overrides.
+// for an unsigned asset; `run` / `exec` are lode's optional launch overrides,
+// `runtime` its optional runtime as JSON (`RuntimeSpec`).
 export const registryAssets = sqliteTable("registry_assets", {
   id: text("id").primaryKey(),
   versionId: text("version_id").notNull().references(() => registryVersions.id, { onDelete: "cascade" }),
@@ -83,6 +84,7 @@ export const registryAssets = sqliteTable("registry_assets", {
   alg: text("alg"),
   run: text("run"),
   exec: text("exec"),
+  runtime: text("runtime"),
   blobKey: text("blob_key").notNull(),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 }, t => [
@@ -128,6 +130,28 @@ export const registryManifestSignatures = sqliteTable("registry_manifest_signatu
   catalogSha256: text("catalog_sha256").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
+
+// The package's manifest commits: complete `lode/v1` manifests their
+// publisher signed (`sig` over the catalog, `commit_sig` over the commit),
+// stored as uploaded but for the asset urls, which the feed fills in. `id` is
+// the commit id, the sha256 of the commit message. The highest `generation`
+// is the head the feed serves; one generation per package, so of two commits
+// built on the same parent only one lands. `summary` is JSON: the channels,
+// versions, and the versions added and dropped against the parent.
+export const registryCommits = sqliteTable("registry_commits", {
+  packageId: text("package_id").notNull().references(() => registryPackages.id, { onDelete: "cascade" }),
+  id: text("id").notNull(),
+  parent: text("parent"),
+  generation: integer("generation").notNull(),
+  created: text("created").notNull(),
+  keyId: text("key_id").notNull(),
+  manifest: text("manifest").notNull(),
+  summary: text("summary").notNull(),
+  uploadedAt: text("uploaded_at").notNull().$defaultFn(() => new Date().toISOString()),
+}, t => [
+  primaryKey({ columns: [t.packageId, t.id] }),
+  uniqueIndex("idx_registry_commits_pkg_generation").on(t.packageId, t.generation),
+]);
 
 // The package's delegation, one per package: a registered key (`root_key_id`,
 // the one its signature verified under) lets the sub-key `key_id` sign for the
@@ -215,6 +239,7 @@ export const registryUploads = sqliteTable("registry_uploads", {
   alg: text("alg"),
   run: text("run"),
   exec: text("exec"),
+  runtime: text("runtime"),
   r2UploadId: text("r2_upload_id").notNull(),
   parts: text("parts").notNull().default("[]"),
   expiresAt: text("expires_at").notNull(),

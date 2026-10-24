@@ -21,6 +21,18 @@ const ED25519_PUBLIC_KEY_BYTES = 32;
 const ED25519_SIGNATURE_BYTES = 64;
 const KEY_ID_HEX_CHARS = 16;
 
+/** The fields of an asset's runtime its signature binds; the download URL is not one of them. */
+export interface SignedRuntime {
+  runtime: string;
+  version?: string | undefined;
+  version_check?: string | undefined;
+  sha256?: string | undefined;
+}
+
+function runtimeFields(rt: SignedRuntime): string[] {
+  return [rt.runtime, rt.version ?? "", rt.version_check ?? "", rt.sha256 ?? ""];
+}
+
 /** Identity of a release asset as bound by its signature. */
 export interface ArtifactIdentity {
   /** The app the asset belongs to: the package slug, lode's `[global].app`. */
@@ -34,6 +46,8 @@ export interface ArtifactIdentity {
   run?: string | null | undefined;
   /** Passthrough launch override; absent encodes as an empty field. */
   exec?: string | null | undefined;
+  /** The asset's runtime; when present the message is `lode.artifact.v3`. */
+  runtime?: SignedRuntime | null | undefined;
 }
 
 export interface ArtifactSignatureInput extends ArtifactIdentity {
@@ -45,10 +59,14 @@ export interface ArtifactSignatureInput extends ArtifactIdentity {
 
 /**
  * Canonical signed message for an asset: UTF-8, `\n`-separated, no trailing
- * newline. Fields are interpolated verbatim, exactly as lode does.
+ * newline. Fields are interpolated verbatim, exactly as lode does. An asset
+ * with a runtime appends its signed fields under `lode.artifact.v3`.
  */
-export function artifactMessage({ app, name, version, sha256, run, exec }: ArtifactIdentity): Uint8Array<ArrayBuffer> {
-  return new TextEncoder().encode(`lode.artifact.v2\n${app}\n${name}\n${version}\n${sha256}\n${run ?? ""}\n${exec ?? ""}`);
+export function artifactMessage({ app, name, version, sha256, run, exec, runtime }: ArtifactIdentity): Uint8Array<ArrayBuffer> {
+  const fields = `${app}\n${name}\n${version}\n${sha256}\n${run ?? ""}\n${exec ?? ""}`;
+  return new TextEncoder().encode(runtime
+    ? `lode.artifact.v3\n${fields}\n${runtimeFields(runtime).join("\n")}`
+    : `lode.artifact.v2\n${fields}`);
 }
 
 /**
@@ -135,7 +153,7 @@ export async function verifyArtifactSignature(input: ArtifactSignatureInput): Pr
 /** What of a `lode/v1` manifest its top-level signature covers. */
 export interface ManifestCatalog {
   channels: Record<string, { latest: string }>;
-  versions: Record<string, { assets: readonly { name: string; sha256: string; run?: string | null; exec?: string | null }[] }>;
+  versions: Record<string, { assets: readonly { name: string; sha256: string; run?: string | null | undefined; exec?: string | null | undefined; runtime?: SignedRuntime | null | undefined }[] }>;
 }
 
 // lode keeps both maps in a BTreeMap<String>: byte order. Channel names and
@@ -155,8 +173,12 @@ export function canonicalCatalog(manifest: ManifestCatalog): string {
     out += `channel\t${name}\t${channel.latest}\n`;
   for (const [id, version] of sortedEntries(manifest.versions)) {
     out += `version\t${id}\n`;
-    for (const asset of version.assets)
-      out += `asset\t${asset.name}\t${asset.sha256}\t${asset.run ?? ""}\t${asset.exec ?? ""}\n`;
+    for (const asset of version.assets) {
+      out += `asset\t${asset.name}\t${asset.sha256}\t${asset.run ?? ""}\t${asset.exec ?? ""}`;
+      if (asset.runtime)
+        out += `\t${runtimeFields(asset.runtime).join("\t")}`;
+      out += "\n";
+    }
   }
   return out;
 }
@@ -169,6 +191,14 @@ export function manifestMessage(name: string, keyId: string, catalog: string): U
 /** Signed message of the manifest's `expires_sig`; `expires` is Unix seconds. */
 export function manifestExpiryMessage(name: string, keyId: string, expires: number, catalog: string): Uint8Array<ArrayBuffer> {
   return new TextEncoder().encode(`lode.manifest-expiry.v1\n${name}\n${keyId}\n${expires}\n${catalog}`);
+}
+
+/**
+ * Signed message of a manifest's `commit_sig`; its sha256 is the commit id.
+ * `parent` is empty for a first commit.
+ */
+export function manifestCommitMessage(name: string, keyId: string, generation: number, parent: string, created: string, catalog: string): Uint8Array<ArrayBuffer> {
+  return new TextEncoder().encode(`lode.manifest-commit.v1\n${name}\n${keyId}\n${generation}\n${parent}\n${created}\n${catalog}`);
 }
 
 /**

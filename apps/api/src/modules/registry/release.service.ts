@@ -1,6 +1,7 @@
 import type { PackageRequest } from "./access";
 import type { BlobStoreConfig } from "./blob";
 import type { getEffectiveQuota } from "./registry.service";
+import type { RuntimeSpec } from "./validate";
 import type { AppDatabase } from "@/db";
 import { and, asc, count, desc, eq } from "drizzle-orm";
 import { AppError, isUniqueViolation, NotFoundError } from "@/shared/lib/errors";
@@ -161,6 +162,7 @@ export interface AssetDeclaration {
   readonly sig: string | null;
   readonly run: string | null;
   readonly exec: string | null;
+  readonly runtime: RuntimeSpec | null;
 }
 
 export interface UploadInput extends AssetDeclaration {
@@ -189,6 +191,7 @@ async function verifyUnderPackageKeys(db: AppDatabase, pkg: Target["package"], v
       sha256: input.sha256,
       run: input.run,
       exec: input.exec,
+      runtime: input.runtime,
       publicKey: key.publicKey,
       sig: input.sig,
     });
@@ -196,6 +199,16 @@ async function verifyUnderPackageKeys(db: AppDatabase, pkg: Target["package"], v
       return { keyId: key.keyId, alg: key.alg };
   }
   throw new AppError("The signature does not verify under any signing key of the package: it must be made for this package's slug as the app, this asset name and this version, by an active registered key or the sub-key of the package's live delegation", 400, "INVALID_SIGNATURE");
+}
+
+/** A runtime as its column stores it. */
+export function storedRuntime(runtime: RuntimeSpec | null): string | null {
+  return runtime && JSON.stringify(runtime);
+}
+
+/** The runtime a column holds. */
+export function parseRuntime(column: string | null): RuntimeSpec | null {
+  return column === null ? null : JSON.parse(column) as RuntimeSpec;
 }
 
 /** The version an upload goes into, which has to be a draft. */
@@ -280,6 +293,7 @@ export async function uploadAsset(db: AppDatabase, config: ReleaseConfig, target
           alg: signed?.alg ?? null,
           run: input.run,
           exec: input.exec,
+          runtime: storedRuntime(input.runtime),
           blobKey: key,
         }).returning().get();
         return { asset, replaced: replaced !== undefined };
@@ -330,7 +344,7 @@ export async function resignAsset(db: AppDatabase, pkg: Target["package"], versi
     const current = await db.select().from(registryAssets).where(sameName).get();
     if (!current)
       throw new NotFoundError("Asset");
-    const signed = await verifyUnderPackageKeys(db, pkg, version.version, { name, sha256: current.sha256, run: current.run, exec: current.exec, sig });
+    const signed = await verifyUnderPackageKeys(db, pkg, version.version, { name, sha256: current.sha256, run: current.run, exec: current.exec, runtime: parseRuntime(current.runtime), sig });
     const asset = await db.update(registryAssets).set({ sig, keyId: signed.keyId, alg: signed.alg }).where(eq(registryAssets.id, current.id)).returning().get();
     return { asset: asset!, previousKeyId: current.keyId };
   }
@@ -393,14 +407,14 @@ export async function setChannel(db: AppDatabase, packageId: string, channel: st
   return (await listChannels(db, packageId)).find(pointer => pointer.name === channel)!;
 }
 
-/** Hide a published version from the manifest. Refused while a channel points at it. */
-export async function yankVersion(db: AppDatabase, packageId: string, versionString: string): Promise<VersionWithAssets> {
+/** Hide a published version from the manifest. Refused while a channel points at it, unless `ignoreChannels`. */
+export async function yankVersion(db: AppDatabase, packageId: string, versionString: string, opts: { ignoreChannels: boolean } = { ignoreChannels: false }): Promise<VersionWithAssets> {
   const version = await requireVersion(db, packageId, versionString);
   await db.transaction(async (tx) => {
     const current = await tx.select({ status: registryVersions.status }).from(registryVersions).where(eq(registryVersions.id, version.id)).get();
     if (current?.status !== "published")
       throw new AppError(`Version ${version.version} is not published`, 409, "VERSION_NOT_PUBLISHED");
-    if (await pointersAt(tx, version.id) > 0)
+    if (!opts.ignoreChannels && await pointersAt(tx, version.id) > 0)
       throw inChannel(version.version);
     await tx.update(registryVersions).set({ status: "yanked" }).where(eq(registryVersions.id, version.id)).run();
   });

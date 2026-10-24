@@ -7,6 +7,7 @@ import { AppError } from "@/shared/lib/errors";
 import { describeRoute, errors, raw, TAGS } from "@/shared/lib/openapi";
 import { findPackage, resolveReadToken } from "./access";
 import { getActiveBlobStore } from "./blob";
+import { headCommit, servedCommit } from "./commit.service";
 import { findRevocationList, revocationListDocument, withDelegation } from "./delegation.service";
 import { buildManifest, findPublishedAsset } from "./feed.service";
 import { withManifestSignature } from "./manifest-signature.service";
@@ -82,6 +83,7 @@ export function registryFeedRoutes() {
         `Served at \`${READ_FEED_PREFIX}/:ns/:pkg/manifest.json\`, outside \`/api\`: the URL an operator sets as \`[update].manifest\`. The generated \`lode/v1\` manifest of the package: \`name\` is the package slug, \`channels.<c>.latest\` the channel pointers, \`versions.<v>.assets[]\` the assets with \`name\`, an absolute same-host \`url\`, \`sha256\`, \`size\`, and \`sig\` / \`key_id\` / \`alg\` / \`run\` / \`exec\` where the asset has them.`,
         "Published versions only, newest first, capped at `REGISTRY_MANIFEST_MAX_VERSIONS` plus the target of every channel.",
         "The top-level `key_id` / `sig`, and `expires` / `expires_sig`, are present while the package has a live publisher signature over this catalog (`PUT /api/registry/packages/:ns/:pkg/manifest-signature`). A signature whose catalog has changed, whose expiry has passed or whose key was revoked is left out, and the manifest is served unsigned.",
+        "Once the package has a manifest commit (`POST /api/registry/packages/:ns/:pkg/commits`), the head commit is served instead, as its publisher signed it: with `parent`, `generation`, `created`, `commit_sig` and the catalog `sig`, and asset urls filled in.",
         "The top-level `delegation` is present while the package's delegation is live (`PUT /api/registry/packages/:ns/:pkg/delegation`): within its window, its root key active and its sub-key not revoked.",
         ACCESS_NOTE,
         "A public manifest carries a strong `ETag` and `Cache-Control: public, max-age=60`, and answers a matching `If-None-Match` with 304. A private one is `private, no-store`.",
@@ -95,10 +97,12 @@ export function registryFeedRoutes() {
     async (c) => {
       const pkg = await readablePackage(c);
       const config = c.get("config");
-      const manifest = await withDelegation(c.get("db"), pkg, await withManifestSignature(c.get("db"), pkg, await buildManifest(c.get("db"), pkg, {
-        maxVersions: config.REGISTRY_MANIFEST_MAX_VERSIONS,
-        assetBase: `${deriveOrigin(c.req.raw, config)}${READ_FEED_PREFIX}/${c.req.param("ns")}/${pkg.slug}`,
-      })));
+      const db = c.get("db");
+      const assetBase = `${deriveOrigin(c.req.raw, config)}${READ_FEED_PREFIX}/${c.req.param("ns")}/${pkg.slug}`;
+      const head = await headCommit(db, pkg.id);
+      const manifest = await withDelegation(db, pkg, head
+        ? await servedCommit(db, head, assetBase)
+        : await withManifestSignature(db, pkg, await buildManifest(db, pkg, { maxVersions: config.REGISTRY_MANIFEST_MAX_VERSIONS, assetBase })));
       const body = JSON.stringify(manifest);
       c.header("Cache-Control", cacheControl(pkg, MANIFEST_CACHE));
       c.header("Content-Type", "application/json");

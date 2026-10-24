@@ -105,20 +105,21 @@ Times are ISO 8601 text.
 | `registry_packages` | `id`, `namespace_id`, `slug`, `name`, `visibility` (`public` / `private`), `description`, `require_signature`, `created_at`, `updated_at` | Unique `(namespace_id, slug)`. |
 | `registry_keys` | `id`, `package_id`, `key_id`, `alg` (`ed25519`), `public_key` (unpadded base64url), `name`, `revoked_at`, `created_at` | A package's signing keys. Unique `(package_id, key_id)`: the same key may be registered for several packages. `key_id` is derived by the server: the first 16 hex characters of SHA-256 over the raw key. A revoked key keeps its row. |
 | `registry_versions` | `id`, `package_id`, `version`, `status` (`draft` / `published` / `yanked`), `notes`, `published_at`, `created_at` | Unique `(package_id, version)`. |
-| `registry_assets` | `id`, `version_id`, `name`, `size`, `sha256`, `sig`, `key_id`, `alg`, `run`, `exec`, `blob_key`, `created_at` | Unique `(version_id, name)`. `sig` / `key_id` / `alg` are null together for an unsigned asset. |
+| `registry_assets` | `id`, `version_id`, `name`, `size`, `sha256`, `sig`, `key_id`, `alg`, `run`, `exec`, `runtime` (JSON), `blob_key`, `created_at` | Unique `(version_id, name)`. `sig` / `key_id` / `alg` are null together for an unsigned asset. `runtime` is the release's runtime (see [Release runtime](#release-runtime)), null when it has none. |
 | `registry_channels` | `package_id`, `name`, `version_id`, `updated_at` | Primary key `(package_id, name)`. |
 | `registry_manifest_signatures` | `package_id` (PK), `key_id`, `sig`, `expires` (Unix seconds), `expires_sig`, `catalog_sha256`, `updated_at` | The publisher's signature over the generated manifest, at most one per package. `expires` / `expires_sig` are null together. `catalog_sha256` is the digest of the canonical catalog it was verified over. |
+| `registry_commits` | `package_id`, `id` (PK together), `parent`, `generation`, `created`, `key_id`, `manifest` (JSON), `summary` (JSON), `uploaded_at` | Publisher-signed manifests (migration `0005_commits`); see [Manifest commits](#manifest-commits). Unique `(package_id, generation)`: the head is the highest generation. `summary` holds the channels, versions and the versions added and dropped against the parent. |
 | `registry_delegations` | `package_id` (PK), `key`, `key_id`, `public_key`, `not_before`, `not_after` (Unix seconds), `issuer`, `sig`, `root_key_id`, `updated_at` | The package's delegation, at most one: the sub-key `key_id` (raw key in `public_key`, unpadded base64url) may sign for the package during `[not_before, not_after)`. `root_key_id` is the registered key the signature verified under. `key`, `issuer` and `sig` are served as sent. |
 | `registry_revocation_lists` | `package_id` (PK), `issued_at` (Unix seconds), `revoked` (JSON array of key ids), `key_id`, `delegation` (JSON, signer's delegation), `sig`, `updated_at` | The package's revocation list as the publisher signed it, at most one. Only replaced by a newer list that keeps every id. |
 | `registry_retired_versions` | `namespace_id`, `package_slug`, `version`, `retired_at` | Primary key on the first three. The id of every version that was published and then deleted, alone or with its package. Not tied to the package row, so it holds for a package created again under the slug. |
-| `registry_uploads` | `id`, `version_id`, `asset_name`, `size`, `sha256`, `sig`, `key_id`, `alg`, `run`, `exec`, `r2_upload_id`, `parts` (JSON), `expires_at`, `created_at` | In-flight multipart uploads. The row is also the quota reservation. |
+| `registry_uploads` | `id`, `version_id`, `asset_name`, `size`, `sha256`, `sig`, `key_id`, `alg`, `run`, `exec`, `runtime`, `r2_upload_id`, `parts` (JSON), `expires_at`, `created_at` | In-flight multipart uploads. The row is also the quota reservation. |
 | `registry_token_grants` | `token_id`, `package_id` (null = every package of the owner), `access` (`read` / `write` / `admin`) | Unique `(token_id, package_id)`, plus a partial unique index on `token_id WHERE package_id IS NULL`. |
 | `registry_quotas` | `user_id` (PK), `max_packages`, `max_storage_bytes`, `max_asset_bytes`, `updated_at` | Per-user overrides; a null column or no row means the platform default. |
 | `registry_instances` | `package_id`, `instance_id` (PK together), `version`, `status`, `host_name`, `os_type`, `host_arch`, `lode_version`, `interval_seconds`, `attributes` (JSON), `metrics` (JSON), `first_seen_at`, `last_seen_at` | The latest snapshot of each host reporting for the package over OTLP (migration `0004_observability`). At most `REGISTRY_OBSERVE_MAX_INSTANCES` per package. |
 | `registry_instance_events` | `id`, `package_id`, `instance_id`, `name`, `version`, `body`, `attributes` (JSON), `at` | Reported log records. Indexed on `(package_id, at)` and `at`. |
 
 Foreign keys: deleting a package cascades to its signing keys, versions,
-assets, channels, manifest signature, delegation, revocation list, uploads, token grants, instances and events; deleting an `api_tokens` row cascades to
+assets, channels, manifest signature, commits, delegation, revocation list, uploads, token grants, instances and events; deleting an `api_tokens` row cascades to
 its grants. Nothing cascades from `users` or from a namespace.
 `registry_channels.version_id` has no cascade, so a version a channel points
 at cannot be deleted from under it.
@@ -213,8 +214,11 @@ token whose grant gives it; **Admin** = session of a platform administrator.
 | POST | `/packages/:ns/:pkg/keys` | Owner, administrator, or a token with a `write` grant | Register an ed25519 public key `{ public_key, name }`. Accepts the bare base64 key or lode's `[ed25519:][<key_id>:]<key>` forms. 400 `INVALID_PUBLIC_KEY`, 409 `KEY_EXISTS`. |
 | DELETE | `/packages/:ns/:pkg/keys/:id` | Owner or administrator, session only | Revoke. Final: the key cannot be registered for this package again. |
 | GET | `/packages/:ns/:pkg/manifest-signature` | Anyone who can read the package | `{ key_id, expires, status, updated_at }` or `null`. `status` is `live`, `stale`, `expired` or `revoked`; see [Manifest signature](#manifest-signature). |
-| PUT | `/packages/:ns/:pkg/manifest-signature` | Session / token(write) | Store the publisher's signature over the current manifest `{ key_id, sig, expires?, expires_sig? }`, replacing an earlier one. 400 `UNKNOWN_KEY`, 400 `MANIFEST_EXPIRED`, 409 `MANIFEST_CHANGED`. |
+| PUT | `/packages/:ns/:pkg/manifest-signature` | Session / token(write) | Store the publisher's signature over the current manifest `{ key_id, sig, expires?, expires_sig? }`, replacing an earlier one. 400 `UNKNOWN_KEY`, 400 `MANIFEST_EXPIRED`, 409 `MANIFEST_CHANGED`, 409 `PACKAGE_USES_COMMITS`. |
 | DELETE | `/packages/:ns/:pkg/manifest-signature` | Session / token(write) | Remove it: `{ removed }`. The manifest is served unsigned. |
+| GET | `/packages/:ns/:pkg/commits` | Anyone who can read the package | The manifest commits, newest first (at most 100): `id`, `parent`, `generation`, `created`, `key_id`, `channels`, `versions`, `added`, `dropped`, `uploaded_at`, `head`. See [Manifest commits](#manifest-commits). |
+| GET | `/packages/:ns/:pkg/commits/head` | Anyone who can read the package | `{ commit, generation, manifest }`: what the next commit builds on. Without commits, `commit: null`, `generation: 0` and the generated manifest. |
+| POST | `/packages/:ns/:pkg/commits` | Session / token(write) | Upload a signed manifest commit. 201 new, 200 stored already. 400 `INVALID_COMMIT`, 400 `INVALID_SIGNATURE`, 409 `COMMIT_CONFLICT`. |
 | GET | `/packages/:ns/:pkg/delegation` | Anyone who can read the package | `{ key_id, root_key_id, issuer, not_before, not_after, status, updated_at }` or `null`. `status` is `live`, `pending`, `expired` or `revoked`; see [Delegated signing](#delegated-signing). |
 | PUT | `/packages/:ns/:pkg/delegation` | Session / token(write) | Store the delegation `lode-cli delegate` writes `{ key, name, not_before, not_after, issuer?, sig }`, replacing an earlier one. 400 `INVALID_DELEGATION`, 400 `DELEGATION_EXPIRED`, 400 `KEY_REVOKED`, 409 `KEY_REGISTERED`. |
 | DELETE | `/packages/:ns/:pkg/delegation` | Session / token(write) | Remove it: `{ removed }`. |
@@ -235,7 +239,7 @@ token whose grant gives it; **Admin** = session of a platform administrator.
 | GET | `/packages/:ns/:pkg/versions` | Session / token(read) | `{ versions, channels }`: every version with its assets, drafts and yanked included. |
 | POST | `/packages/:ns/:pkg/versions` | Session / token(write) | Create a draft `{ version, notes? }`. 409 `VERSION_EXISTS`, 409 `VERSION_RETIRED`. |
 | GET | `/packages/:ns/:pkg/versions/:ver` | Session / token(read) | `{ version, channels }`. |
-| DELETE | `/packages/:ns/:pkg/versions/:ver` | draft: Session / token(write); published or yanked: Session (owner or admin) | Delete the version and its stored bytes. The id of a published or yanked version is retired: its assets were served as immutable, so it cannot be created again, also not after the package is deleted and created anew. 409 `VERSION_IN_CHANNEL` while a channel points at it. |
+| DELETE | `/packages/:ns/:pkg/versions/:ver` | draft: Session / token(write); published or yanked: Session (owner or admin) | Delete the version and its stored bytes. The id of a published or yanked version is retired: its assets were served as immutable, so it cannot be created again, also not after the package is deleted and created anew. 409 `VERSION_IN_CHANNEL` while a channel points at it, 409 `VERSION_IN_COMMIT` while the head commit lists it. |
 | PUT | `/packages/:ns/:pkg/versions/:ver/assets/:asset` | Session / token(write) | Single-request upload, see [Uploads](#uploads). 201 new, 200 replaced. |
 | DELETE | `/packages/:ns/:pkg/versions/:ver/assets/:asset` | Session / token(write) | Remove an asset from a draft. |
 | PUT | `/packages/:ns/:pkg/versions/:ver/assets/:asset/signature` | Session / token(write) | `{ sig }` — replace the asset's signature, in any version state. 400 `INVALID_SIGNATURE`. |
@@ -243,9 +247,9 @@ token whose grant gives it; **Admin** = session of a platform administrator.
 | PUT | `/uploads/:uploadId/parts/:n` | Session / token(write) | Upload one part. |
 | POST | `/uploads/:uploadId/complete` | Session / token(write) | Assemble, verify, create the asset. |
 | DELETE | `/uploads/:uploadId` | Session / token(write) | Abort. |
-| POST | `/packages/:ns/:pkg/versions/:ver/publish` | Session / token(write) | `{ channel }` — publish the draft and move the pointer. 409 `VERSION_EMPTY`, `VERSION_NOT_DRAFT`. |
-| PUT | `/packages/:ns/:pkg/channels/:channel` | Session / token(write) | `{ version }` — promote or roll back. The target must be published (409 `VERSION_NOT_PUBLISHED`). |
-| POST | `/packages/:ns/:pkg/versions/:ver/yank` | Session / token(admin) | Hide a published version. 409 `VERSION_IN_CHANNEL` while a channel points at it. |
+| POST | `/packages/:ns/:pkg/versions/:ver/publish` | Session / token(write) | `{ channel }` — publish the draft and move the pointer. 409 `VERSION_EMPTY`, `VERSION_NOT_DRAFT`, `PACKAGE_USES_COMMITS`. |
+| PUT | `/packages/:ns/:pkg/channels/:channel` | Session / token(write) | `{ version }` — promote or roll back. The target must be published (409 `VERSION_NOT_PUBLISHED`). 409 `PACKAGE_USES_COMMITS`. |
+| POST | `/packages/:ns/:pkg/versions/:ver/yank` | Session / token(admin) | Hide a published version. 409 `VERSION_IN_CHANNEL` while a channel points at it. On a package with commits it is an emergency stop: channels are not checked, the version stays in the manifest and its assets stop downloading. |
 | POST | `/packages/:ns/:pkg/versions/:ver/restore` | Session / token(admin) | Put a yanked version back. 409 `VERSION_NOT_YANKED`. |
 
 ### Administration — `/api/registry/admin`
@@ -271,7 +275,7 @@ ordinary `/registry/packages/:ns/:pkg` routes.
 
 | Method | Path | Access | Purpose |
 |---|---|---|---|
-| GET | `/r/:ns/:pkg/manifest.json` | Public, or token(read) for a private package | The generated `lode/v1` manifest. |
+| GET | `/r/:ns/:pkg/manifest.json` | Public, or token(read) for a private package | The head [manifest commit](#manifest-commits), or the generated `lode/v1` manifest while the package has none. |
 | GET | `/r/:ns/:pkg/revocations.json` | Public, or token(read) for a private package | The package's `lode-revocations/v1` list, as signed; 404 while there is none. |
 | GET | `/r/:ns/:pkg/:ver/:asset` | Public, or token(read) for a private package | The asset bytes, streamed from the blob store. |
 | POST | `/r/otlp/v1/metrics` | Token with a grant on the package | OTLP/HTTP JSON metrics export; see [Observability](#observability). |
@@ -433,8 +437,9 @@ signature.
 ### Manifest signature
 
 lode can also require the manifest itself to be signed
-(`[trust].require_manifest = "signed"`) and to carry a signed, unexpired
-expiry (`"fresh"`).
+(`[trust].require_manifest = "signed"`). lode 0.3.0 and older also offer
+`"fresh"`, which requires a signed, unexpired expiry as well; later releases
+treat `"fresh"` as `"signed"`.
 The registry holds no private key, so the signature comes from the
 publisher, over the manifest the registry generates:
 
@@ -485,6 +490,62 @@ Consequences:
 - A public manifest is cached for 60 seconds: a host can see a signature up
   to a minute after it lapsed, and refuses that one response. Keep expiries
   in days.
+
+### Manifest commits
+
+A package can instead serve manifests its publisher builds and signs
+completely. `lode-cli publish --key`, `lode-cli yank` and `lode-cli channel`
+read the head (`GET …/commits/head`), apply their change, sign and upload the
+result (`POST …/commits`). The first commit takes over the generated manifest;
+from then on the package uses commits only.
+
+A commit is a `lode/v1` manifest with `parent`, `generation`, `created` and
+`commit_sig`. `commit_sig` signs
+`lode.manifest-commit.v1\n{name}\n{key_id}\n{generation}\n{parent}\n{created}\n{catalog}`
+(`parent` empty for generation 1), and the sha256 hex of that message is the
+commit id. `sig` is the ordinary catalog signature, so lode releases without
+commit support still verify it. The registry stores a commit only when:
+
+- `parent` is the head's id and `generation` the head's plus one (the first
+  commit: generation 1, no parent); otherwise 409 `COMMIT_CONFLICT`, and
+  `lode-cli` builds again on the new head, up to five times;
+- `name` is the package slug and both signatures verify under a signing key
+  of the package (400 `INVALID_COMMIT`, 400 `INVALID_SIGNATURE`);
+- every listed version exists with exactly the listed assets, each with its
+  stored `sha256`, `run`, `exec` and runtime (400 `INVALID_COMMIT`).
+
+The same commit uploaded again answers 200 with the stored one. A commit
+publishes the drafts it lists and points `registry_channels` at its channels.
+It never yanks the versions it drops: their assets stay downloadable, so
+hosts still running them keep working.
+
+The feed serves the head with the asset `url`s filled in, each asset's
+`sig` / `key_id` / `alg` from its stored row and the live delegation attached.
+The catalog does not cover asset signatures, so `PUT …/assets/:asset/signature`
+takes effect at once. A commit is never stale and carries no expiry, so a lode
+0.3.0 or older on `require_manifest = "fresh"` refuses it; lodes that write
+commits treat `"fresh"` as `"signed"`. lode
+records the generation and id per manifest `name` (`commits.json`) and refuses
+an older generation, or the same generation with another id, so a registry
+cannot roll hosts back to an earlier commit. Fixing a bad release is a new
+commit: move the channel, or publish a fixed version.
+
+Once a package has a commit, publishing a draft, moving a channel and
+`PUT …/manifest-signature` answer 409 `PACKAGE_USES_COMMITS`, and deleting a
+version the head lists answers 409 `VERSION_IN_COMMIT`. Yank is kept as an
+emergency stop: it stops a version's downloads without a new commit, and
+restore lifts the stop. The package's Commits tab lists the history.
+
+### Release runtime
+
+An asset can name the runtime its release runs on: `runtime`, `version`,
+`version_check`, `download` and `sha256` (`lode-cli publish --asset-runtime …`;
+upload query or multipart start fields `runtime`, `runtime_version`,
+`runtime_version_check`, `runtime_download`, `runtime_sha256`). A signed asset
+with a runtime is verified over `lode.artifact.v3`, the v2 message followed by
+`\n{runtime}\n{version}\n{version_check}\n{sha256}` (`download` is not
+signed), and the catalog's asset line carries the same four fields after a
+tab. The manifest serves it as the asset's `runtime`.
 
 ### Delegated signing
 
@@ -595,6 +656,7 @@ differs from the actor for an administrator's action — and
 | `registry.asset.uploaded` / `.deleted` | `registry_asset` | `<ns>/<slug>@<version>/<asset>`; detail has `size`, `sha256`, `key_id`, `replaced`, and `multipart` / `upload_id` for a multipart completion |
 | `registry.channel.updated` | `registry_channel` | `<ns>/<slug>#<channel>` |
 | `registry.manifest.signed` / `.unsigned` | `registry_package` | `<ns>/<slug>`; detail has `key_id` and `expires` |
+| `registry.commit.created` | `registry_commit` | `#<generation>`; detail has `generation`, `parent` and `key_id` |
 | `registry.delegation.set` / `.removed` | `registry_package` | detail has the sub-key `key_id`, `root_key_id` and `not_after` |
 | `registry.revocations.published` | `registry_package` | detail has `issued_at`, `key_id` and `revoked` |
 | `registry.asset.resigned` | `registry_asset` | detail has `key_id` and `previous_key_id` |

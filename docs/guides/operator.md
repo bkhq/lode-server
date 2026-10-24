@@ -74,16 +74,17 @@ publisher who signs the manifest (the package's Install tab says whether
 they do), add to `[trust]`:
 
 ```toml
-require_manifest = "fresh"     # off (default) | signed | fresh
+require_manifest = "signed"    # off (default) | signed
 ```
 
 `signed` requires the publisher's signature over the list of versions and
-channels; `fresh` also requires a signed expiry that has not passed. Know
-what you turn on:
+channels; an expiry, when the manifest has one, must not have passed. `fresh`
+(lode 0.3.0 and older: an expiry is required too) is deprecated and later
+lodes treat it as `signed`. Know what you turn on:
 
 - After each release the manifest is unsigned until the publisher signs it
   again, and it becomes unsigned if they let the expiry lapse. A host on
-  `signed` or `fresh` refuses it for that time with
+  `signed` refuses it for that time with
   `require_manifest=… but the manifest has no signature`.
 
 **Delegated signing** (lode 0.1.0 or later). A publisher may keep the key

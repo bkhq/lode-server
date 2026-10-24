@@ -1,5 +1,6 @@
 import type { Context, MiddlewareHandler } from "hono";
 import type { PackageRequest } from "./access";
+import type { RuntimeSpec } from "./validate";
 import type { AppEnv } from "@/shared/lib/types";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -7,6 +8,7 @@ import { audit } from "@/modules/audit/audit.service";
 import { AppError, ForbiddenError, ValidationError } from "@/shared/lib/errors";
 import { describeRoute, errors, jsonCreated, jsonOk, SECURITY, TAGS, validator } from "@/shared/lib/openapi";
 import { requirePackageAccess } from "./access";
+import { assertNoCommits, commitSummary, headCommit } from "./commit.service";
 import { buildManifest } from "./feed.service";
 import { deleteManifestSignature, findManifestSignature, manifestSignatureStatus, putManifestSignature } from "./manifest-signature.service";
 import {
@@ -23,7 +25,7 @@ import {
   uploadAsset,
   yankVersion,
 } from "./release.service";
-import { commandOverrideError, idError } from "./validate";
+import { commandOverrideError, idError, runtimeSpecError } from "./validate";
 import { assetSchema, assetView, auditMeta, channelSchema, channelView, check, manifestSignatureSchema, versionSchema, versionView } from "./wire";
 
 /** The single-request upload, as `registryRoutes` needs it to mount `discardUnreadBody`. */
@@ -68,12 +70,45 @@ export function overrideSchema(kind: "run" | "exec") {
   }).optional();
 }
 
+// An asset's runtime as flat fields (`runtime`, `runtime_version`, …), the
+// way both upload paths take it. An empty field is the field left out.
+export const runtimeFieldsSchema = z.object({
+  runtime: z.string().max(128).optional(),
+  runtime_version: z.string().max(256).optional(),
+  runtime_version_check: z.string().max(256).optional(),
+  runtime_download: z.string().max(2048).optional(),
+  runtime_sha256: z.string().max(64).optional(),
+}).superRefine((fields, ctx) => {
+  const spec = runtimeOf(fields);
+  if (!spec) {
+    if (fields.runtime_version || fields.runtime_version_check || fields.runtime_download || fields.runtime_sha256)
+      ctx.addIssue({ code: "custom", path: ["runtime"], message: "the runtime fields need `runtime`" });
+    return;
+  }
+  const error = runtimeSpecError(spec);
+  if (error !== undefined)
+    ctx.addIssue({ code: "custom", path: ["runtime"], message: error });
+});
+
+/** The runtime named by the flat fields, or null. */
+export function runtimeOf(fields: z.input<typeof runtimeFieldsSchema>): RuntimeSpec | null {
+  if (!fields.runtime)
+    return null;
+  return {
+    runtime: fields.runtime,
+    ...(fields.runtime_version && { version: fields.runtime_version }),
+    ...(fields.runtime_version_check && { version_check: fields.runtime_version_check }),
+    ...(fields.runtime_download && { download: fields.runtime_download }),
+    ...(fields.runtime_sha256 && { sha256: fields.runtime_sha256 }),
+  };
+}
+
 const uploadQuerySchema = z.object({
   sha256: sha256Schema,
   sig: z.string().max(512).optional(),
   run: overrideSchema("run"),
   exec: overrideSchema("exec"),
-});
+}).and(runtimeFieldsSchema);
 
 const packageParamSchema = z.object({ ns: z.string(), pkg: z.string() });
 export const versionParamSchema = packageParamSchema.extend({ ver: z.string() });
@@ -191,6 +226,9 @@ export function registryReleaseRoutes() {
       const access = await requirePackageAccess(c, "write");
       const { ver } = c.req.valid("param");
       const draftOnly = (await getVersion(db, access.package.id, ver)).status === "draft";
+      const head = await headCommit(db, access.package.id);
+      if (head && commitSummary(head).versions.includes(ver))
+        throw new AppError(`The head commit has version ${ver}; drop it with \`lode-cli yank\` first`, 409, "VERSION_IN_COMMIT");
       if (!draftOnly) {
         if (access.tokenId !== null)
           throw new ForbiddenError("A published or yanked version can only be deleted from a signed-in session");
@@ -213,6 +251,7 @@ export function registryReleaseRoutes() {
         `The raw request body becomes the asset \`:asset\` of a draft version; it is streamed into storage, never buffered. \`Content-Length\` is required (411 without) and may be at most ${SINGLE_REQUEST_MAX_BYTES} bytes (95 MiB; 413 above — use the multipart upload routes for larger assets).`,
         "`sha256` is the lowercase hex digest of the body; bytes that do not match it or the declared length are refused with 422 `DIGEST_MISMATCH` and nothing is stored.",
         "`sig` is the publisher's `lode.artifact.v2` signature as base64url (or percent-encoded standard base64). It must verify under one of the package's active signing keys, over the package slug as the app, the asset name, version, `sha256`, `run` and `exec` as given here; otherwise 400 `INVALID_SIGNATURE`. A package with `require_signature` refuses an upload without it. An empty `sig`, `run` or `exec` counts as absent.",
+        "`runtime`, with the optional `runtime_version`, `runtime_version_check`, `runtime_download` and `runtime_sha256`, is the runtime lode uses for this version instead of the host's `[runtime]`. The signature then is `lode.artifact.v3`, which appends `runtime`, `runtime_version`, `runtime_version_check` and `runtime_sha256` (not the download URL). A `runtime_download` needs its `runtime_sha256`.",
         "The asset size limit and the owner's storage quota are checked against `Content-Length` before any byte is read. Uploading an asset name again replaces it while the version is a draft; a published or yanked version answers 409. Needs `write` access.",
       ].join("\n\n"),
       security: SECURITY.session,
@@ -251,6 +290,7 @@ export function registryReleaseRoutes() {
         sig: query.sig?.trim() || null,
         run: query.run || null,
         exec: query.exec || null,
+        runtime: runtimeOf(query),
         body,
       });
       await auditRelease(c, access, "registry.asset.uploaded", { type: "registry_asset", id: asset.id, name: `@${ver}/${asset.name}` }, {
@@ -297,6 +337,7 @@ export function registryReleaseRoutes() {
     validator("json", z.object({ channel: channelNameSchema })),
     async (c) => {
       const access = await requirePackageAccess(c, "write");
+      await assertNoCommits(c.get("db"), access.package.id, "publish with `lode-cli publish --key`");
       const { channel } = c.req.valid("json");
       const version = await publishVersion(c.get("db"), access.package.id, c.req.valid("param").ver, channel);
       await auditRelease(c, access, "registry.version.published", { type: "registry_version", id: version.id, name: `@${version.version}` }, { channel });
@@ -317,6 +358,7 @@ export function registryReleaseRoutes() {
     validator("json", z.object({ version: z.string() })),
     async (c) => {
       const access = await requirePackageAccess(c, "write");
+      await assertNoCommits(c.get("db"), access.package.id, "move the channel with `lode-cli channel`");
       const pointer = await setChannel(c.get("db"), access.package.id, c.req.valid("param").channel, c.req.valid("json").version);
       await auditRelease(c, access, "registry.channel.updated", { type: "registry_channel", id: `${access.package.id}/${pointer.name}`, name: `#${pointer.name}` }, { version: pointer.version });
       return c.json({ success: true, data: channelView(pointer) });
@@ -328,14 +370,17 @@ export function registryReleaseRoutes() {
     describeRoute({
       tags: [TAGS.Registry],
       summary: "Yank a published version",
-      description: "Hides the version from the manifest without deleting anything. Refused with 409 while a channel points at it: move the pointer first. Needs `admin` access.",
+      description: "Hides the version from the manifest without deleting anything. Refused with 409 while a channel points at it: move the pointer first. On a package with manifest commits it is an emergency stop instead: the signed manifest still lists the version, but its assets are no longer served until a commit drops it or the version is restored; a channel may point at it. Needs `admin` access.",
       security: SECURITY.session,
       responses: { ...jsonOk(versionSchema), ...errors(401, 403, 404, 409) },
     }),
     validator("param", versionParamSchema),
     async (c) => {
       const access = await requirePackageAccess(c, "admin");
-      const version = await yankVersion(c.get("db"), access.package.id, c.req.valid("param").ver);
+      // On a commit package a yank is an emergency stop: the signed manifest
+      // keeps the version, its downloads are refused until a commit drops it.
+      const stop = (await headCommit(c.get("db"), access.package.id)) !== undefined;
+      const version = await yankVersion(c.get("db"), access.package.id, c.req.valid("param").ver, { ignoreChannels: stop });
       await auditRelease(c, access, "registry.version.yanked", { type: "registry_version", id: version.id, name: `@${version.version}` });
       return c.json({ success: true, data: versionView(version) });
     },
@@ -392,7 +437,7 @@ export function registryReleaseRoutes() {
       tags: [TAGS.Registry],
       summary: "Sign the package's manifest",
       description: [
-        "Stores the publisher's signature over the manifest the registry generates, replacing an earlier one: the `key_id`, `sig` and, when an expiry was stamped, `expires` and `expires_sig` that `lode-cli manifest-sign` writes into a downloaded `manifest.json`. The manifest then carries them, which is what a host with `[trust].require_manifest = \"signed\"` or `\"fresh\"` needs.",
+        "Stores the publisher's signature over the manifest the registry generates, replacing an earlier one: the `key_id`, `sig` and, when an expiry was stamped, `expires` and `expires_sig` that `lode-cli manifest-sign` writes into a downloaded `manifest.json`. The manifest then carries them, which is what a host with `[trust].require_manifest = \"signed\"` needs.",
         "`key_id` must be an active signing key of the package (400 `UNKNOWN_KEY`), an `expires` must lie in the future (400 `MANIFEST_EXPIRED`), and both signatures must verify over the manifest as it is now (409 `MANIFEST_CHANGED`: download it again and re-sign).",
         "The signature is served only while the manifest's catalog stays the same. Every publish, channel move, yank or restore makes it stale and the manifest unsigned until it is signed again. Needs `write` access.",
       ].join("\n\n"),
@@ -403,6 +448,7 @@ export function registryReleaseRoutes() {
     validator("json", manifestSignatureBodySchema),
     async (c) => {
       const access = await requirePackageAccess(c, "write");
+      await assertNoCommits(c.get("db"), access.package.id, "its commits carry their own signatures");
       const body = c.req.valid("json");
       const stored = await putManifestSignature(c.get("db"), access.package, await currentManifest(c, access), {
         keyId: body.key_id,
