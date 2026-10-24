@@ -145,9 +145,33 @@ describe("listAuditEvents", () => {
     // Seed three events spanning two actors / two actions / two timestamps.
     const base = Date.parse("2026-05-01T00:00:00Z");
     const rows = [
-      { id: "e_1", actorId: "u_1", action: "issues.create", resourceType: "issue", resourceId: "t_1", result: "success", createdAt: new Date(base).toISOString() },
-      { id: "e_2", actorId: "u_2", action: "issues.create", resourceType: "issue", resourceId: "t_2", result: "failure", createdAt: new Date(base + 1000).toISOString() },
-      { id: "e_3", actorId: "u_1", action: "auth.login", resourceType: "session", resourceId: "s_1", result: "success", createdAt: new Date(base + 2000).toISOString() },
+      {
+        id: "e_1",
+        actorId: "u_1",
+        action: "issues.create",
+        resourceType: "issue",
+        resourceId: "t_1",
+        result: "success",
+        createdAt: new Date(base).toISOString(),
+      },
+      {
+        id: "e_2",
+        actorId: "u_2",
+        action: "issues.create",
+        resourceType: "issue",
+        resourceId: "t_2",
+        result: "failure",
+        createdAt: new Date(base + 1000).toISOString(),
+      },
+      {
+        id: "e_3",
+        actorId: "u_1",
+        action: "auth.login",
+        resourceType: "session",
+        resourceId: "s_1",
+        result: "success",
+        createdAt: new Date(base + 2000).toISOString(),
+      },
     ];
     for (const r of rows) {
       await db.insert(auditEvents).values({
@@ -238,7 +262,9 @@ describe("auditMeta", () => {
       c.set("config", config as Config);
       return c.json(auditMeta(c));
     });
-    const res = await app.request("/", { headers }, { IP: { address: "10.0.0.2" } });
+    const res = await app.request("/", { headers }, {
+      IP: { address: "10.0.0.2" },
+    });
     return await res.json();
   }
 

@@ -9,7 +9,9 @@ export const groups = sqliteTable("groups", {
   // admins; `idp` groups are created and kept in step by the identity
   // provider's groups claim at each login (OAUTH_GROUPS_CLAIM), and refuse
   // manual membership edits and renames.
-  source: text("source", { enum: ["local", "idp"] }).notNull().default("local"),
+  source: text("source", {
+    enum: ["local", "idp"],
+  }).notNull().default("local"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()).$onUpdateFn(() => new Date().toISOString()),
 }, t => [

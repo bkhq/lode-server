@@ -66,7 +66,10 @@ function loadPendingKey(): string | null {
 
 function savePendingKey(key: string): void {
   try {
-    const bundle: PendingKeyBundle = { key, savedAt: Date.now() };
+    const bundle: PendingKeyBundle = {
+      key,
+      savedAt: Date.now(),
+    };
     sessionStorage.setItem(PENDING_KEY_STORAGE, JSON.stringify(bundle));
   }
   catch {
@@ -120,7 +123,11 @@ function SetupPage() {
           }
         }
         if (initialized) {
-          void navigate({ to: status === "locked" ? "/unlock" : "/" });
+          void navigate({
+            to: status === "locked"
+              ? "/unlock"
+              : "/",
+          });
         }
         setChecking(false);
       })
@@ -157,12 +164,19 @@ function SetupPage() {
       setStep(2);
     }
     catch (err) {
-      setError(err instanceof Error ? err.message : t("encryption:setup.initFailed"));
+      setError(err instanceof Error
+        ? err.message
+        : t("encryption:setup.initFailed"));
     }
     finally {
       setLoading(false);
     }
-  }, [bootstrapToken, password, passwordValid, t]);
+  }, [
+    bootstrapToken,
+    password,
+    passwordValid,
+    t,
+  ]);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(backupKeyRef.current).then(() => {
@@ -206,7 +220,10 @@ function SetupPage() {
     setPasswordConfirm("");
     clearPendingKey();
     navigator.clipboard.writeText("").catch(() => {});
-    void navigate({ to: "/login", search: { redirect: undefined } });
+    void navigate({
+      to: "/login",
+      search: { redirect: undefined },
+    });
   }, [navigate]);
 
   const handleShowKey = useCallback(() => {
@@ -239,7 +256,9 @@ function SetupPage() {
           {[1, 2, 3].map(s => (
             <div
               key={s}
-              className={`size-2 rounded-full transition-colors ${s <= step ? "bg-primary" : "bg-muted-foreground/30"}`}
+              className={`size-2 rounded-full transition-colors ${s <= step
+                ? "bg-primary"
+                : "bg-muted-foreground/30"}`}
             />
           ))}
         </div>
@@ -309,7 +328,9 @@ function SetupPage() {
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
             <Button onClick={() => void handleDerive()} disabled={!passwordValid || loading} className="w-full">
-              {loading ? t("encryption:setup.generating") : t("encryption:setup.step1.button")}
+              {loading
+                ? t("encryption:setup.generating")
+                : t("encryption:setup.step1.button")}
             </Button>
           </div>
         )}
@@ -381,7 +402,9 @@ function SetupPage() {
                 checked={confirmed}
                 onChange={e => setConfirmed(e.target.checked)}
                 disabled={!hasExported}
-                aria-describedby={!hasExported ? "setup-export-required" : undefined}
+                aria-describedby={!hasExported
+                  ? "setup-export-required"
+                  : undefined}
                 className="size-4 rounded border"
               />
               <span>{t("encryption:setup.step2.confirm")}</span>

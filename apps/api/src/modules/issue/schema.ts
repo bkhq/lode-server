@@ -20,6 +20,8 @@ import { items } from "@/modules/item/schema";
 export const issueDetails = sqliteTable("issue_details", {
   itemId: text("item_id").primaryKey().references(() => items.id, { onDelete: "cascade" }),
   description: text("description"),
-  priority: text("priority", { enum: ["low", "medium", "high", "urgent"] }).notNull().default("medium"),
+  priority: text("priority", {
+    enum: ["low", "medium", "high", "urgent"],
+  }).notNull().default("medium"),
   dueDate: text("due_date"),
 });

@@ -80,7 +80,9 @@ export function parseTags(tagsJson: string | null | undefined): string[] {
     return [];
   try {
     const parsed = JSON.parse(tagsJson);
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed)
+      ? parsed
+      : [];
   }
   catch {
     return [];
@@ -232,7 +234,9 @@ export function useCreateDocument(): UseMutationResult<Document, Error, CreateDo
       return res.data;
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: documentsKeys.tree() });
+      void qc.invalidateQueries({
+        queryKey: documentsKeys.tree(),
+      });
     },
   });
 }
@@ -261,16 +265,30 @@ export function useUpdateDocument(): UseMutationResult<Document, Error, UpdateDo
       return patchDocument(id, payload);
     },
     onMutate: async (input) => {
-      await qc.cancelQueries({ queryKey: documentsKeys.detail(input.id) });
+      await qc.cancelQueries({
+        queryKey: documentsKeys.detail(input.id),
+      });
       const previous = qc.getQueryData<Document>(documentsKeys.detail(input.id));
       if (previous) {
         qc.setQueryData<Document>(documentsKeys.detail(input.id), {
           ...previous,
-          ...(input.title !== undefined ? { title: input.title } : {}),
-          ...(input.content !== undefined ? { content: input.content } : {}),
-          ...(input.tags !== undefined ? { tags: JSON.stringify(input.tags) } : {}),
-          ...(input.parentId !== undefined ? { parentId: input.parentId } : {}),
-          ...(input.commentsLocked !== undefined ? { commentsLocked: input.commentsLocked } : {}),
+          ...(input.title !== undefined
+            ? { title: input.title }
+            : {}),
+          ...(input.content !== undefined
+            ? { content: input.content }
+            : {}),
+          ...(input.tags !== undefined
+            ? {
+                tags: JSON.stringify(input.tags),
+              }
+            : {}),
+          ...(input.parentId !== undefined
+            ? { parentId: input.parentId }
+            : {}),
+          ...(input.commentsLocked !== undefined
+            ? { commentsLocked: input.commentsLocked }
+            : {}),
         });
       }
       return { previous };
@@ -287,8 +305,12 @@ export function useUpdateDocument(): UseMutationResult<Document, Error, UpdateDo
     },
     onSuccess: (doc) => {
       qc.setQueryData(documentsKeys.detail(doc.id), doc);
-      void qc.invalidateQueries({ queryKey: documentsKeys.tree() });
-      void qc.invalidateQueries({ queryKey: documentsKeys.tags() });
+      void qc.invalidateQueries({
+        queryKey: documentsKeys.tree(),
+      });
+      void qc.invalidateQueries({
+        queryKey: documentsKeys.tags(),
+      });
     },
   });
 }
@@ -300,8 +322,12 @@ export function useDeleteDocument(): UseMutationResult<void, Error, string> {
       await rawJson<ApiEnvelope<null>>(`/documents/${id}`, { method: "DELETE" });
     },
     onSuccess: (_, id) => {
-      qc.removeQueries({ queryKey: documentsKeys.detail(id) });
-      void qc.invalidateQueries({ queryKey: documentsKeys.tree() });
+      qc.removeQueries({
+        queryKey: documentsKeys.detail(id),
+      });
+      void qc.invalidateQueries({
+        queryKey: documentsKeys.tree(),
+      });
     },
   });
 }
@@ -318,7 +344,9 @@ export function useMoveDocument(): UseMutationResult<Document, Error, { readonly
     },
     onSuccess: (doc) => {
       qc.setQueryData(documentsKeys.detail(doc.id), doc);
-      void qc.invalidateQueries({ queryKey: documentsKeys.tree() });
+      void qc.invalidateQueries({
+        queryKey: documentsKeys.tree(),
+      });
     },
   });
 }

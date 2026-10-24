@@ -77,16 +77,31 @@ export const priorityVariants: Record<string, "default" | "outline" | "secondary
 };
 
 export function statusKey(s: string) {
-  const map: Record<string, string> = { open: "Open", in_progress: "InProgress", done: "Done", cancelled: "Cancelled" };
+  const map: Record<string, string> = {
+    open: "Open",
+    in_progress: "InProgress",
+    done: "Done",
+    cancelled: "Cancelled",
+  };
   return map[s] ?? s;
 }
 
 export function priorityKey(p: string) {
-  const map: Record<string, string> = { low: "Low", medium: "Medium", high: "High", urgent: "Urgent" };
+  const map: Record<string, string> = {
+    low: "Low",
+    medium: "Medium",
+    high: "High",
+    urgent: "Urgent",
+  };
   return map[p] ?? p;
 }
 
-const STATUSES = ["open", "in_progress", "done", "cancelled"] as const;
+const STATUSES = [
+  "open",
+  "in_progress",
+  "done",
+  "cancelled",
+] as const;
 const PRIORITIES = ["low", "medium", "high", "urgent"] as const;
 
 // ── IssuePanel ──
@@ -239,7 +254,9 @@ export function IssuePanel({ issueId, variant, onClose, onMaximize, onMutated }:
     const next = descDraft;
     const current = issue.description ?? "";
     if (next !== current) {
-      void patch(next.trim() ? { description: next } : { description: null });
+      void patch(next.trim()
+        ? { description: next }
+        : { description: null });
     }
     setEditingDesc(false);
   };
@@ -316,7 +333,9 @@ export function IssuePanel({ issueId, variant, onClose, onMaximize, onMutated }:
                 <h1
                   className={`truncate text-base font-semibold tracking-tight ${permissions.canEditAll ? "cursor-pointer hover:text-primary" : ""}`}
                   onClick={() => permissions.canEditAll && setEditingTitle(true)}
-                  title={permissions.canEditAll ? t("clickToEditTitle") : issue.title}
+                  title={permissions.canEditAll
+                    ? t("clickToEditTitle")
+                    : issue.title}
                 >
                   {issue.title}
                 </h1>
@@ -413,7 +432,11 @@ export function IssuePanel({ issueId, variant, onClose, onMaximize, onMutated }:
                     onValueChange={(v) => {
                       if (v === null)
                         return;
-                      void patch({ assigneeId: v === "__none__" ? null : v });
+                      void patch({
+                        assigneeId: v === "__none__"
+                          ? null
+                          : v,
+                      });
                     }}
                   >
                     <SelectTrigger className="h-auto border-0 bg-transparent p-0 shadow-none gap-1 text-xs text-foreground hover:text-primary [&>svg:last-child]:size-3">
@@ -435,7 +458,9 @@ export function IssuePanel({ issueId, variant, onClose, onMaximize, onMutated }:
                 )
               : (
                   <span className="text-foreground">
-                    {issue.assigneeId ? displayName(userMap, issue.assigneeId) : t("unassigned")}
+                    {issue.assigneeId
+                      ? displayName(userMap, issue.assigneeId)
+                      : t("unassigned")}
                   </span>
                 )}
           </span>
@@ -485,7 +510,9 @@ export function IssuePanel({ issueId, variant, onClose, onMaximize, onMutated }:
                 title={t("attachments.upload")}
               >
                 <Paperclip className="size-3" />
-                {upload.isPending ? t("attachments.uploading") : t("attachments.upload")}
+                {upload.isPending
+                  ? t("attachments.uploading")
+                  : t("attachments.upload")}
               </button>
             )}
             {permissions.canEditAll && !editingDesc && (

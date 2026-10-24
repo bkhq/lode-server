@@ -176,7 +176,9 @@ describe("uploadAndReference", () => {
 
   test("rejects oversized files", async () => {
     const userId = await seedUser();
-    const big = new File(["x".repeat(11 * 1024 * 1024)], "huge.txt", { type: "text/plain" });
+    const big = new File([
+      "x".repeat(11 * 1024 * 1024),
+    ], "huge.txt", { type: "text/plain" });
     await expect(uploadAndReference(db, testConfig, {
       file: big,
       ownerType: "item_attachment",

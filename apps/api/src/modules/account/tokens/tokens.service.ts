@@ -42,7 +42,11 @@ function toRecord(row: typeof apiTokens.$inferSelect): ApiTokenRecord {
 
 async function newSecret(): Promise<{ token: string; prefix: string; tokenHash: string }> {
   const token = `${TOKEN_PREFIX}${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url")}`;
-  return { token, prefix: token.slice(0, TOKEN_PREFIX.length + 6), tokenHash: await sha256Hex(token) };
+  return {
+    token,
+    prefix: token.slice(0, TOKEN_PREFIX.length + 6),
+    tokenHash: await sha256Hex(token),
+  };
 }
 
 /** Create a token for `userId`. The returned `token` is the only copy of the secret. */
@@ -51,7 +55,9 @@ export async function createApiToken(
   userId: string,
   input: { readonly name: string; readonly scopes: readonly string[]; readonly expiresAt: string | null },
 ): Promise<{ token: string; record: ApiTokenRecord }> {
-  const held = await db.select({ n: count() }).from(apiTokens).where(eq(apiTokens.userId, userId)).get();
+  const held = await db.select({
+    n: count(),
+  }).from(apiTokens).where(eq(apiTokens.userId, userId)).get();
   if ((held?.n ?? 0) >= MAX_TOKENS_PER_USER)
     throw new AppError(`A user can hold at most ${MAX_TOKENS_PER_USER} API tokens`, 409, "TOKEN_LIMIT");
 
@@ -63,12 +69,17 @@ export async function createApiToken(
     name: input.name,
     prefix,
     tokenHash,
-    scopes: JSON.stringify([...new Set(input.scopes)]),
+    scopes: JSON.stringify([
+      ...new Set(input.scopes),
+    ]),
     expiresAt: input.expiresAt,
     createdAt: new Date().toISOString(),
   }).run();
   const row = (await db.select().from(apiTokens).where(eq(apiTokens.id, id)).get())!;
-  return { token, record: toRecord(row) };
+  return {
+    token,
+    record: toRecord(row),
+  };
 }
 
 export async function listApiTokens(db: AppDatabase, userId: string): Promise<ApiTokenRecord[]> {
@@ -94,10 +105,18 @@ export async function updateApiToken(
   const patch: Partial<typeof apiTokens.$inferInsert> = {};
   if (input.name !== undefined)
     patch.name = input.name;
-  if (input.scopes !== undefined)
-    patch.scopes = JSON.stringify([...new Set(input.scopes)]);
+  if (input.scopes !== undefined) {
+    patch.scopes = JSON.stringify([
+      ...new Set(input.scopes),
+    ]);
+  }
   const [updated] = await db.update(apiTokens).set(patch).where(mine).returning();
-  return updated ? { before: toRecord(row), after: toRecord(updated) } : undefined;
+  return updated
+    ? {
+        before: toRecord(row),
+        after: toRecord(updated),
+      }
+    : undefined;
 }
 
 /**
@@ -114,10 +133,20 @@ export async function rotateApiToken(
 ): Promise<{ token: string; record: ApiTokenRecord } | undefined> {
   const { token, prefix, tokenHash } = await newSecret();
   const [row] = await db.update(apiTokens)
-    .set({ prefix, tokenHash, expiresAt, lastUsedAt: null })
+    .set({
+      prefix,
+      tokenHash,
+      expiresAt,
+      lastUsedAt: null,
+    })
     .where(and(eq(apiTokens.id, id), eq(apiTokens.userId, userId)))
     .returning();
-  return row ? { token, record: toRecord(row) } : undefined;
+  return row
+    ? {
+        token,
+        record: toRecord(row),
+      }
+    : undefined;
 }
 
 /** Delete one of `userId`'s tokens, returning it; undefined when there is no such token of theirs. */
@@ -147,7 +176,12 @@ export async function resolveApiToken(db: AppDatabase, token: string): Promise<{
   if (row.token.expiresAt !== null && Date.parse(row.token.expiresAt) <= now)
     return undefined;
   if (row.token.lastUsedAt === null || now - Date.parse(row.token.lastUsedAt) >= LAST_USED_RESOLUTION_MS) {
-    await db.update(apiTokens).set({ lastUsedAt: new Date(now).toISOString() }).where(eq(apiTokens.id, row.token.id)).run();
+    await db.update(apiTokens).set({
+      lastUsedAt: new Date(now).toISOString(),
+    }).where(eq(apiTokens.id, row.token.id)).run();
   }
-  return { user: row.user, scopes: JSON.parse(row.token.scopes) as string[] };
+  return {
+    user: row.user,
+    scopes: JSON.parse(row.token.scopes) as string[],
+  };
 }

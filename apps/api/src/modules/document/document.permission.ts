@@ -95,7 +95,9 @@ export const documentAccess = defineResource({
         .from(items)
         .where(eq(items.id, itemId))
         .get();
-      return row ? { name: row.title, type: "document", url: `/documents/${row.shortId}` } : null;
+      return row
+        ? { name: row.title, type: "document", url: `/documents/${row.shortId}` }
+        : null;
     },
     canGrant: (ctx, params) => isAdminOrOwner(ctx, params.objectId),
     canRevoke: (ctx, params) => isAdminOrOwner(ctx, params.objectId),

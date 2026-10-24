@@ -36,7 +36,17 @@ afterEach(() => {
 
 async function seedUser(id: string): Promise<string> {
   const now = new Date().toISOString();
-  await db.insert(users).values({ id, oauthSub: `sub-${id}`, username: id, name: id, email: `${id}@t.io`, role: "user", status: "active", createdAt: now, updatedAt: now }).run();
+  await db.insert(users).values({
+    id,
+    oauthSub: `sub-${id}`,
+    username: id,
+    name: id,
+    email: `${id}@t.io`,
+    role: "user",
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  }).run();
   return id;
 }
 
@@ -52,11 +62,16 @@ async function memberNames(userId: string): Promise<string[]> {
 
 describe("readGroupsClaim", () => {
   test("reads a string array from userinfo", () => {
-    expect(readGroupsClaim("groups", { groups: ["eng", "ops"] }, undefined)).toEqual(["eng", "ops"]);
+    expect(readGroupsClaim("groups", {
+      groups: ["eng", "ops"],
+    }, undefined)).toEqual(["eng", "ops"]);
   });
 
   test("falls back to the id_token when userinfo lacks the claim", () => {
-    const payload = Buffer.from(JSON.stringify({ sub: "s", roles: ["eng"] })).toString("base64url");
+    const payload = Buffer.from(JSON.stringify({
+      sub: "s",
+      roles: ["eng"],
+    })).toString("base64url");
     expect(readGroupsClaim("roles", {}, `h.${payload}.sig`)).toEqual(["eng"]);
   });
 
@@ -65,7 +80,9 @@ describe("readGroupsClaim", () => {
   });
 
   test("trims, drops blanks and non-strings, and de-duplicates", () => {
-    expect(readGroupsClaim("groups", { groups: [" eng ", "", 7, "eng", null, "ops"] }, undefined)).toEqual(["eng", "ops"]);
+    expect(readGroupsClaim("groups", {
+      groups: [" eng ", "", 7, "eng", null, "ops"],
+    }, undefined)).toEqual(["eng", "ops"]);
   });
 
   test("returns undefined when the claim is absent, so a missing scope does not wipe memberships", () => {
@@ -131,20 +148,42 @@ describe("syncIdpGroups", () => {
 describe("applyIdpGroups — the login hook", () => {
   test("does nothing when OAUTH_GROUPS_CLAIM is unset", async () => {
     const u = await seedUser("u1");
-    await applyIdpGroups(db, { claim: undefined, userId: u, userInfo: { groups: ["eng"] }, idToken: undefined, logger });
+    await applyIdpGroups(db, {
+      claim: undefined,
+      userId: u,
+      userInfo: {
+        groups: ["eng"],
+      },
+      idToken: undefined,
+      logger,
+    });
     expect(await memberNames(u)).toEqual([]);
   });
 
   test("syncs from the configured claim", async () => {
     const u = await seedUser("u1");
-    await applyIdpGroups(db, { claim: "groups", userId: u, userInfo: { groups: ["eng"] }, idToken: undefined, logger });
+    await applyIdpGroups(db, {
+      claim: "groups",
+      userId: u,
+      userInfo: {
+        groups: ["eng"],
+      },
+      idToken: undefined,
+      logger,
+    });
     expect(await memberNames(u)).toEqual(["eng"]);
   });
 
   test("keeps memberships and warns when the configured claim is missing", async () => {
     const u = await seedUser("u1");
     await syncIdpGroups(db, u, ["eng"], logger);
-    await applyIdpGroups(db, { claim: "groups", userId: u, userInfo: {}, idToken: undefined, logger });
+    await applyIdpGroups(db, {
+      claim: "groups",
+      userId: u,
+      userInfo: {},
+      idToken: undefined,
+      logger,
+    });
     expect(await memberNames(u)).toEqual(["eng"]);
     expect(warnings.length).toBe(1);
   });

@@ -142,7 +142,11 @@ async function sessionCookieFor(userId: string): Promise<string> {
 
 /** Build a policy context for service-level test calls. */
 function policyCtx(actorId: string) {
-  return { db, logger: noopLogger, actor: { id: actorId, type: "user" } };
+  return {
+    db,
+    logger: noopLogger,
+    actor: { id: actorId, type: "user" },
+  };
 }
 
 beforeEach(async () => {
@@ -186,8 +190,16 @@ describe("createDocument", () => {
 
   test("listDocuments matches % and _ in the title and tag search literally", async () => {
     const userId = await seedUser("Alice");
-    await createDocument(db, { title: "Q3 at 50%", tags: ["fy_2026"], creatorId: userId });
-    await createDocument(db, { title: "Q3 at 500", tags: ["fyx2026"], creatorId: userId });
+    await createDocument(db, {
+      title: "Q3 at 50%",
+      tags: ["fy_2026"],
+      creatorId: userId,
+    });
+    await createDocument(db, {
+      title: "Q3 at 500",
+      tags: ["fyx2026"],
+      creatorId: userId,
+    });
     expect((await listDocuments(db, { q: "50%" })).data.map(d => d.title)).toEqual(["Q3 at 50%"]);
     expect((await listDocuments(db, { tag: "fy_2026" })).data.map(d => d.title)).toEqual(["Q3 at 50%"]);
   });
@@ -414,8 +426,18 @@ describe("listDocumentSharesWithInheritance", () => {
     const carol = await seedUser("Carol");
     const parent = await createDocument(db, { title: "Parent", creatorId: alice });
     const child = await createDocument(db, { title: "Child", creatorId: alice, parentId: parent.id });
-    await addDocumentShare(policyCtx(alice), { documentId: parent.id, targetType: "user", targetId: bob, permission: "viewer" });
-    await addDocumentShare(policyCtx(alice), { documentId: child.id, targetType: "user", targetId: carol, permission: "editor" });
+    await addDocumentShare(policyCtx(alice), {
+      documentId: parent.id,
+      targetType: "user",
+      targetId: bob,
+      permission: "viewer",
+    });
+    await addDocumentShare(policyCtx(alice), {
+      documentId: child.id,
+      targetType: "user",
+      targetId: carol,
+      permission: "editor",
+    });
 
     const list = await listDocumentSharesWithInheritance(db, child.id);
     const selfRow = list.find(r => r.targetId === carol);
@@ -476,7 +498,12 @@ describe("getDocumentTreeForUser", () => {
     const child = await createDocument(db, { title: "C", creatorId: alice, parentId: parent.id });
     const grand = await createDocument(db, { title: "G", creatorId: alice, parentId: child.id });
     await createDocument(db, { title: "unrelated", creatorId: alice });
-    await addDocumentShare(policyCtx(alice), { documentId: parent.id, targetType: "user", targetId: bob, permission: "viewer" });
+    await addDocumentShare(policyCtx(alice), {
+      documentId: parent.id,
+      targetType: "user",
+      targetId: bob,
+      permission: "viewer",
+    });
 
     const tree = await getDocumentTreeForUser(db, { id: bob, role: "user" });
     expect(tree.map(n => n.id).sort()).toEqual([parent.id, child.id, grand.id].sort());

@@ -45,7 +45,9 @@ async function waitForReady(): Promise<void> {
   const deadline = Date.now() + 20_000;
   while (Date.now() < deadline) {
     try {
-      const res = await fetch(`${BASE}/api/health`, { signal: AbortSignal.timeout(1500) });
+      const res = await fetch(`${BASE}/api/health`, {
+        signal: AbortSignal.timeout(1500),
+      });
       if (res.status === 200)
         return;
     }
@@ -142,7 +144,9 @@ describe("/api/backup round-trip (export → import)", () => {
 
     const exportRes = await admin.raw("/api/backup/export", {
       method: "POST",
-      body: { modules: ["users", "settings"] },
+      body: {
+        modules: ["users", "settings"],
+      },
     });
     expect(exportRes.status).toBe(200);
     const dump = await exportRes.json() as {
@@ -162,7 +166,9 @@ describe("/api/backup round-trip (export → import)", () => {
     // Replay the dump back into the same DB. `includeUsers=true` is
     // required so the importing admin's row survives — otherwise the
     // service refuses with RESTORE_FK_MISSING_USERS / RESTORE_WOULD_LOCK_OUT.
-    const blob = new Blob([JSON.stringify(dump)], { type: "application/json" });
+    const blob = new Blob([
+      JSON.stringify(dump),
+    ], { type: "application/json" });
     const fd = new FormData();
     fd.append("file", blob, "backup.json");
     fd.append("includeUsers", "true");

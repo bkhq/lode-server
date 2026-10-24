@@ -14,7 +14,14 @@ import { nanoid } from "@/shared/lib/id";
 import { errorHandler } from "@/shared/middleware/error-handler";
 import { protectedRoutes } from "./protected";
 
-const noop = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
+const noop = {
+  debug() {},
+  info() {},
+  warn() {},
+  error() {},
+  fatal() {},
+  flush() {},
+} as unknown as Logger;
 
 let db: AppDatabase;
 let dbPath: string;
@@ -39,7 +46,9 @@ function buildApp(): Hono<AppEnv> {
     c.set("db", db);
     c.set("config", { NODE_ENV: "test", TRUST_PROXY: false, BASE_PATH: "" } as unknown as Config);
     c.set("logger", noop);
-    c.set("encryption", { isSystemLocked: () => false } as unknown as AppEnv["Variables"]["encryption"]);
+    c.set("encryption", {
+      isSystemLocked: () => false,
+    } as unknown as AppEnv["Variables"]["encryption"]);
     await next();
   });
   app.route("/", protectedRoutes());
@@ -50,7 +59,17 @@ function buildApp(): Hono<AppEnv> {
 async function sessionFor(role: "admin" | "user"): Promise<string> {
   const id = nanoid();
   const now = new Date().toISOString();
-  await db.insert(users).values({ id, oauthSub: `sub-${id}`, username: `u-${id}`, name: id, email: `${id}@t.io`, role, status: "active", createdAt: now, updatedAt: now }).run();
+  await db.insert(users).values({
+    id,
+    oauthSub: `sub-${id}`,
+    username: `u-${id}`,
+    name: id,
+    email: `${id}@t.io`,
+    role,
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  }).run();
   return `session_id=${await createSession(db, id, "tok", undefined, 3600)}`;
 }
 
@@ -61,7 +80,9 @@ describe("protectedRoutes composition", () => {
   // routers admin-only.
   test("a non-admin reaches routers mounted after cron (404 from the route, not 403 from cron's guard)", async () => {
     const user = await sessionFor("user");
-    const res = await buildApp().request("/files/nope/metadata?ref=nope", { headers: { Cookie: user } });
+    const res = await buildApp().request("/files/nope/metadata?ref=nope", {
+      headers: { Cookie: user },
+    });
     expect(res.status).toBe(404);
   });
 
@@ -76,7 +97,9 @@ describe("protectedRoutes composition", () => {
       c.set("db", db);
       c.set("config", { NODE_ENV: "test", TRUST_PROXY: false, BASE_PATH: "" } as unknown as Config);
       c.set("logger", noop);
-      c.set("encryption", { isSystemLocked: () => false } as unknown as AppEnv["Variables"]["encryption"]);
+      c.set("encryption", {
+        isSystemLocked: () => false,
+      } as unknown as AppEnv["Variables"]["encryption"]);
       await next();
     });
     app.route("/", protectedRoutes());
@@ -122,7 +145,9 @@ describe("protectedRoutes composition", () => {
         BACKUP_EXPORT_MIN_INTERVAL_SECONDS: 0,
       } as unknown as Config);
       c.set("logger", noop);
-      c.set("encryption", { isSystemLocked: () => false } as unknown as AppEnv["Variables"]["encryption"]);
+      c.set("encryption", {
+        isSystemLocked: () => false,
+      } as unknown as AppEnv["Variables"]["encryption"]);
       await next();
     });
     app.route("/", protectedRoutes());
@@ -138,8 +163,12 @@ describe("protectedRoutes composition", () => {
 
   test("cron itself stays admin-only", async () => {
     const user = await sessionFor("user");
-    expect((await buildApp().request("/cron/actions", { headers: { Cookie: user } })).status).toBe(403);
+    expect((await buildApp().request("/cron/actions", {
+      headers: { Cookie: user },
+    })).status).toBe(403);
     const admin = await sessionFor("admin");
-    expect((await buildApp().request("/cron/actions", { headers: { Cookie: admin } })).status).toBe(200);
+    expect((await buildApp().request("/cron/actions", {
+      headers: { Cookie: admin },
+    })).status).toBe(200);
   });
 });

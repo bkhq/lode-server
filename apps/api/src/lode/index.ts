@@ -134,11 +134,16 @@ export interface PrepareWatcherOptions {
  */
 export function startLodePrepareWatcher(options: PrepareWatcherOptions): LodePrepareWatcher {
   const lode = clientOrNull();
-  if (!lode || !lode.instance)
-    return { stop() {} };
+  if (!lode || !lode.instance) {
+    return {
+      stop() {},
+    };
+  }
 
   const stop = lode.watch({
-    ...(options.intervalMs === undefined ? {} : { intervalMs: options.intervalMs }),
+    ...(options.intervalMs === undefined
+      ? {}
+      : { intervalMs: options.intervalMs }),
     onPrepare: async () => {
       try {
         await options.onPrepare();
@@ -162,7 +167,9 @@ let configBaseline: number | null = null;
 
 export function captureLodeConfigBaseline(): void {
   const lode = clientOrNull();
-  configBaseline = lode ? (lode.read()?.configGeneration ?? null) : null;
+  configBaseline = lode
+    ? (lode.read()?.configGeneration ?? null)
+    : null;
 }
 
 // ─── Read-only summary (/system/version) ───
@@ -172,13 +179,21 @@ function toHistory(entries: State["history"]): LodeHistoryEntry[] {
     return [];
   return entries
     .filter((e): e is LodeHistoryEntry => !!e && typeof e.version === "string" && typeof e.at === "string")
-    .map(e => ({ version: e.version, at: e.at, result: e.result === "bad" ? "bad" : "good" }));
+    .map(e => ({
+      version: e.version,
+      at: e.at,
+      result: e.result === "bad"
+        ? "bad"
+        : "good",
+    }));
 }
 
 export function getLodeSummary(): LodeSummary {
   const supervised = isSupervised();
   const lode = clientOrNull();
-  const state = lode ? lode.read() : null;
+  const state = lode
+    ? lode.read()
+    : null;
 
   const current = state?.current;
   const available = state?.available;
@@ -195,22 +210,46 @@ export function getLodeSummary(): LodeSummary {
     supervised,
     active: !!(supervised && lode?.instance),
     stateAvailable: state !== null,
-    ...(state?.status ? { status: state.status } : {}),
-    ...(current ? { current } : {}),
-    ...(lastGood ? { lastGood } : {}),
-    ...(available ? { available } : {}),
-    ...(state?.channel ? { channel: state.channel } : {}),
-    ...(launched ? { activeVersion: launched } : {}),
-    ...(readinessMode ? { readinessMode } : {}),
-    ready: state?.ready ? true : (state ? false : null),
+    ...(state?.status
+      ? { status: state.status }
+      : {}),
+    ...(current
+      ? { current }
+      : {}),
+    ...(lastGood
+      ? { lastGood }
+      : {}),
+    ...(available
+      ? { available }
+      : {}),
+    ...(state?.channel
+      ? { channel: state.channel }
+      : {}),
+    ...(launched
+      ? { activeVersion: launched }
+      : {}),
+    ...(readinessMode
+      ? { readinessMode }
+      : {}),
+    ready: state?.ready
+      ? true
+      : (state ? false : null),
     hold: state?.hold ?? false,
-    ...(configGeneration !== undefined ? { configGeneration } : {}),
+    ...(configGeneration !== undefined
+      ? { configGeneration }
+      : {}),
     configChanged,
-    ...(state?.lastCheck ? { lastCheckAt: state.lastCheck } : {}),
-    ...(state?.lastError ? { lastError: state.lastError } : {}),
+    ...(state?.lastCheck
+      ? { lastCheckAt: state.lastCheck }
+      : {}),
+    ...(state?.lastError
+      ? { lastError: state.lastError }
+      : {}),
     history: toHistory(state?.history ?? []),
     updateAvailable: !!available && available !== current,
-    ...(lastGood && lastGood !== current ? { rollbackTarget: lastGood } : {}),
+    ...(lastGood && lastGood !== current
+      ? { rollbackTarget: lastGood }
+      : {}),
     config: readLodeConfig(),
   };
 }
@@ -222,7 +261,10 @@ export function requestLodeRestart(): LodeActionResult {
   const lode = clientOrNull();
   if (!lode)
     return { status: "not_active" };
-  return { status: "ok", restartNonce: lode.reboot() };
+  return {
+    status: "ok",
+    restartNonce: lode.reboot(),
+  };
 }
 
 /** Request an up/down-grade by version or "latest". */
@@ -240,7 +282,10 @@ export function requestLodeRollback(version?: string): LodeActionResult {
   if (!lode)
     return { status: "not_active" };
   try {
-    return { status: "ok", target: lode.rollback(version) };
+    return {
+      status: "ok",
+      target: lode.rollback(version),
+    };
   }
   catch {
     // No version given and no last_good recorded yet.

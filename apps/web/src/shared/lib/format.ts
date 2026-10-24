@@ -9,7 +9,9 @@ function lang(): string {
 }
 
 export function formatDate(value: Date | string | number): string {
-  const d = value instanceof Date ? value : new Date(value);
+  const d = value instanceof Date
+    ? value
+    : new Date(value);
   if (Number.isNaN(d.getTime()))
     return "";
   return new Intl.DateTimeFormat(lang(), {
@@ -20,7 +22,9 @@ export function formatDate(value: Date | string | number): string {
 }
 
 export function formatDateTime(value: Date | string | number): string {
-  const d = value instanceof Date ? value : new Date(value);
+  const d = value instanceof Date
+    ? value
+    : new Date(value);
   if (Number.isNaN(d.getTime()))
     return "";
   return new Intl.DateTimeFormat(lang(), {

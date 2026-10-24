@@ -100,7 +100,9 @@ async function verifyPbkdf2(password: string, stored: string): Promise<boolean> 
     // turns "this runtime cannot run PBKDF2 at this cost" into "invalid
     // credentials", which is the least useful thing it could say and sends
     // the operator looking at the password instead of the platform.
-    const reason = err instanceof Error ? err.message : String(err);
+    const reason = err instanceof Error
+      ? err.message
+      : String(err);
     throw new Error(`PBKDF2 verification could not run on this runtime (${iters} iterations): ${reason}`);
   }
   if (computed.length !== expected.length)

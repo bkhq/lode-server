@@ -34,7 +34,9 @@ export const cronJobLogs = sqliteTable("cron_job_logs", {
   startedAt: text("started_at").notNull(),
   finishedAt: text("finished_at"),
   durationMs: integer("duration_ms"),
-  status: text("status", { enum: ["running", "success", "failed"] }).notNull(),
+  status: text("status", {
+    enum: ["running", "success", "failed"],
+  }).notNull(),
   result: text("result"),
   error: text("error"),
 }, t => [

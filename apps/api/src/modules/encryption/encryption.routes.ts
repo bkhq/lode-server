@@ -120,7 +120,10 @@ function appendAuditFallback(dataDir: string, payload: Record<string, unknown>):
   try {
     mkdirSync(dataDir, { recursive: true, mode: 0o700 });
     const file = `${dataDir}/audit-fallback.jsonl`;
-    const line = `${JSON.stringify({ ...payload, ts: new Date().toISOString() })}\n`;
+    const line = `${JSON.stringify({
+      ...payload,
+      ts: new Date().toISOString(),
+    })}\n`;
     // appendFileSync respects the existing file's mode; on first creation we
     // explicitly open with 0o600 to keep audit chatter from any other reader
     // on the same data dir. Subsequent appends inherit those bits.
@@ -274,7 +277,9 @@ export function encryptionPublicRoutes() {
         // 500-ing the user.
         c.header("Retry-After", String(60));
         throw new AppError(
-          err instanceof Error ? err.message : "Too many pending challenges",
+          err instanceof Error
+            ? err.message
+            : "Too many pending challenges",
           429,
           "RATE_LIMITED",
         );
@@ -373,7 +378,9 @@ export function encryptionPublicRoutes() {
       summary: "Unlock the system",
       description: "Submit the re-encrypted DEK to unlock. Only valid while locked. Per-IP rate limited.",
       responses: {
-        ...jsonOk(z.object({ status: z.literal("unlocked") }), "Unlocked"),
+        ...jsonOk(z.object({
+          status: z.literal("unlocked"),
+        }), "Unlocked"),
         ...errors(400, 403, 409, 429, 500),
       },
     }),
@@ -402,12 +409,17 @@ export function encryptionPublicRoutes() {
       try {
         const dekHex = await decryptDekFromChallenge(enc, body.challengeId, body.encryptedDek);
         await unlockSystem(enc, config.DB_PATH, dekHex);
-        return c.json({ success: true, data: { status: "unlocked" } });
+        return c.json({
+          success: true,
+          data: { status: "unlocked" },
+        });
       }
       catch (err) {
         if (err instanceof AppError)
           throw err;
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = err instanceof Error
+          ? err.message
+          : String(err);
         if (msg.includes("Invalid decryption key") || msg.includes("cannot open database")) {
           throw new AppError("Invalid decryption key", 403, "INVALID_KEY");
         }
@@ -465,7 +477,9 @@ export function encryptionProtectedRoutes() {
         // 500-ing the user.
         c.header("Retry-After", String(60));
         throw new AppError(
-          err instanceof Error ? err.message : "Too many pending challenges",
+          err instanceof Error
+            ? err.message
+            : "Too many pending challenges",
           429,
           "RATE_LIMITED",
         );
@@ -580,7 +594,9 @@ export function encryptionProtectedRoutes() {
         // handle may already be closed (rotateDek swaps it mid-flight), so
         // we try the db path first and fall back to a flat-file journal next
         // to the database. Either path is tolerant of the other being broken.
-        const errorMessage = err instanceof Error ? err.message : String(err);
+        const errorMessage = err instanceof Error
+          ? err.message
+          : String(err);
         const failurePayload = {
           actorId: user.id,
           actorName: user.name,

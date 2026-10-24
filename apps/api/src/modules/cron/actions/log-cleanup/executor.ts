@@ -19,7 +19,9 @@ export const execute: ActionExecutor = async (ctx) => {
   for (const job of jobs) {
     if (job.isDeleted) {
       const totalRow = await ctx.db
-        .select({ value: count() })
+        .select({
+          value: count(),
+        })
         .from(cronJobLogs)
         .where(eq(cronJobLogs.jobId, job.id))
         .get();
@@ -44,7 +46,9 @@ export const execute: ActionExecutor = async (ctx) => {
 
     const oldest = keepIds.at(-1)!.id;
     const totalRow = await ctx.db
-      .select({ value: count() })
+      .select({
+        value: count(),
+      })
       .from(cronJobLogs)
       .where(and(eq(cronJobLogs.jobId, job.id), lt(cronJobLogs.id, oldest)))
       .get();

@@ -11,7 +11,13 @@ import {
 } from "./document-tree.utils";
 
 function n(id: string, parentId: string | null, title = id, childCount = 0): DocumentTreeNode {
-  return { id, parentId, title, childCount, updatedAt: "2026-01-01T00:00:00Z" };
+  return {
+    id,
+    parentId,
+    title,
+    childCount,
+    updatedAt: "2026-01-01T00:00:00Z",
+  };
 }
 
 // A small fixture:
@@ -45,12 +51,16 @@ describe("buildTreeIndex", () => {
   });
 
   it("treats orphans (parent we cannot read) as roots", () => {
-    const idx = buildTreeIndex([n("orphan", "missing-parent")]);
+    const idx = buildTreeIndex([
+      n("orphan", "missing-parent"),
+    ]);
     expect(idx.childrenOf.get("")?.map(n => n.id)).toEqual(["orphan"]);
   });
 
   it("does not loop on a self-cycle", () => {
-    const idx = buildTreeIndex([n("loop", "loop")]);
+    const idx = buildTreeIndex([
+      n("loop", "loop"),
+    ]);
     // The cycle still gets indexed under its own id; descendantCount must terminate.
     expect(idx.descendantCount.get("loop")).toBeGreaterThanOrEqual(0);
   });
@@ -93,8 +103,12 @@ describe("ancestorIds", () => {
 describe("subtreeIds", () => {
   it("returns the node and every descendant id", () => {
     const idx = buildTreeIndex(fixture);
-    expect([...subtreeIds(idx, "a")].sort()).toEqual(["a", "a1", "a2", "a2a"]);
-    expect([...subtreeIds(idx, "b")]).toEqual(["b"]);
+    expect([
+      ...subtreeIds(idx, "a"),
+    ].sort()).toEqual(["a", "a1", "a2", "a2a"]);
+    expect([
+      ...subtreeIds(idx, "b"),
+    ]).toEqual(["b"]);
   });
 });
 

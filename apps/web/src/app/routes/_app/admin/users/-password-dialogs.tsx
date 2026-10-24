@@ -31,7 +31,11 @@ function useSubmit(onDone: () => void) {
       onDone();
     }
     catch (err) {
-      setError(err instanceof HttpError && err.status === 409 ? t("conflict") : err instanceof Error ? err.message : t("common.error.operationFailed"));
+      setError(err instanceof HttpError && err.status === 409
+        ? t("conflict")
+        : err instanceof Error
+          ? err.message
+          : t("common.error.operationFailed"));
     }
     finally {
       setSubmitting(false);
@@ -46,10 +50,20 @@ export function AddUserDialog({ open, onOpenChange, onCreated }: {
   readonly onCreated: () => void;
 }) {
   const { t } = useTranslation("users");
-  const [form, setForm] = useState({ username: "", name: "", email: "", password: "" });
+  const [form, setForm] = useState({
+    username: "",
+    name: "",
+    email: "",
+    password: "",
+  });
   const [admin, setAdmin] = useState(false);
   const { error, submitting, run } = useSubmit(() => {
-    setForm({ username: "", name: "", email: "", password: "" });
+    setForm({
+      username: "",
+      name: "",
+      email: "",
+      password: "",
+    });
     setAdmin(false);
     onOpenChange(false);
     onCreated();
@@ -66,7 +80,13 @@ export function AddUserDialog({ open, onOpenChange, onCreated }: {
             e.preventDefault();
             void run(() => http("/account/users", {
               method: "POST",
-              body: JSON.stringify({ ...form, username: form.username.trim(), name: form.name.trim(), email: form.email.trim(), role: admin ? "admin" : "user" }),
+              body: JSON.stringify({
+                ...form,
+                username: form.username.trim(),
+                name: form.name.trim(),
+                email: form.email.trim(),
+                role: admin ? "admin" : "user",
+              }),
             }));
           }}
         >
@@ -134,8 +154,12 @@ export function SetPasswordDialog({ user, onClose }: {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (user)
-              void run(() => http(`/account/users/${user.id}/password`, { method: "POST", body: JSON.stringify({ password }) }));
+            if (user) {
+              void run(() => http(`/account/users/${user.id}/password`, {
+                method: "POST",
+                body: JSON.stringify({ password }),
+              }));
+            }
           }}
         >
           <DialogHeader>

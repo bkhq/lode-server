@@ -12,7 +12,14 @@ import { hashPassword } from "@/modules/account/auth/password";
 import { users } from "@/modules/account/users/schema";
 import { seedBootstrapAdmin } from "./local-users.service";
 
-const logger = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
+const logger = {
+  debug() {},
+  info() {},
+  warn() {},
+  error() {},
+  fatal() {},
+  flush() {},
+} as unknown as Logger;
 
 let dir: string;
 let db: AppDatabase;
@@ -66,7 +73,17 @@ describe("seedBootstrapAdmin", () => {
     // A username or email is often self-chosen at the IdP: matching one must
     // not hand that person admin by way of the seed.
     const now = new Date().toISOString();
-    await db.insert(users).values({ id: "x", oauthSub: "idp-sub", username: "root", name: "R", email: "r@corp.test", role: "user", status: "active", createdAt: now, updatedAt: now }).run();
+    await db.insert(users).values({
+      id: "x",
+      oauthSub: "idp-sub",
+      username: "root",
+      name: "R",
+      email: "r@corp.test",
+      role: "user",
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+    }).run();
     await seedBootstrapAdmin(db, await config(), logger);
     const row = (await db.select().from(users).where(eq(users.id, "x")).get())!;
     expect(row).toMatchObject({ oauthSub: "idp-sub", role: "user", passwordHash: null });
@@ -75,7 +92,17 @@ describe("seedBootstrapAdmin", () => {
 
   test("does not take over an IdP account through a shared email either", async () => {
     const now = new Date().toISOString();
-    await db.insert(users).values({ id: "x", oauthSub: "idp-sub", username: "someone", name: "S", email: "root@local", role: "user", status: "active", createdAt: now, updatedAt: now }).run();
+    await db.insert(users).values({
+      id: "x",
+      oauthSub: "idp-sub",
+      username: "someone",
+      name: "S",
+      email: "root@local",
+      role: "user",
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+    }).run();
     await seedBootstrapAdmin(db, await config(), logger);
     expect(await db.select().from(users).where(eq(users.username, "root")).get()).toBeUndefined();
     expect((await db.select().from(users).where(eq(users.id, "x")).get())!.role).toBe("user");
@@ -83,7 +110,17 @@ describe("seedBootstrapAdmin", () => {
 
   test("still refreshes an account that has only a password, or is left from single-user mode", async () => {
     const now = new Date().toISOString();
-    await db.insert(users).values({ id: "x", oauthSub: "single-user", username: "root", name: "R", email: "r@corp.test", role: "user", status: "disabled", createdAt: now, updatedAt: now }).run();
+    await db.insert(users).values({
+      id: "x",
+      oauthSub: "single-user",
+      username: "root",
+      name: "R",
+      email: "r@corp.test",
+      role: "user",
+      status: "disabled",
+      createdAt: now,
+      updatedAt: now,
+    }).run();
     await seedBootstrapAdmin(db, await config(), logger);
     expect((await loginLocalUser(db, "root", "first passphrase here")).status).toBe("ok");
   });

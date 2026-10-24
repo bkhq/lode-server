@@ -26,7 +26,9 @@ function req(path: string): Request {
 }
 
 async function text(res: Response | undefined): Promise<string | undefined> {
-  return res === undefined ? undefined : await res.text();
+  return res === undefined
+    ? undefined
+    : await res.text();
 }
 
 describe("serveSpaRequest — no BASE_PATH", () => {
@@ -48,7 +50,12 @@ describe("serveSpaRequest — with BASE_PATH=/u", () => {
   });
 
   test("serves the SPA shell for the prefix itself and for client routes", async () => {
-    for (const path of ["/u", "/u/", "/u/overview", "/u/issues/42"]) {
+    for (const path of [
+      "/u",
+      "/u/",
+      "/u/overview",
+      "/u/issues/42",
+    ]) {
       const a = assets(FILES);
       expect(await text(await serveSpaRequest(req(path), env(a)))).toBe("<spa>");
     }

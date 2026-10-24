@@ -80,7 +80,15 @@ export async function createIssue(db: AppDatabase, input: CreateIssueInput): Pro
   const now = new Date().toISOString();
 
   await db.transaction(async (tx) => {
-    await insertItem(tx, { id, shortId, type: "issue", title: input.title, status: input.status ?? "open", creatorId: input.creatorId, now });
+    await insertItem(tx, {
+      id,
+      shortId,
+      type: "issue",
+      title: input.title,
+      status: input.status ?? "open",
+      creatorId: input.creatorId,
+      now,
+    });
 
     await tx.insert(issueDetails).values({
       itemId: id,
@@ -216,7 +224,10 @@ export interface ListIssueParams {
 }
 
 async function buildIssueConditions(params: ListIssueParams) {
-  const conditions = [eq(items.type, "issue"), isNull(items.deletedAt)];
+  const conditions = [
+    eq(items.type, "issue"),
+    isNull(items.deletedAt),
+  ];
   if (params.status && params.status !== "__all__")
     conditions.push(eq(items.status, params.status));
   if (params.creatorId)
@@ -263,7 +274,9 @@ async function paginateIssues(
     where = and(where, inArray(items.id, ids.map(r => r.objectId)));
   }
 
-  const totalRow = await db.select({ value: count() }).from(items).where(where).get();
+  const totalRow = await db.select({
+    value: count(),
+  }).from(items).where(where).get();
   const total = totalRow?.value ?? 0;
 
   const rows = await db.select().from(items).where(where).orderBy(desc(items.id)).limit(limit).offset((page - 1) * limit).all();
@@ -308,7 +321,9 @@ export async function listMyIssues(db: AppDatabase, params: ListIssueParams & { 
     working = and(working, inArray(items.id, ids.map(r => r.itemId)));
   }
 
-  const totalRow = await db.select({ value: count() }).from(items).where(working).get();
+  const totalRow = await db.select({
+    value: count(),
+  }).from(items).where(working).get();
   const total = totalRow?.value ?? 0;
   const rows = await db.select().from(items).where(working).orderBy(desc(items.id)).limit(limit).offset((page - 1) * limit).all();
   const data: IssueRow[] = [];
@@ -353,7 +368,12 @@ export async function resolveAccess(
   const isAssignee = !!assignedTuple;
   const view = await check(db, "item", item.id, "viewer", "user", userId);
   const edit = await check(db, "item", item.id, "editor", "user", userId);
-  return { isCreator, isAssignee, canRead: view.allowed, canEdit: edit.allowed };
+  return {
+    isCreator,
+    isAssignee,
+    canRead: view.allowed,
+    canEdit: edit.allowed,
+  };
 }
 
 export async function getUserById(db: AppDatabase, id: string) {

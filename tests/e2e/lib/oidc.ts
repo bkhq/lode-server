@@ -57,13 +57,19 @@ export async function loginAs(email: string, password: string): Promise<ApiClien
     res = await fetch(location, {
       method: "GET",
       redirect: "manual",
-      headers: dexCookies.header() ? { Cookie: dexCookies.header() } : {},
+      headers: dexCookies.header()
+        ? {
+            Cookie: dexCookies.header(),
+          }
+        : {},
     });
     dexCookies.capture(res);
 
     const next = res.headers.get("location");
     if (next) {
-      location = next.startsWith("http") ? next : new URL(next, location).toString();
+      location = next.startsWith("http")
+        ? next
+        : new URL(next, location).toString();
       // If dex redirects back to the API callback, hand off to the API client
       // so it picks up the session cookie issued by the callback handler.
       if (location.includes("/api/account/auth/callback")) {
@@ -89,7 +95,9 @@ export async function loginAs(email: string, password: string): Promise<ApiClien
     // Decode HTML entities in the action URL — dex serves `&amp;` for form
     // attributes, so the raw match would otherwise be a malformed URL.
     const action = match[1].replaceAll("&amp;", "&");
-    formAction = action.startsWith("http") ? action : new URL(action, location).toString();
+    formAction = action.startsWith("http")
+      ? action
+      : new URL(action, location).toString();
     break;
   }
 
@@ -103,7 +111,11 @@ export async function loginAs(email: string, password: string): Promise<ApiClien
     redirect: "manual",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      ...(dexCookies.header() ? { Cookie: dexCookies.header() } : {}),
+      ...(dexCookies.header()
+        ? {
+            Cookie: dexCookies.header(),
+          }
+        : {}),
     },
     body: body.toString(),
   });
@@ -115,7 +127,9 @@ export async function loginAs(email: string, password: string): Promise<ApiClien
   // 4. dex returns a chain ending at our callback. Walk it.
   for (let i = 0; i < 10; i++) {
     if (location.includes("/api/account/auth/callback")) {
-      const path = location.startsWith(client.base) ? location.slice(client.base.length) : location.replace(/^https?:\/\/[^/]+/, "");
+      const path = location.startsWith(client.base)
+        ? location.slice(client.base.length)
+        : location.replace(/^https?:\/\/[^/]+/, "");
       const cb = await client.raw(path);
       const cbLoc = cb.headers.get("location");
       if (!cbLoc || (cb.status !== 302 && cb.status !== 303)) {
@@ -126,11 +140,17 @@ export async function loginAs(email: string, password: string): Promise<ApiClien
       }
       return client;
     }
-    const url = location.startsWith("http") ? location : new URL(location, DEX_BASE).toString();
+    const url = location.startsWith("http")
+      ? location
+      : new URL(location, DEX_BASE).toString();
     const next = await fetch(url, {
       method: "GET",
       redirect: "manual",
-      headers: dexCookies.header() ? { Cookie: dexCookies.header() } : {},
+      headers: dexCookies.header()
+        ? {
+            Cookie: dexCookies.header(),
+          }
+        : {},
     });
     dexCookies.capture(next);
     const nextLoc = next.headers.get("location");

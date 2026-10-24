@@ -71,7 +71,12 @@ export function createMemoryKv(): PlatformKv {
       async set(key, value, ttlMs) {
         if (ttlMs !== undefined)
           ensureSweeper(ttlMs);
-        map.set(key, { value, expiresAt: ttlMs === undefined ? undefined : Date.now() + ttlMs });
+        map.set(key, {
+          value,
+          expiresAt: ttlMs === undefined
+            ? undefined
+            : Date.now() + ttlMs,
+        });
       },
       async delete(key) {
         map.delete(key);

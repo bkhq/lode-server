@@ -43,7 +43,10 @@ export const csrfGuard = createMiddleware<AppEnv>(async (c, next) => {
   const xrw = c.req.header("x-requested-with");
   if (xrw !== "XMLHttpRequest") {
     return c.json(
-      { success: false, error: { code: "CSRF_REJECTED", message: "Missing CSRF header" } },
+      {
+        success: false,
+        error: { code: "CSRF_REJECTED", message: "Missing CSRF header" },
+      },
       403,
     );
   }
@@ -59,7 +62,10 @@ export const csrfGuard = createMiddleware<AppEnv>(async (c, next) => {
       ?? c.req.header("referer")?.match(RE_ORIGIN_FROM_REFERER)?.[0];
     if (!origin || !allowed.includes(origin)) {
       return c.json(
-        { success: false, error: { code: "CSRF_REJECTED", message: "Origin mismatch" } },
+        {
+          success: false,
+          error: { code: "CSRF_REJECTED", message: "Origin mismatch" },
+        },
         403,
       );
     }
@@ -84,5 +90,7 @@ function buildAllowedOrigins(corsOrigin: string | undefined, appUrl: string | un
     return corsOrigin.split(",").map(s => s.trim()).filter(Boolean);
   }
   const fromAppUrl = originOf(appUrl);
-  return fromAppUrl ? [fromAppUrl] : [];
+  return fromAppUrl
+    ? [fromAppUrl]
+    : [];
 }

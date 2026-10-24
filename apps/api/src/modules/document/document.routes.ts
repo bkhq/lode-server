@@ -331,7 +331,11 @@ export function documentRoutes() {
         throw new NotFoundError("Document", id);
       if (isVersionConflict(updated)) {
         return c.json(
-          { success: false, error: { code: "VERSION_CONFLICT", message: "Document was modified by another writer" }, data: updated.current },
+          {
+            success: false,
+            error: { code: "VERSION_CONFLICT", message: "Document was modified by another writer" },
+            data: updated.current,
+          },
           409,
         );
       }
@@ -386,7 +390,9 @@ export function documentRoutes() {
         resourceType: "document",
         resourceId: id,
         resourceName: existing.title,
-        detail: { moved: { from: existing.parentId, to: body.parentId } },
+        detail: {
+          moved: { from: existing.parentId, to: body.parentId },
+        },
         ...auditMeta(c),
         result: "success",
       });
@@ -622,7 +628,12 @@ export function documentRoutes() {
       const item = await resolveDocumentItem(db, idParam);
       if (!item)
         return null;
-      return { item, resource: doc, externalId: idParam, resourceName: doc.title };
+      return {
+        item,
+        resource: doc,
+        externalId: idParam,
+        resourceName: doc.title,
+      };
     },
     async permissions(db, user, subject) {
       // `mountItemCommentRoutes` predates the policy framework and

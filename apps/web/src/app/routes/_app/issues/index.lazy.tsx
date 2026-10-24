@@ -121,7 +121,13 @@ function IssuesListPage() {
     finally {
       setLoading(false);
     }
-  }, [debouncedSearch, statusFilter, priorityFilter, page, t]);
+  }, [
+    debouncedSearch,
+    statusFilter,
+    priorityFilter,
+    page,
+    t,
+  ]);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -171,7 +177,10 @@ function IssuesListPage() {
   };
 
   const openFullscreen = (id: string) => {
-    void navigate({ to: "/issues/$issueId", params: { issueId: id } });
+    void navigate({
+      to: "/issues/$issueId",
+      params: { issueId: id },
+    });
   };
 
   const handleDrawerResizeStart = useCallback((event: PointerEvent<HTMLDivElement>) => {
@@ -337,7 +346,9 @@ function IssuesListPage() {
                 : issues.map(issue => (
                     <TableRow
                       key={issue.id}
-                      className={`cursor-pointer ${drawerIssueId === issue.id ? "bg-muted/60" : ""}`}
+                      className={`cursor-pointer ${drawerIssueId === issue.id
+                        ? "bg-muted/60"
+                        : ""}`}
                       onClick={() => setDrawerIssueId(issue.id)}
                     >
                       <TableCell>
@@ -354,7 +365,9 @@ function IssuesListPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm">
-                        {issue.assigneeId ? displayName(userMap, issue.assigneeId) : <span className="text-muted-foreground">{t("unassigned")}</span>}
+                        {issue.assigneeId
+                          ? displayName(userMap, issue.assigneeId)
+                          : <span className="text-muted-foreground">{t("unassigned")}</span>}
                       </TableCell>
                       {isAdmin && (
                         <TableCell className="text-sm">
@@ -513,7 +526,9 @@ function CreateIssueForm({
     ? t("field.assignee")
     : (() => {
         const u = users.find(item => item.id === assigneeId);
-        return u ? u.name : t("field.assignee");
+        return u
+          ? u.name
+          : t("field.assignee");
       })();
 
   return (

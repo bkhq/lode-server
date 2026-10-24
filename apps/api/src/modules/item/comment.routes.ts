@@ -261,7 +261,12 @@ export function mountItemCommentRoutes<TResource>(
         resourceType,
         resourceId: subject.externalId,
         resourceName: subject.resourceName,
-        detail: { commentId: cid, attachmentId: reference.id, filename: file.name, size: file.size },
+        detail: {
+          commentId: cid,
+          attachmentId: reference.id,
+          filename: file.name,
+          size: file.size,
+        },
         ...auditMeta(c),
         result: "success",
       });

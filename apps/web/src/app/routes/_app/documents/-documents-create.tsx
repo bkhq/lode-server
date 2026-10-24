@@ -42,7 +42,12 @@ export function CreateForm({
       return;
     }
     createMutation.mutate(
-      { title: draft.title.trim(), content: draft.content, tags: draft.tags, parentId: null },
+      {
+        title: draft.title.trim(),
+        content: draft.content,
+        tags: draft.tags,
+        parentId: null,
+      },
       {
         onSuccess: (doc) => { onCreated(doc.id); },
         onError: (err) => {

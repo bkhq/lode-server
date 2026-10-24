@@ -47,7 +47,9 @@ describe("TOTP enrolment + verify (live)", () => {
     // 3. Confirm — supplies a freshly-generated TOTP code.
     await user.raw(`/api/account/me/totp/${deviceId}/confirm`, {
       method: "POST",
-      body: { code: code(secret) },
+      body: {
+        code: code(secret),
+      },
     });
 
     // 4. Listed AND verified.
@@ -61,7 +63,9 @@ describe("TOTP enrolment + verify (live)", () => {
     //    re-use of a timestep that was already redeemed (RFC 6238 §5.2).
     const stepUp = await user.json<{ data: { token: string } }>("/api/account/me/totp/verify", {
       method: "POST",
-      body: { code: code(secret, 30_000) },
+      body: {
+        code: code(secret, 30_000),
+      },
     });
     expect(stepUp.data.token.length).toBeGreaterThan(0);
 

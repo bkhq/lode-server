@@ -15,8 +15,12 @@ interface DeniedSearchParams {
 export const Route = createFileRoute("/(error)/denied")({
   component: DeniedPage,
   validateSearch: (search: Record<string, unknown>): DeniedSearchParams => ({
-    reason: typeof search.reason === "string" ? search.reason : undefined,
-    aid: typeof search.aid === "string" ? search.aid : undefined,
+    reason: typeof search.reason === "string"
+      ? search.reason
+      : undefined,
+    aid: typeof search.aid === "string"
+      ? search.aid
+      : undefined,
   }),
 });
 
@@ -41,7 +45,9 @@ function DeniedPage() {
   const [logoutUrl, setLogoutUrl] = useState<string | null>(null);
   const [logoutFetchFailed, setLogoutFetchFailed] = useState(false);
 
-  const reason: ReasonCode = search.reason && isValidReason(search.reason) ? search.reason : "no_viewer_relation";
+  const reason: ReasonCode = search.reason && isValidReason(search.reason)
+    ? search.reason
+    : "no_viewer_relation";
   const auditId = search.aid;
 
   useEffect(() => {

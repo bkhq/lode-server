@@ -76,12 +76,19 @@ export function DocumentDetail({
     }
     const { accepted, rejected } = partitionBySize(selected, limits.maxFileSize);
     if (rejected.length > 0) {
-      toast.error(t("attachments.fileTooLargeNamed", { names: rejected.map(f => f.name).join(", ") }));
+      toast.error(t("attachments.fileTooLargeNamed", {
+        names: rejected.map(f => f.name).join(", "),
+      }));
       if (accepted.length === 0)
         return;
     }
     uploadMutation.mutate(accepted);
-  }, [attachmentCount, limits, t, uploadMutation]);
+  }, [
+    attachmentCount,
+    limits,
+    t,
+    uploadMutation,
+  ]);
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<DraftState | null>(null);
@@ -121,7 +128,7 @@ export function DocumentDetail({
     if (seededVersionRef.current === data.version)
       return;
     seededVersionRef.current = data.version;
-    // eslint-disable-next-line react/set-state-in-effect -- seed local draft from fetched server state.
+
     setDraft({
       title: data.title,
       content: data.content ?? "",
@@ -140,7 +147,9 @@ export function DocumentDetail({
   const isCreator = doc.creatorId === user?.id;
 
   const handleSaveTags = (next: readonly string[]) => {
-    setDraft(prev => prev ? { ...prev, tags: next } : prev);
+    setDraft(prev => prev
+      ? { ...prev, tags: next }
+      : prev);
     // In view mode, persist immediately. In edit mode, defer to the
     // explicit Save button (handled in handleSave below).
     if (!editing) {
@@ -232,7 +241,9 @@ export function DocumentDetail({
                   <FileText className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
                   <input
                     value={draft.title}
-                    onChange={e => setDraft(prev => prev ? { ...prev, title: e.target.value } : prev)}
+                    onChange={e => setDraft(prev => prev
+                      ? { ...prev, title: e.target.value }
+                      : prev)}
                     placeholder={t("untitledPlaceholder")}
                     className="min-w-0 flex-1 border-0 bg-transparent px-0 text-lg font-semibold tracking-tight outline-none placeholder:text-muted-foreground/40"
                     aria-label="Document title"
@@ -337,7 +348,9 @@ export function DocumentDetail({
         ? (
             <MarkdownEditor
               value={draft.content}
-              onChange={next => setDraft(prev => prev ? { ...prev, content: next } : prev)}
+              onChange={next => setDraft(prev => prev
+                ? { ...prev, content: next }
+                : prev)}
               placeholder={t("field.contentPlaceholder")}
               floatingToolbar
               className="mx-auto min-h-0 w-full max-w-[1100px] flex-1 rounded-none border-0 px-6 pt-2 pb-5"

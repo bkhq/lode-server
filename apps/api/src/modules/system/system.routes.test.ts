@@ -15,7 +15,14 @@ import { errorHandler } from "@/shared/middleware/error-handler";
 import { systemRoutes } from "./system.routes";
 import "@/modules/account";
 
-const noopLogger = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
+const noopLogger = {
+  debug() {},
+  info() {},
+  warn() {},
+  error() {},
+  fatal() {},
+  flush() {},
+} as unknown as Logger;
 
 let db: AppDatabase;
 let dbPath: string;
@@ -38,9 +45,18 @@ function buildApp(opts: { locked?: boolean; metricsToken?: string } = {}): Hono<
   const app = new Hono<AppEnv>();
   app.use("*", async (c, next) => {
     c.set("db", db);
-    c.set("config", { NODE_ENV: "test", TRUST_PROXY: false, MAX_UPLOAD_BYTES: 1024, MAX_ATTACHMENTS_PER_RESOURCE: 5, UPLOADS_TOTAL_BYTES: 0, SERVICE_TOKEN_METRICS: opts.metricsToken } as unknown as Config);
+    c.set("config", {
+      NODE_ENV: "test",
+      TRUST_PROXY: false,
+      MAX_UPLOAD_BYTES: 1024,
+      MAX_ATTACHMENTS_PER_RESOURCE: 5,
+      UPLOADS_TOTAL_BYTES: 0,
+      SERVICE_TOKEN_METRICS: opts.metricsToken,
+    } as unknown as Config);
     c.set("logger", noopLogger);
-    c.set("encryption", { isSystemLocked: () => opts.locked ?? false } as unknown as AppEnv["Variables"]["encryption"]);
+    c.set("encryption", {
+      isSystemLocked: () => opts.locked ?? false,
+    } as unknown as AppEnv["Variables"]["encryption"]);
     await next();
   });
   app.route("/", systemRoutes());
@@ -51,7 +67,17 @@ function buildApp(opts: { locked?: boolean; metricsToken?: string } = {}): Hono<
 async function sessionFor(role: "admin" | "user"): Promise<string> {
   const id = nanoid();
   const now = new Date().toISOString();
-  await db.insert(users).values({ id, oauthSub: `sub-${id}`, username: `u-${id}`, name: id, email: `${id}@t.io`, role, status: "active", createdAt: now, updatedAt: now }).run();
+  await db.insert(users).values({
+    id,
+    oauthSub: `sub-${id}`,
+    username: `u-${id}`,
+    name: id,
+    email: `${id}@t.io`,
+    role,
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  }).run();
   return `session_id=${await createSession(db, id, "tok", undefined, 3600)}`;
 }
 
@@ -84,12 +110,17 @@ describe("guard layer", () => {
     const app = buildApp();
     expect((await app.request(path, { method })).status).toBe(401);
     const user = await sessionFor("user");
-    expect((await app.request(path, { method, headers: { Cookie: user } })).status).toBe(403);
+    expect((await app.request(path, {
+      method,
+      headers: { Cookie: user },
+    })).status).toBe(403);
   });
 
   test("GET /system/version serves build info to an admin", async () => {
     const admin = await sessionFor("admin");
-    const res = await buildApp().request("/system/version", { headers: { Cookie: admin } });
+    const res = await buildApp().request("/system/version", {
+      headers: { Cookie: admin },
+    });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { data: { commit: string; version: string } };
     expect(typeof body.data.commit).toBe("string");
@@ -98,15 +129,23 @@ describe("guard layer", () => {
 
   test("/metrics needs the metrics service token", async () => {
     expect((await buildApp().request("/metrics")).status).not.toBe(200);
-    const withToken = buildApp({ metricsToken: "m".repeat(32) });
+    const withToken = buildApp({
+      metricsToken: "m".repeat(32),
+    });
     expect((await withToken.request("/metrics")).status).toBe(401);
-    expect((await withToken.request("/metrics", { headers: { Authorization: "Bearer wrong" } })).status).toBe(401);
-    expect((await withToken.request("/metrics", { headers: { Authorization: `Bearer ${"m".repeat(32)}` } })).status).toBe(200);
+    expect((await withToken.request("/metrics", {
+      headers: { Authorization: "Bearer wrong" },
+    })).status).toBe(401);
+    expect((await withToken.request("/metrics", {
+      headers: { Authorization: `Bearer ${"m".repeat(32)}` },
+    })).status).toBe(200);
   });
 
   test("/system/upload-limits needs a session", async () => {
     expect((await buildApp().request("/system/upload-limits")).status).toBe(401);
     const user = await sessionFor("user");
-    expect((await buildApp().request("/system/upload-limits", { headers: { Cookie: user } })).status).toBe(200);
+    expect((await buildApp().request("/system/upload-limits", {
+      headers: { Cookie: user },
+    })).status).toBe(200);
   });
 });

@@ -45,7 +45,9 @@ export async function dispatchCliSubcommand(argv: readonly string[]): Promise<nu
     parsed = cli.parse([...argv], { run: false });
   }
   catch (err) {
-    consola.error(err instanceof Error ? err.message : String(err));
+    consola.error(err instanceof Error
+      ? err.message
+      : String(err));
     return 2;
   }
 
@@ -62,7 +64,9 @@ export async function dispatchCliSubcommand(argv: readonly string[]): Promise<nu
     await cli.runMatchedCommand();
   }
   catch (err) {
-    consola.error(err instanceof Error ? err.message : String(err));
+    consola.error(err instanceof Error
+      ? err.message
+      : String(err));
     return 2;
   }
   return exitCode;
@@ -74,10 +78,14 @@ async function runHealthcheck(): Promise<number> {
   // exercises the secureHeaders + CORS + request-id stack.
   const port = Number(process.env.PORT ?? "3000");
   const basePath = (process.env.BASE_PATH ?? "").replace(/^\/+|\/+$/g, "");
-  const path = basePath ? `/${basePath}/api/health` : "/api/health";
+  const path = basePath
+    ? `/${basePath}/api/health`
+    : "/api/health";
   const url = `http://127.0.0.1:${port}${path}`;
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(5_000) });
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(5_000),
+    });
     return res.ok ? 0 : 1;
   }
   catch {

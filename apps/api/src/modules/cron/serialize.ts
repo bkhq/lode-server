@@ -47,7 +47,9 @@ export async function serializeJob(
     try {
       status = baker.getStatus(row.name);
       const next = baker.nextExecution(row.name);
-      nextExecution = next ? next.toISOString() : null;
+      nextExecution = next
+        ? next.toISOString()
+        : null;
     }
     catch {
       // Job not registered in Baker (e.g. just deleted) — keep DB-derived defaults.

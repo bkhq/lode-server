@@ -25,7 +25,9 @@ export const Route = createFileRoute("/(auth)/login")({
   staticData: { titleKey: "login:title" },
   component: LoginPage,
   validateSearch: (search: Record<string, unknown>): LoginSearchParams => ({
-    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+    redirect: typeof search.redirect === "string"
+      ? search.redirect
+      : undefined,
   }),
 });
 
@@ -61,7 +63,9 @@ function LoginPage() {
           {t("login:description")}
         </p>
 
-        {mode === null ? null : <LoginMethods mode={mode} redirectTarget={target} />}
+        {mode === null
+          ? null
+          : <LoginMethods mode={mode} redirectTarget={target} />}
       </div>
     </div>
   );
@@ -74,7 +78,9 @@ function LoginMethods({ mode, redirectTarget }: { mode: AuthMode; redirectTarget
   const oauth = mode.mode === "oauth" && (mode.oauthConfigured || !form);
   return (
     <>
-      {form ? <SingleUserForm redirectTarget={redirectTarget} /> : null}
+      {form
+        ? <SingleUserForm redirectTarget={redirectTarget} />
+        : null}
       {form && oauth
         ? (
             <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
@@ -84,7 +90,9 @@ function LoginMethods({ mode, redirectTarget }: { mode: AuthMode; redirectTarget
             </div>
           )
         : null}
-      {oauth ? <OAuthButton redirectTarget={redirectTarget} spaced={!form} /> : null}
+      {oauth
+        ? <OAuthButton redirectTarget={redirectTarget} spaced={!form} />
+        : null}
     </>
   );
 }
@@ -121,7 +129,9 @@ function SingleUserForm({ redirectTarget }: { redirectTarget: string }) {
         body: JSON.stringify({ username, password }),
       });
       // Two-step verification: the session is created once the code is in.
-      window.location.href = res.data?.totpRequired ? `${BASE_PATH}/totp-verify` : redirectTarget;
+      window.location.href = res.data?.totpRequired
+        ? `${BASE_PATH}/totp-verify`
+        : redirectTarget;
     }
     catch (err) {
       if (err instanceof HttpError && err.status === 429) {

@@ -71,7 +71,9 @@ export function ShareDialog({
     },
     onSuccess: () => {
       setTargetId("");
-      void qc.invalidateQueries({ queryKey: documentsKeys.shares(doc.id) });
+      void qc.invalidateQueries({
+        queryKey: documentsKeys.shares(doc.id),
+      });
     },
     onError: err => setError(errorMessage(err, t("common.error.operationFailed"))),
   });
@@ -81,7 +83,9 @@ export function ShareDialog({
       await http(`/documents/${doc.id}/shares/${shareId}`, { method: "DELETE" });
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: documentsKeys.shares(doc.id) });
+      void qc.invalidateQueries({
+        queryKey: documentsKeys.shares(doc.id),
+      });
     },
     onError: err => setError(errorMessage(err, t("common.error.deleteFailed"))),
   });
@@ -134,12 +138,20 @@ export function ShareDialog({
                 <SelectItem value="group">{t("targetGroup")}</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={targetId || "__none__"} onValueChange={v => setTargetId(!v || v === "__none__" ? "" : v)}>
+            <Select
+              value={targetId || "__none__"}
+              onValueChange={v => setTargetId(!v || v === "__none__"
+                ? ""
+                : v)}
+            >
               <SelectTrigger size="sm" className="flex-1">
                 <SelectValue>
                   {(v: string) => {
-                    if (v === "__none__")
-                      return targetType === "user" ? t("targetUser") : t("targetGroup");
+                    if (v === "__none__") {
+                      return targetType === "user"
+                        ? t("targetUser")
+                        : t("targetGroup");
+                    }
                     if (targetType === "user")
                       return displayName(userMap, v);
                     return displayName(groupMap, v);
@@ -186,9 +198,13 @@ export function ShareDialog({
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium truncate">{targetName(share)}</div>
                       <div className="text-xs text-muted-foreground">
-                        {share.targetType === "user" ? t("targetUser") : t("targetGroup")}
+                        {share.targetType === "user"
+                          ? t("targetUser")
+                          : t("targetGroup")}
                         {" · "}
-                        {share.permission === "editor" ? t("editor") : t("viewer")}
+                        {share.permission === "editor"
+                          ? t("editor")
+                          : t("viewer")}
                         {share.inheritedFrom && (
                           <>
                             {" · "}

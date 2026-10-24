@@ -169,7 +169,9 @@ export function getResource(name: string): ResourceDefinition | undefined {
 }
 
 export function getAllResources(): readonly ResourceDefinition[] {
-  return [...registry.values()];
+  return [
+    ...registry.values(),
+  ];
 }
 
 export function __resetResourceRegistryForTests(): void {
@@ -190,14 +192,22 @@ export interface ResourceManifestEntry {
 export function getPermissionManifest(
   getRouteBindings?: (resourceName: string) => readonly { method: string; path: string; action: string }[],
 ): readonly ResourceManifestEntry[] {
-  return [...registry.values()]
+  return [
+    ...registry.values(),
+  ]
     .map(def => ({
       name: def.name,
       namespace: def.namespace,
       description: def.description,
       actions: Object.entries(def.actions).map(([action, relation]) => ({ action, relation })),
-      hooks: def.hooks ? (Object.keys(def.hooks) as Array<keyof ResourceHooks>) : [],
-      routes: getRouteBindings ? [...getRouteBindings(def.name)] : [],
+      hooks: def.hooks
+        ? (Object.keys(def.hooks) as Array<keyof ResourceHooks>)
+        : [],
+      routes: getRouteBindings
+        ? [
+            ...getRouteBindings(def.name),
+          ]
+        : [],
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }

@@ -52,13 +52,26 @@ export async function createResourceGroup(
   // idx_resource_groups_name is the duplicate-name guard; surface the
   // constraint as the same 422 callers always got.
   try {
-    await db.insert(resourceGroups).values({ id, name, description, createdBy, createdAt: now }).run();
+    await db.insert(resourceGroups).values({
+      id,
+      name,
+      description,
+      createdBy,
+      createdAt: now,
+    }).run();
   }
   catch (err) {
-    throw isUniqueViolation(err) ? duplicateName() : err;
+    throw isUniqueViolation(err)
+      ? duplicateName()
+      : err;
   }
 
-  return { id, name, description, createdAt: now };
+  return {
+    id,
+    name,
+    description,
+    createdAt: now,
+  };
 }
 
 export async function updateResourceGroup(
@@ -81,10 +94,17 @@ export async function updateResourceGroup(
     await db.update(resourceGroups).set({ name, description }).where(eq(resourceGroups.id, id)).run();
   }
   catch (err) {
-    throw isUniqueViolation(err) ? duplicateName() : err;
+    throw isUniqueViolation(err)
+      ? duplicateName()
+      : err;
   }
 
-  return { id, name, description, createdAt: row.createdAt };
+  return {
+    id,
+    name,
+    description,
+    createdAt: row.createdAt,
+  };
 }
 
 export async function deleteResourceGroup(db: AppDatabase, id: string): Promise<boolean> {
@@ -118,7 +138,12 @@ export async function deleteResourceGroup(db: AppDatabase, id: string): Promise<
 
 export async function listResourceGroups(db: AppDatabase): Promise<readonly ResourceGroup[]> {
   const rows = await db.select().from(resourceGroups).all();
-  return rows.map(r => ({ id: r.id, name: r.name, description: r.description, createdAt: r.createdAt }));
+  return rows.map(r => ({
+    id: r.id,
+    name: r.name,
+    description: r.description,
+    createdAt: r.createdAt,
+  }));
 }
 
 export async function getResourceGroupMembers(db: AppDatabase, groupId: string): Promise<readonly ResourceGroupMember[]> {
@@ -149,7 +174,9 @@ export async function addResourceGroupMember(
   createdBy: string,
 ): Promise<ResourceGroupMember> {
   const reserved = new Set(["user", "group", "resource_group"]);
-  const validNamespaces = [...getAllNamespaces().keys()].filter(n => !reserved.has(n));
+  const validNamespaces = [
+    ...getAllNamespaces().keys(),
+  ].filter(n => !reserved.has(n));
   if (!validNamespaces.includes(memberNamespace)) {
     throw new ValidationError("Invalid member namespace", {
       namespace: validNamespaces.length

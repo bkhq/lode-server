@@ -16,7 +16,9 @@ process.env.VITE_APP_DISPLAY_NAME = APP_DISPLAY_NAME;
 // Mirror apps/api/src/config.ts: unset / empty means root ("/"); otherwise
 // normalise to "/<x>/" (trailing slash required by Vite's `base`).
 const trimmedBase = (process.env.BASE_PATH ?? "").replace(/^\/+|\/+$/g, "");
-const base = trimmedBase ? `/${trimmedBase}/` : "/";
+const base = trimmedBase
+  ? `/${trimmedBase}/`
+  : "/";
 
 // Dev only. With a base path Vite answers "/" with a redirect to the base, so
 // a home page at the origin root (HOME_PAGE=root, which the API serves

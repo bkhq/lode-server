@@ -33,7 +33,9 @@ describe("/api/backup/export (DEK proof)", () => {
     const admin = await getClient("admin@example.com", "admin");
     const res = await admin.raw("/api/backup/export", {
       method: "POST",
-      body: { modules: ["users"] },
+      body: {
+        modules: ["users"],
+      },
     });
     expect(res.status).toBe(400);
     const body = await res.json() as { error: { code: string } };

@@ -40,7 +40,12 @@ const createSchema = z.object({
 const updateSchema = z.object({
   title: z.string().min(1).max(500).optional(),
   description: z.string().max(2000).nullable().optional(),
-  status: z.enum(["open", "in_progress", "done", "cancelled"]).optional(),
+  status: z.enum([
+    "open",
+    "in_progress",
+    "done",
+    "cancelled",
+  ]).optional(),
   priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
   assigneeId: z.string().min(1).nullable().optional(),
   dueDate: z.string().max(30).nullable().optional(),
@@ -52,7 +57,12 @@ const issueSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string().nullable(),
-  status: z.enum(["open", "in_progress", "done", "cancelled"]),
+  status: z.enum([
+    "open",
+    "in_progress",
+    "done",
+    "cancelled",
+  ]),
   priority: z.enum(["low", "medium", "high", "urgent"]),
   creatorId: z.string(),
   assigneeId: z.string().nullable(),
@@ -109,8 +119,23 @@ export function issueRoutes() {
 
       const isAdmin = user.role === "admin";
       const result = isAdmin
-        ? await listIssues(db, { q, status, priority, assigneeId, creatorId, page, limit })
-        : await listMyIssues(db, { userId: user.id, q, status, priority, page, limit });
+        ? await listIssues(db, {
+            q,
+            status,
+            priority,
+            assigneeId,
+            creatorId,
+            page,
+            limit,
+          })
+        : await listMyIssues(db, {
+            userId: user.id,
+            q,
+            status,
+            priority,
+            page,
+            limit,
+          });
 
       return c.json({
         success: true,
@@ -153,7 +178,11 @@ export function issueRoutes() {
         resourceType: "issue",
         resourceId: issue.id,
         resourceName: issue.title,
-        ...(body.assigneeId ? { detail: { assigneeId: body.assigneeId } } : {}),
+        ...(body.assigneeId
+          ? {
+              detail: { assigneeId: body.assigneeId },
+            }
+          : {}),
         ...auditMeta(c),
         result: "success",
       });
@@ -188,7 +217,9 @@ export function issueRoutes() {
         ...errors(401, 403, 404),
       },
     }),
-    validator("param", z.object({ id: z.string() })),
+    validator("param", z.object({
+      id: z.string(),
+    })),
     async (c) => {
       const db = c.get("db");
       const id = c.req.valid("param").id;
@@ -213,7 +244,9 @@ export function issueRoutes() {
         ...errors(401, 403, 404, 422),
       },
     }),
-    validator("param", z.object({ id: z.string() })),
+    validator("param", z.object({
+      id: z.string(),
+    })),
     validator("json", updateSchema),
     async (c) => {
       const db = c.get("db");
@@ -258,7 +291,9 @@ export function issueRoutes() {
         resourceType: "issue",
         resourceId: id,
         resourceName: existing.title,
-        ...(Object.keys(detail).length > 0 ? { detail } : {}),
+        ...(Object.keys(detail).length > 0
+          ? { detail }
+          : {}),
         ...auditMeta(c),
         result: "success",
       });
@@ -490,12 +525,21 @@ export function issueRoutes() {
       const item = await resolveIssueItem(db, idParam);
       if (!item)
         return null;
-      return { item, resource: issue, externalId: idParam, resourceName: issue.title };
+      return {
+        item,
+        resource: issue,
+        externalId: idParam,
+        resourceName: issue.title,
+      };
     },
     async permissions(db, user, subject) {
       // Same shape as document.routes: a minimal context so the framework
       // (and its per-request cache) answers, not a hand-rolled column rule.
-      const ctx = { db, logger: NOOP_POLICY_LOGGER, actor: { id: user.id, type: "user", role: user.role } };
+      const ctx = {
+        db,
+        logger: NOOP_POLICY_LOGGER,
+        actor: { id: user.id, type: "user", role: user.role },
+      };
       const canRead = await issueAccess.can(ctx, "issue:read", subject.item.id);
       const isHandler = await issueAccess.can(ctx, "issue:transition", subject.item.id);
       return {

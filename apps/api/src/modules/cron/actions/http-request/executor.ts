@@ -54,8 +54,14 @@ function isPrivateIpv4(host: string): boolean {
     return false;
   const a = Number(m[1]);
   const b = Number(m[2]);
-  if ([a, b, Number(m[3]), Number(m[4])].some(n => !Number.isFinite(n) || n < 0 || n > 255))
+  if ([
+    a,
+    b,
+    Number(m[3]),
+    Number(m[4]),
+  ].some(n => !Number.isFinite(n) || n < 0 || n > 255)) {
     return false;
+  }
   if (a === 0)
     return true; // 0.0.0.0/8 — routes to loopback on Linux
   if (a === 10)
@@ -74,7 +80,9 @@ function isPrivateIpv4(host: string): boolean {
 }
 
 function ipv4MappedToDotted(host: string): string | null {
-  const dotted = host.startsWith("::ffff:") ? host.slice("::ffff:".length) : "";
+  const dotted = host.startsWith("::ffff:")
+    ? host.slice("::ffff:".length)
+    : "";
   if (RE_IPV4.test(dotted))
     return dotted;
 
@@ -209,7 +217,9 @@ export const execute: ActionExecutor = async (ctx, config) => {
         addrs = await dns.lookup(parsedUrl.hostname, { all: true });
       }
       catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = err instanceof Error
+          ? err.message
+          : String(err);
         throw new Error(`DNS lookup for ${parsedUrl.hostname} failed: ${msg}`);
       }
       for (const a of addrs) {
@@ -220,7 +230,9 @@ export const execute: ActionExecutor = async (ctx, config) => {
       if (!pinned)
         throw new Error(`DNS lookup for ${parsedUrl.hostname} returned no addresses`);
       // IPv6 literals must be bracketed in a URL authority.
-      connectHost = pinned.family === 6 ? `[${pinned.address}]` : pinned.address;
+      connectHost = pinned.family === 6
+        ? `[${pinned.address}]`
+        : pinned.address;
     }
   }
 
@@ -264,7 +276,9 @@ export const execute: ActionExecutor = async (ctx, config) => {
     res = await fetch(requestUrl, init);
   }
   catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = err instanceof Error
+      ? err.message
+      : String(err);
     throw new Error(`${method} ${cfg.url} failed: ${msg}`);
   }
 
@@ -277,10 +291,18 @@ export const execute: ActionExecutor = async (ctx, config) => {
   }
 
   const expected = expectStatus ?? null;
-  const ok = expected === null ? res.ok : res.status === expected;
+  const ok = expected === null
+    ? res.ok
+    : res.status === expected;
   if (!ok) {
     ctx.logger.warn(
-      { url: cfg.url, method, status: res.status, durationMs, expected },
+      {
+        url: cfg.url,
+        method,
+        status: res.status,
+        durationMs,
+        expected,
+      },
       "cron_http_request_unexpected_status",
     );
     throw new Error(
@@ -289,7 +311,12 @@ export const execute: ActionExecutor = async (ctx, config) => {
   }
 
   ctx.logger.debug(
-    { url: cfg.url, method, status: res.status, durationMs },
+    {
+      url: cfg.url,
+      method,
+      status: res.status,
+      durationMs,
+    },
     "cron_http_request_ok",
   );
   return `${method} ${cfg.url} → ${res.status} (${durationMs}ms)`;

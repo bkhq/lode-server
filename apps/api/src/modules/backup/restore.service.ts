@@ -86,8 +86,12 @@ const migrateV1ToV2: BackupMigrator = (data) => {
   }
 
   const tables: BackupData["tables"] = { ...data.tables, relation_tuples: kept };
-  if (lifted.length > 0)
-    tables.resource_groups = [...(tables.resource_groups ?? []), ...lifted];
+  if (lifted.length > 0) {
+    tables.resource_groups = [
+      ...(tables.resource_groups ?? []),
+      ...lifted,
+    ];
+  }
   return { ...data, version: 2, tables };
 };
 
@@ -103,7 +107,10 @@ const migrateV2ToV3: BackupMigrator = (data) => {
   return {
     ...data,
     version: 3,
-    tables: { ...data.tables, group_members: rows.map(r => ({ ...r, subjectRelation: r.subjectRelation ?? "" })) },
+    tables: {
+      ...data.tables,
+      group_members: rows.map(r => ({ ...r, subjectRelation: r.subjectRelation ?? "" })),
+    },
   };
 };
 
@@ -159,7 +166,9 @@ export function validateBackupData(data: unknown): BackupData {
   }
 
   const obj = data as Record<string, unknown>;
-  const version = typeof obj.version === "number" ? obj.version : 0;
+  const version = typeof obj.version === "number"
+    ? obj.version
+    : 0;
 
   if (version <= 0 || !Number.isFinite(version)) {
     throw new AppError("Invalid backup version", 400, "UNSUPPORTED_VERSION");
@@ -319,7 +328,12 @@ export async function reconcileRestoredFiles(db: AppDatabase, logger?: Logger): 
       // serve a row we could not verify.
       present = false;
       logger?.warn(
-        { err: err instanceof Error ? err.message : String(err), fileId: row.id },
+        {
+          err: err instanceof Error
+            ? err.message
+            : String(err),
+          fileId: row.id,
+        },
         "restore reconciliation: storage existence probe failed; quarantining",
       );
     }
@@ -399,9 +413,13 @@ export async function importJsonBackup(db: AppDatabase, data: BackupData, logger
               await tx.insert(table).values(row).run();
             }
             catch (rowErr) {
-              const rowId = typeof row.id === "string" ? row.id : `index ${i + j}`;
+              const rowId = typeof row.id === "string"
+                ? row.id
+                : `index ${i + j}`;
               throw new AppError(
-                `Failed to insert into ${tableName} (row ${rowId}): ${rowErr instanceof Error ? rowErr.message : String(rowErr)}`,
+                `Failed to insert into ${tableName} (row ${rowId}): ${rowErr instanceof Error
+                  ? rowErr.message
+                  : String(rowErr)}`,
                 400,
                 "INVALID_BACKUP_ROW",
               );
@@ -409,7 +427,9 @@ export async function importJsonBackup(db: AppDatabase, data: BackupData, logger
           }
           // Single-row replay succeeded somehow; report the aggregate error.
           throw new AppError(
-            `Failed to insert into ${tableName}: ${err instanceof Error ? err.message : String(err)}`,
+            `Failed to insert into ${tableName}: ${err instanceof Error
+              ? err.message
+              : String(err)}`,
             400,
             "INVALID_BACKUP_ROW",
           );

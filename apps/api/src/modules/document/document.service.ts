@@ -91,7 +91,15 @@ export async function createDocument(db: AppDatabase, input: CreateDocumentInput
   }
 
   await db.transaction(async (tx) => {
-    await insertItem(tx, { id, shortId, type: "document", title: input.title, status: "active", creatorId: input.creatorId, now });
+    await insertItem(tx, {
+      id,
+      shortId,
+      type: "document",
+      title: input.title,
+      status: "active",
+      creatorId: input.creatorId,
+      now,
+    });
 
     await tx.insert(documentDetails).values({
       itemId: id,
@@ -262,7 +270,10 @@ export async function softDeleteDocument(db: AppDatabase, shortId: string): Prom
       )
       SELECT id FROM descendants
     `);
-    const idsToDelete = [item.id, ...desc.map(r => r.id)];
+    const idsToDelete = [
+      item.id,
+      ...desc.map(r => r.id),
+    ];
 
     await tx.update(items)
       .set({ deletedAt: now, updatedAt: now, version: sql`${items.version} + 1` })
@@ -329,7 +340,10 @@ export interface ListDocumentsParams {
 }
 
 async function buildDocumentConditions(params: ListDocumentsParams) {
-  const conditions = [eq(items.type, "document"), isNull(items.deletedAt)];
+  const conditions = [
+    eq(items.type, "document"),
+    isNull(items.deletedAt),
+  ];
   if (params.creatorId)
     conditions.push(eq(items.creatorId, params.creatorId));
   if (params.q) {
@@ -376,7 +390,9 @@ async function queryDocuments(db: AppDatabase, params: ListDocumentsParams, scop
   const page = Math.max(1, params.page ?? 1);
   const limit = Math.min(100, Math.max(1, params.limit ?? 20));
 
-  const totalRow = await db.select({ value: count() }).from(items).where(where).get();
+  const totalRow = await db.select({
+    value: count(),
+  }).from(items).where(where).get();
   const total = totalRow?.value ?? 0;
   const rows = await db.select().from(items).where(where).orderBy(desc(items.updatedAt), desc(items.id)).limit(limit).offset((page - 1) * limit).all();
   const data: DocumentRow[] = [];
@@ -455,7 +471,9 @@ export async function getDocumentTreeForUser(
   return rows.map(r => ({
     id: r.short_id,
     title: r.title,
-    parentId: r.parent_id ? idToShort.get(r.parent_id) ?? null : null,
+    parentId: r.parent_id
+      ? idToShort.get(r.parent_id) ?? null
+      : null,
     updatedAt: r.updated_at,
     childCount: childCount.get(r.id) ?? 0,
   }));
@@ -484,7 +502,11 @@ export async function getDocumentPermission(
   // NOOP_POLICY_LOGGER constant keeps PolicyContext type-complete
   // without forcing every caller of this internal helper to thread one
   // through.
-  const ctx: PolicyContext = { db, logger: NOOP_POLICY_LOGGER, actor: { id: userId, type: "user" } };
+  const ctx: PolicyContext = {
+    db,
+    logger: NOOP_POLICY_LOGGER,
+    actor: { id: userId, type: "user" },
+  };
   if (await documentAccess.can(ctx, "document:update", item.id))
     return "editor";
   if (await documentAccess.can(ctx, "document:read", item.id))
@@ -527,7 +549,10 @@ export async function listDocumentSharesWithInheritance(
   if (ancestors.length === 0)
     return [];
   const ancestorIds = ancestors.map(a => a.id);
-  const meta = new Map(ancestors.map(a => [a.id, { short_id: a.short_id, title: a.title, depth: a.depth }]));
+  const meta = new Map(ancestors.map(a => [
+    a.id,
+    { short_id: a.short_id, title: a.title, depth: a.depth },
+  ]));
 
   const shares = await db.select().from(relationTuples).where(and(
     eq(relationTuples.namespace, "item"),
@@ -544,7 +569,9 @@ export async function listDocumentSharesWithInheritance(
       targetId: s.subjectId,
       permission: s.relation as "viewer" | "editor",
       createdAt: s.createdAt,
-      inheritedFrom: info.depth === 0 ? null : { id: info.short_id, title: info.title },
+      inheritedFrom: info.depth === 0
+        ? null
+        : { id: info.short_id, title: info.title },
     };
   });
   // Self-shares first, ancestors closest-up next.
@@ -629,7 +656,13 @@ export async function removeDocumentShare(ctx: PolicyContext, tupleId: string): 
   if (!row)
     return;
   await documentAccess.revoke(ctx, {
-    subject: { type: row.subjectNamespace, id: row.subjectId, ...(row.subjectRelation ? { relation: row.subjectRelation } : {}) },
+    subject: {
+      type: row.subjectNamespace,
+      id: row.subjectId,
+      ...(row.subjectRelation
+        ? { relation: row.subjectRelation }
+        : {}),
+    },
     relation: row.relation,
     objectId: row.objectId,
   });
@@ -654,7 +687,11 @@ export async function listAllTags(db: AppDatabase): Promise<readonly string[]> {
     ORDER BY je.value
   `);
   const tags = rows.map(r => r.tag);
-  tagCache = { db, loadedAt: Date.now(), tags };
+  tagCache = {
+    db,
+    loadedAt: Date.now(),
+    tags,
+  };
   return tags;
 }
 

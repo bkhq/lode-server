@@ -16,16 +16,24 @@ export function serviceTokenRequired(scope: ServiceTokenScope) {
     const expected = c.get("config")[field];
     if (!expected) {
       return c.json(
-        { success: false, error: { code: "SERVICE_TOKEN_DISABLED", message: "Service-token authentication is not configured" } },
+        {
+          success: false,
+          error: { code: "SERVICE_TOKEN_DISABLED", message: "Service-token authentication is not configured" },
+        },
         503,
       );
     }
 
     const auth = c.req.header("authorization");
-    const supplied = auth?.startsWith("Bearer ") ? auth.slice("Bearer ".length).trim() : undefined;
+    const supplied = auth?.startsWith("Bearer ")
+      ? auth.slice("Bearer ".length).trim()
+      : undefined;
     if (!supplied) {
       return c.json(
-        { success: false, error: { code: "UNAUTHORIZED", message: "Service token required" } },
+        {
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Service token required" },
+        },
         401,
       );
     }
@@ -34,7 +42,10 @@ export function serviceTokenRequired(scope: ServiceTokenScope) {
     const b = Buffer.from(expected);
     if (a.length !== b.length || !timingSafeEqual(a, b)) {
       return c.json(
-        { success: false, error: { code: "UNAUTHORIZED", message: "Invalid service token" } },
+        {
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Invalid service token" },
+        },
         401,
       );
     }

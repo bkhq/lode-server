@@ -31,7 +31,9 @@ export function buildTreeIndex(nodes: readonly DocumentTreeNode[]): TreeIndex {
 
   const childrenOf = new Map<string, DocumentTreeNode[]>();
   for (const n of nodes) {
-    const parent = n.parentId && byId.has(n.parentId) ? n.parentId : ROOT;
+    const parent = n.parentId && byId.has(n.parentId)
+      ? n.parentId
+      : ROOT;
     const list = childrenOf.get(parent);
     if (list)
       list.push(n);
@@ -143,8 +145,11 @@ export function stepFocus(
 ): string | null {
   if (visible.length === 0)
     return null;
-  if (current === null)
-    return visible[delta > 0 ? 0 : visible.length - 1]!.node.id;
+  if (current === null) {
+    return visible[delta > 0
+      ? 0
+      : visible.length - 1]!.node.id;
+  }
   const idx = visible.findIndex(v => v.node.id === current);
   if (idx === -1)
     return visible[0]!.node.id;

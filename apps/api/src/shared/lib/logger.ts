@@ -6,7 +6,13 @@ import pino from "pino";
 import { getPlatform } from "@/platform";
 
 const VALID_LEVELS = new Set(["debug", "info", "warn", "error"]);
-const LEVEL_PRIORITY: Record<string, number> = { debug: 1, info: 2, warn: 3, error: 4, fatal: 5 };
+const LEVEL_PRIORITY: Record<string, number> = {
+  debug: 1,
+  info: 2,
+  warn: 3,
+  error: 4,
+  fatal: 5,
+};
 
 // Map our config LOG_LEVEL into consola's numeric level (higher = more
 // verbose). Pino still records the original level into the file payload;
@@ -128,7 +134,9 @@ function createMethod(
   return (objOrMsg: unknown, msg?: string) => {
     // Redact before pino or consola sees the payload — nested secrets must
     // not leak through the degraded-destination path either.
-    const safeObj = typeof objOrMsg === "string" ? objOrMsg : sanitizeLogPayload(objOrMsg);
+    const safeObj = typeof objOrMsg === "string"
+      ? objOrMsg
+      : sanitizeLogPayload(objOrMsg);
     // Tee to consola when pino's destination has errored (disk full, fd
     // closed) — otherwise async writes buffer silently to a dead stream.
     if (destState.failed) {
@@ -150,7 +158,9 @@ function createMethod(
 }
 
 export function createLogger(config: LoggerConfig) {
-  const level = VALID_LEVELS.has(config.LOG_LEVEL) ? config.LOG_LEVEL : "info";
+  const level = VALID_LEVELS.has(config.LOG_LEVEL)
+    ? config.LOG_LEVEL
+    : "info";
   const termLevel = CONSOLA_LEVEL_FOR[level] ?? LogLevels.info;
 
   // One coloured reporter instance is shared by the dev tee and the
@@ -180,8 +190,10 @@ export function createLogger(config: LoggerConfig) {
           ? { dest: 1, sync: false, minLength: 4096 }
           : { dest: config.LOG_FILE, sync: false, minLength: 4096 },
       )
-    // eslint-disable-next-line no-console
-    : { write: (line: string) => console.log(line.trimEnd()) };
+
+    : {
+        write: (line: string) => console.log(line.trimEnd()),
+      };
 
   // If the destination errors (disk full, fd closed, etc.) flip a flag so
   // every subsequent log method tees to consola instead of buffering to a
@@ -217,7 +229,6 @@ export function createLogger(config: LoggerConfig) {
       if (destState.failed)
         return;
       try {
-        // eslint-disable-next-line react/dom-no-flush-sync
         (dest as Partial<ReturnType<typeof pino.destination>>).flushSync?.();
       }
       catch {
@@ -234,7 +245,6 @@ export function createLogger(config: LoggerConfig) {
       if (config.LOG_TO_STDOUT || destState.failed)
         return;
       try {
-        // eslint-disable-next-line react/dom-no-flush-sync
         (dest as Partial<ReturnType<typeof pino.destination>>).flushSync?.();
       }
       catch {}

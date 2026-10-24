@@ -65,7 +65,12 @@ describe("useSystemStore.fetchStatus", () => {
   it("captures dbError as a separate state", async () => {
     fetchMock.mockResolvedValue(jsonResponse({
       success: true,
-      data: { initialized: true, locked: false, status: "unlocked", dbError: "disk full" },
+      data: {
+        initialized: true,
+        locked: false,
+        status: "unlocked",
+        dbError: "disk full",
+      },
     }));
     await useSystemStore.getState().fetchStatus();
     expect(useSystemStore.getState().status).toBe("db-error");
@@ -157,7 +162,12 @@ describe("useSystemStore polling", () => {
 describe("useSystemStore homePage", () => {
   const status = (extra: Record<string, unknown>) => jsonResponse({
     success: true,
-    data: { initialized: true, locked: false, status: "unlocked", ...extra },
+    data: {
+      initialized: true,
+      locked: false,
+      status: "unlocked",
+      ...extra,
+    },
   });
 
   it("is read from the status response and falls back to off", async () => {

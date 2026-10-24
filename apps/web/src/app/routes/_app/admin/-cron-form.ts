@@ -33,10 +33,18 @@ export function resolveActionIcon(name: string | null | undefined): LucideIcon {
 
 function safeJsonParse(text: string): { ok: true; value: unknown } | { ok: false; error: string } {
   try {
-    return { ok: true, value: JSON.parse(text) };
+    return {
+      ok: true,
+      value: JSON.parse(text),
+    };
   }
   catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    return {
+      ok: false,
+      error: err instanceof Error
+        ? err.message
+        : String(err),
+    };
   }
 }
 
@@ -70,7 +78,9 @@ export function buildPayload(
   if (!form.action || !action)
     return { ok: false, error: "Pick an action." };
 
-  const cron = form.scheduleMode === "preset" ? form.schedulePreset : form.scheduleCustom.trim();
+  const cron = form.scheduleMode === "preset"
+    ? form.schedulePreset
+    : form.scheduleCustom.trim();
   if (!cron)
     return { ok: false, error: "Schedule is required." };
 
@@ -126,7 +136,12 @@ export function buildPayload(
     }
   }
 
-  const body: Record<string, unknown> = { name: form.name, cron, action: form.action, config };
+  const body: Record<string, unknown> = {
+    name: form.name,
+    cron,
+    action: form.action,
+    config,
+  };
   const retryRaw = form.maxConsecutiveFailures.trim();
   if (retryRaw.length > 0) {
     const n = Number(retryRaw);

@@ -119,7 +119,9 @@ const RE_CHECKPOINT = /wal_checkpoint/i;
 const RE_DEFINITE_WRITE = /^(?:INSERT|UPDATE|DELETE|REPLACE|CREATE|DROP|ALTER|VACUUM|REINDEX)\b/i;
 
 function sqlOf(stmt: InStatement): string {
-  return (typeof stmt === "string" ? stmt : stmt.sql).replace(RE_LEADING_COMMENTS, "");
+  return (typeof stmt === "string"
+    ? stmt
+    : stmt.sql).replace(RE_LEADING_COMMENTS, "");
 }
 
 /** Anything not plainly a read takes the lock. Waiting is never wrong, only slower. */
@@ -179,7 +181,9 @@ function gateWrites(client: Client, lock: WriteLock): Client {
       if (prop in overrides)
         return overrides[prop as keyof Client];
       const value = Reflect.get(target, prop, receiver);
-      return typeof value === "function" ? value.bind(target) : value;
+      return typeof value === "function"
+        ? value.bind(target)
+        : value;
     },
   });
 }
@@ -197,7 +201,9 @@ interface MapGetResult {
 const libsqlQuery = LibSQLPreparedQuery.prototype as unknown as MapGetResult & { fields?: unknown; customResultMapper?: unknown };
 const mapGetResult = libsqlQuery.mapGetResult;
 libsqlQuery.mapGetResult = function (this: typeof libsqlQuery, rows, isFromBatch) {
-  const list = (isFromBatch === true ? (rows as { rows: unknown[] }).rows : rows) as unknown[];
+  const list = (isFromBatch === true
+    ? (rows as { rows: unknown[] }).rows
+    : rows) as unknown[];
   if (list[0] === undefined && this.fields === undefined && this.customResultMapper === undefined)
     return undefined;
   return mapGetResult.call(this, rows, isFromBatch);
@@ -227,7 +233,9 @@ export async function createLibsqlDb(path: string, encryptionKey?: string): Prom
   const client = createClient({
     url: `file:${path}`,
     timeout: CROSS_PROCESS_BUSY_TIMEOUT_MS,
-    ...(encryptionKey ? { encryptionKey } : {}),
+    ...(encryptionKey
+      ? { encryptionKey }
+      : {}),
   });
 
   await client.execute("PRAGMA journal_mode = WAL");
@@ -245,7 +253,9 @@ export async function createLibsqlDb(path: string, encryptionKey?: string): Prom
     // malformed" after an ordinary fresh-page append (reproduced end-to-end
     // by the e2e suite; deterministic per write sequence; clean with mmap
     // off). Plaintext databases keep the mapping.
-    ...(encryptionKey ? [] : ["PRAGMA mmap_size = 268435456"]),
+    ...(encryptionKey
+      ? []
+      : ["PRAGMA mmap_size = 268435456"]),
     "PRAGMA temp_store = MEMORY",
   ]) {
     try {

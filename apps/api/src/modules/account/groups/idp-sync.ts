@@ -38,7 +38,9 @@ export function readGroupsClaim(
   const raw = userInfo[claim] ?? payloadOf(idToken)[claim];
   if (raw === undefined || raw === null)
     return undefined;
-  const values = Array.isArray(raw) ? raw : [raw];
+  const values = Array.isArray(raw)
+    ? raw
+    : [raw];
   const names = new Set<string>();
   for (const value of values) {
     if (typeof value !== "string")
@@ -75,7 +77,13 @@ export async function syncIdpGroups(
       const group = byName.get(name);
       if (group === undefined) {
         const id = nanoid();
-        await tx.insert(groups).values({ id, name, source: "idp", createdAt: now, updatedAt: now }).run();
+        await tx.insert(groups).values({
+          id,
+          name,
+          source: "idp",
+          createdAt: now,
+          updatedAt: now,
+        }).run();
         wanted.push(id);
       }
       else if (group.source === "idp") {
@@ -96,13 +104,23 @@ export async function syncIdpGroups(
       .where(and(
         userRows,
         inArray(groupMembers.groupId, idpGroupIds),
-        wanted.length === 0 ? undefined : notInArray(groupMembers.groupId, wanted),
+        wanted.length === 0
+          ? undefined
+          : notInArray(groupMembers.groupId, wanted),
       ))
       .run();
 
     for (const groupId of wanted) {
       await tx.insert(groupMembers)
-        .values({ id: nanoid(), groupId, subjectNamespace: "user", subjectId: userId, subjectRelation: DIRECT_MEMBER, createdBy: userId, createdAt: now })
+        .values({
+          id: nanoid(),
+          groupId,
+          subjectNamespace: "user",
+          subjectId: userId,
+          subjectRelation: DIRECT_MEMBER,
+          createdBy: userId,
+          createdAt: now,
+        })
         .onConflictDoNothing()
         .run();
     }

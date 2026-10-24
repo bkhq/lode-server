@@ -23,12 +23,19 @@ describe("/api/account/me/tokens — personal API tokens", () => {
 
     const created = await user.json<{ data: CreatedToken }>("/api/account/me/tokens", {
       method: "POST",
-      body: { name: `e2e-${Date.now()}`, scopes: ["issues:read", "account:read"], expiresInDays: 1 },
+      body: {
+        name: `e2e-${Date.now()}`,
+        scopes: ["issues:read", "account:read"],
+        expiresInDays: 1,
+      },
     });
     const { token, id } = created.data;
     expect(token.startsWith("pat_")).toBe(true);
 
-    const issue = await user.json<{ data: Issue }>("/api/issues", { method: "POST", body: { title: "token-visible" } });
+    const issue = await user.json<{ data: Issue }>("/api/issues", {
+      method: "POST",
+      body: { title: "token-visible" },
+    });
 
     // Covered by issues:read, and policy still applies as the token's user.
     const read = await withToken(token, `/api/issues/${issue.data.id}`);
@@ -37,7 +44,10 @@ describe("/api/account/me/tokens — personal API tokens", () => {
     expect(((await me.json()) as { data: { email: string } }).data.email).toBe("user@example.com");
 
     // Not covered: a write, and token management itself.
-    expect((await withToken(token, "/api/issues", { method: "POST", body: JSON.stringify({ title: "nope" }) })).status).toBe(403);
+    expect((await withToken(token, "/api/issues", {
+      method: "POST",
+      body: JSON.stringify({ title: "nope" }),
+    })).status).toBe(403);
     expect((await withToken(token, "/api/account/me/tokens")).status).toBe(403);
     expect((await withToken(token, "/api/settings")).status).toBe(403);
 

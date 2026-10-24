@@ -14,7 +14,10 @@ registerBackupContribution(issueBackupContribution);
 registerTokenScope({
   name: "issues:read",
   description: "Read issues, their comments and attachments",
-  routes: [{ method: "GET", path: "/issues" }, { method: "GET", path: "/issues/*" }],
+  routes: [
+    { method: "GET", path: "/issues" },
+    { method: "GET", path: "/issues/*" },
+  ],
 });
 registerTokenScope({
   name: "issues:write",

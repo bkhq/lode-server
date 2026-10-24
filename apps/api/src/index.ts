@@ -27,7 +27,9 @@ import { attemptSealedUnlock } from "./sealed-unlock";
     hostname: config.HOST,
     // Padding above the per-file ceiling for multipart framing overhead.
     maxRequestBodySize: config.MAX_UPLOAD_BYTES + 64 * 1024,
-    fetch: (req, srv) => fetch(req, { IP: srv.requestIP(req) }),
+    fetch: (req, srv) => fetch(req, {
+      IP: srv.requestIP(req),
+    }),
   });
 
   async function safe(name: string, fn: () => unknown, silent = false): Promise<void> {

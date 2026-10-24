@@ -92,7 +92,9 @@ describe("discoverCreationRoutes", () => {
     app.route("/", publicRoutes());
     app.route("/", protectedRoutes());
 
-    const resources = [...new Set(discoverCreationRoutes(app).map(f => f.resource))].sort();
+    const resources = [
+      ...new Set(discoverCreationRoutes(app).map(f => f.resource)),
+    ].sort();
     expect(resources).toEqual([
       "attachment",
       "comment",
@@ -204,7 +206,11 @@ describe("creationRateLimit — scoping", () => {
 
 describe("creationRateLimit — escape hatches", () => {
   test("an exempt resource is skipped while the others stay limited", async () => {
-    const app = buildApp({ perMinute: 1, perHour: 0, exempt: ["issue"] });
+    const app = buildApp({
+      perMinute: 1,
+      perHour: 0,
+      exempt: ["issue"],
+    });
     for (let i = 0; i < 5; i++)
       expect((await post(app, "/issues")).status).toBe(201);
 

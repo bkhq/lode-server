@@ -52,7 +52,9 @@ const APP_NAME = process.env.APP_NAME ?? "app";
 // otherwise "/<x>" with no trailing slash. Used to build the OAuth callback
 // URI that dex will whitelist.
 const trimmedBase = (process.env.BASE_PATH ?? "").replace(/^\/+|\/+$/g, "");
-const BASE_PATH = trimmedBase ? `/${trimmedBase}` : "";
+const BASE_PATH = trimmedBase
+  ? `/${trimmedBase}`
+  : "";
 
 // App is served as `${APP_NAME}.localhost`; dex is a sibling single-label
 // subdomain `dex-${APP_NAME}.localhost`. The hyphen (rather than a dot)
@@ -146,7 +148,16 @@ child.on("exit", (code, signal) => process.exit(signal ? 1 : (code ?? 0)));
 
 console.log(`[dev-dex] starting dex on ${DEX_ISSUER}`);
 const dex: Subprocess = Bun.spawn(
-  ["nsl", "run", "--name", `dex-${APP_NAME}`, "--force", "bun", "-e", launchProgram],
+  [
+    "nsl",
+    "run",
+    "--name",
+    `dex-${APP_NAME}`,
+    "--force",
+    "bun",
+    "-e",
+    launchProgram,
+  ],
   {
     cwd: ROOT,
     stdout: "inherit",
@@ -172,7 +183,9 @@ const deadline = Date.now() + 15_000;
 let dexReady = false;
 while (Date.now() < deadline) {
   try {
-    const r = await fetch(`${DEX_PROBE_URL}/.well-known/openid-configuration`, { signal: AbortSignal.timeout(2000) });
+    const r = await fetch(`${DEX_PROBE_URL}/.well-known/openid-configuration`, {
+      signal: AbortSignal.timeout(2000),
+    });
     if (r.ok) {
       dexReady = true;
       break;

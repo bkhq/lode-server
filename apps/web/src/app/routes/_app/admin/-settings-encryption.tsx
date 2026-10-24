@@ -130,8 +130,11 @@ export function EncryptionSettingsTab() {
       setTimeout(setSuccess, 3000, false);
     }
     catch (err) {
-      if (!error)
-        setError(err instanceof Error ? err.message : t("settings:encryption.changeFailed"));
+      if (!error) {
+        setError(err instanceof Error
+          ? err.message
+          : t("settings:encryption.changeFailed"));
+      }
     }
     finally {
       setSaving(false);
@@ -213,7 +216,11 @@ export function EncryptionSettingsTab() {
         const { challengeId, ephemeralPublicKey } = challengeRes.data;
 
         const reEncrypted = await eciesEncrypt(ephemeralPublicKey, dekBytes);
-        bodyObj = { ...bodyObj, challengeId, encryptedDek: bytesToHex(reEncrypted) };
+        bodyObj = {
+          ...bodyObj,
+          challengeId,
+          encryptedDek: bytesToHex(reEncrypted),
+        };
       }
 
       const res = await httpRaw("/backup/export", {
@@ -240,7 +247,9 @@ export function EncryptionSettingsTab() {
       setTimeout(setExportSuccess, 3000, false);
     }
     catch (err) {
-      setExportError(err instanceof Error ? err.message : t("settings:encryption.export.failed"));
+      setExportError(err instanceof Error
+        ? err.message
+        : t("settings:encryption.export.failed"));
     }
     finally {
       setExporting(false);
@@ -344,7 +353,9 @@ export function EncryptionSettingsTab() {
         importFileRef.current.value = "";
     }
     catch (err) {
-      setImportError(err instanceof Error ? err.message : t("settings:encryption.import.failed"));
+      setImportError(err instanceof Error
+        ? err.message
+        : t("settings:encryption.import.failed"));
     }
     finally {
       setImporting(false);
@@ -469,7 +480,9 @@ export function EncryptionSettingsTab() {
           onClick={() => setImportConfirmOpen(true)}
         >
           <Upload className="mr-1 size-3" />
-          {importing ? t("settings:encryption.import.importing") : t("settings:encryption.import.button")}
+          {importing
+            ? t("settings:encryption.import.importing")
+            : t("settings:encryption.import.button")}
         </Button>
       </div>
     </div>
@@ -515,7 +528,9 @@ export function EncryptionSettingsTab() {
         <h3 className="font-semibold">{t("settings:encryption.export.title")}</h3>
       </div>
       <p className="text-sm text-muted-foreground">
-        {encryptionDisabled ? t("settings:encryption.export.noEncryption") : t("settings:encryption.export.description")}
+        {encryptionDisabled
+          ? t("settings:encryption.export.noEncryption")
+          : t("settings:encryption.export.description")}
       </p>
 
       {exportError && <ErrorBanner message={exportError} />}
@@ -550,7 +565,9 @@ export function EncryptionSettingsTab() {
           onClick={() => setExportConfirmOpen(true)}
         >
           <Download className="mr-1 size-3" />
-          {exporting ? t("settings:encryption.export.exporting") : t("settings:encryption.export.button")}
+          {exporting
+            ? t("settings:encryption.export.exporting")
+            : t("settings:encryption.export.button")}
         </Button>
       </div>
     </div>
@@ -664,7 +681,9 @@ export function EncryptionSettingsTab() {
         <div className="flex justify-end">
           <Button size="sm" disabled={!formValid || saving} onClick={() => setConfirmOpen(true)}>
             <Save className="mr-1 size-3" />
-            {saving ? t("settings:saving") : t("settings:encryption.changeButton")}
+            {saving
+              ? t("settings:saving")
+              : t("settings:encryption.changeButton")}
           </Button>
         </div>
 

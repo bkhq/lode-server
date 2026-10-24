@@ -17,7 +17,14 @@ import { issueRoutes } from "./issue.routes";
 import { createIssue, resolveIssueItem } from "./issue.service";
 import "@/modules/account";
 
-const noopLogger = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
+const noopLogger = {
+  debug() {},
+  info() {},
+  warn() {},
+  error() {},
+  fatal() {},
+  flush() {},
+} as unknown as Logger;
 
 let db: AppDatabase;
 let dbPath: string;
@@ -40,7 +47,16 @@ function buildApp(): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   app.use("*", async (c, next) => {
     c.set("db", db);
-    c.set("config", { NODE_ENV: "test", MAX_UPLOAD_BYTES: 1024 * 1024, MAX_ATTACHMENTS_PER_RESOURCE: 5, UPLOADS_TOTAL_BYTES: 0, FILE_STORAGE_DRIVER: "local", FILE_STORAGE_LOCAL_ROOT: resolve(dbPath, "../uploads"), FILE_PRESIGN_ENABLED: false, FILE_PRESIGN_TTL_SECONDS: 60 } as unknown as Config);
+    c.set("config", {
+      NODE_ENV: "test",
+      MAX_UPLOAD_BYTES: 1024 * 1024,
+      MAX_ATTACHMENTS_PER_RESOURCE: 5,
+      UPLOADS_TOTAL_BYTES: 0,
+      FILE_STORAGE_DRIVER: "local",
+      FILE_STORAGE_LOCAL_ROOT: resolve(dbPath, "../uploads"),
+      FILE_PRESIGN_ENABLED: false,
+      FILE_PRESIGN_TTL_SECONDS: 60,
+    } as unknown as Config);
     c.set("logger", noopLogger);
     await next();
   });
@@ -91,8 +107,12 @@ describe("issue routes answer from the policy engine", () => {
     const issue = await createIssue(db, { title: "shared", creatorId: owner.id });
     await grant(issue.id, "viewer", viewer.id);
 
-    expect((await app.request(`/issues/${issue.id}`, { headers: { Cookie: viewer.cookie } })).status).toBe(200);
-    expect((await app.request(`/issues/${issue.id}/attachments`, { headers: { Cookie: viewer.cookie } })).status).toBe(200);
+    expect((await app.request(`/issues/${issue.id}`, {
+      headers: { Cookie: viewer.cookie },
+    })).status).toBe(200);
+    expect((await app.request(`/issues/${issue.id}/attachments`, {
+      headers: { Cookie: viewer.cookie },
+    })).status).toBe(200);
     // but not edit or delete
     const patch = await app.request(`/issues/${issue.id}`, {
       method: "PATCH",
@@ -100,7 +120,10 @@ describe("issue routes answer from the policy engine", () => {
       body: JSON.stringify({ title: "x" }),
     });
     expect(patch.status).toBe(403);
-    expect((await app.request(`/issues/${issue.id}`, { method: "DELETE", headers: { Cookie: viewer.cookie } })).status).toBe(403);
+    expect((await app.request(`/issues/${issue.id}`, {
+      method: "DELETE",
+      headers: { Cookie: viewer.cookie },
+    })).status).toBe(403);
   });
 
   test("the assignee may move status but not rewrite the record", async () => {
@@ -128,6 +151,8 @@ describe("issue routes answer from the policy engine", () => {
     const owner = await seedUser();
     const stranger = await seedUser();
     const issue = await createIssue(db, { title: "private", creatorId: owner.id });
-    expect((await app.request(`/issues/${issue.id}`, { headers: { Cookie: stranger.cookie } })).status).toBe(403);
+    expect((await app.request(`/issues/${issue.id}`, {
+      headers: { Cookie: stranger.cookie },
+    })).status).toBe(403);
   });
 });

@@ -33,7 +33,9 @@ const RE_DB_SUFFIX = /\.db$/;
 const RE_DATA_PREFIX = /^data\//;
 
 function resolvePath(p: string): string {
-  return p.startsWith("/") ? p : resolve(ROOT_DIR, p);
+  return p.startsWith("/")
+    ? p
+    : resolve(ROOT_DIR, p);
 }
 
 // Persistent-data root. DATA_DIR is the data dir itself; LODE_DIR / ROOT_DIR are
@@ -107,7 +109,9 @@ export async function loadConfigStrict(
   }
 
   const trimmedBase = data.BASE_PATH.replace(RE_SLASH_TRIM, "");
-  const basePath = trimmedBase ? `/${trimmedBase}` : "";
+  const basePath = trimmedBase
+    ? `/${trimmedBase}`
+    : "";
 
   return {
     ...data,
@@ -131,7 +135,9 @@ export async function loadConfig(): Promise<Config> {
   }
   catch (err) {
     if (err instanceof ConfigError) {
-      const where = err.field ? `[config:${err.field}] ` : "[config] ";
+      const where = err.field
+        ? `[config:${err.field}] `
+        : "[config] ";
       console.error(`${where}${err.message}`);
       if (err.hint)
         console.error(err.hint);

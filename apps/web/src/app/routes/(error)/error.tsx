@@ -28,7 +28,9 @@ interface ErrorSearchParams {
 function parseCode(raw: unknown): ErrorCode {
   if (typeof raw !== "string")
     return "unknown";
-  return (KNOWN_ERROR_CODES as readonly string[]).includes(raw) ? (raw as KnownErrorCode) : "unknown";
+  return (KNOWN_ERROR_CODES as readonly string[]).includes(raw)
+    ? (raw as KnownErrorCode)
+    : "unknown";
 }
 
 export const Route = createFileRoute("/(error)/error")({
@@ -36,7 +38,9 @@ export const Route = createFileRoute("/(error)/error")({
   component: ErrorPage,
   validateSearch: (search: Record<string, unknown>): ErrorSearchParams => ({
     code: parseCode(search.code),
-    detail: typeof search.detail === "string" ? search.detail.slice(0, 200) : undefined,
+    detail: typeof search.detail === "string"
+      ? search.detail.slice(0, 200)
+      : undefined,
   }),
 });
 

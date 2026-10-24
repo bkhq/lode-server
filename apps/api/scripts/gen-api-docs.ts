@@ -15,7 +15,9 @@ import { protectedRoutes, publicRoutes, rawRoutes, setupRoutes } from "@/routes"
 
 const { values: cli } = parseArgs({
   args: process.argv.slice(2),
-  options: { check: { type: "boolean", default: false } },
+  options: {
+    check: { type: "boolean", default: false },
+  },
   strict: true,
   allowPositionals: false,
 });

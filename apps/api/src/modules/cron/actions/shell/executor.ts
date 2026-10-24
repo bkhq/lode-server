@@ -28,9 +28,13 @@ function parseConfig(config: Record<string, unknown>): ShellConfig {
 function trimStream(buf: ArrayBuffer | Uint8Array | null): { text: string; truncated: boolean; totalBytes: number } {
   if (!buf)
     return { text: "", truncated: false, totalBytes: 0 };
-  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  const bytes = buf instanceof Uint8Array
+    ? buf
+    : new Uint8Array(buf);
   const total = bytes.byteLength;
-  const slice = total > MAX_STREAM_BYTES ? bytes.subarray(0, MAX_STREAM_BYTES) : bytes;
+  const slice = total > MAX_STREAM_BYTES
+    ? bytes.subarray(0, MAX_STREAM_BYTES)
+    : bytes;
   return {
     text: new TextDecoder().decode(slice),
     truncated: total > MAX_STREAM_BYTES,
@@ -63,7 +67,9 @@ export const execute: ActionExecutor = async (ctx, config) => {
   const startedAt = Date.now();
 
   const proc = Bun.spawn(["sh", "-c", cfg.command], {
-    ...(cfg.cwd ? { cwd: cfg.cwd } : {}),
+    ...(cfg.cwd
+      ? { cwd: cfg.cwd }
+      : {}),
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -101,16 +107,25 @@ export const execute: ActionExecutor = async (ctx, config) => {
         { command: cfg.command, exitCode: code, durationMs },
         "cron_shell_nonzero_exit",
       );
-      const stderrTag = stderr.text ? ` stderr: ${stderr.text}` : "";
+      const stderrTag = stderr.text
+        ? ` stderr: ${stderr.text}`
+        : "";
       throw new Error(`shell command exited ${code} (${durationMs}ms)${stderrTag}`);
     }
 
     ctx.logger.debug(
-      { command: cfg.command, exitCode: code, stdoutBytes: stdout.totalBytes, durationMs },
+      {
+        command: cfg.command,
+        exitCode: code,
+        stdoutBytes: stdout.totalBytes,
+        durationMs,
+      },
       "cron_shell_ok",
     );
     const tail = stdout.text
-      ? ` stdout: ${stdout.text}${stdout.truncated ? `…(${stdout.totalBytes - MAX_STREAM_BYTES} more bytes)` : ""}`
+      ? ` stdout: ${stdout.text}${stdout.truncated
+        ? `…(${stdout.totalBytes - MAX_STREAM_BYTES} more bytes)`
+        : ""}`
       : "";
     return `exit 0 (${durationMs}ms)${tail}`;
   }

@@ -23,7 +23,10 @@ describe("http()", () => {
   describe("csrf header injection", () => {
     it("injects X-Requested-With on mutating methods", async () => {
       fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
-      await http("/foo", { method: "POST", body: JSON.stringify({}) });
+      await http("/foo", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
       const init = fetchMock.mock.calls[0]![1]!;
       const headers = init.headers as Record<string, string>;
       expect(headers["X-Requested-With"]).toBe("XMLHttpRequest");
@@ -40,7 +43,10 @@ describe("http()", () => {
 
     it("does not set Content-Type when body is FormData", async () => {
       fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
-      await http("/foo", { method: "POST", body: new FormData() });
+      await http("/foo", {
+        method: "POST",
+        body: new FormData(),
+      });
       const init = fetchMock.mock.calls[0]![1]!;
       const headers = init.headers as Record<string, string>;
       expect(headers["Content-Type"]).toBeUndefined();
@@ -49,7 +55,10 @@ describe("http()", () => {
 
     it("preserves caller-provided headers", async () => {
       fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
-      await http("/foo", { method: "POST", headers: { "X-Custom": "hello" } });
+      await http("/foo", {
+        method: "POST",
+        headers: { "X-Custom": "hello" },
+      });
       const init = fetchMock.mock.calls[0]![1]!;
       const headers = init.headers as Record<string, string>;
       expect(headers["X-Custom"]).toBe("hello");
@@ -59,7 +68,9 @@ describe("http()", () => {
 
   describe("error handling", () => {
     it("returns parsed JSON on 2xx", async () => {
-      fetchMock.mockResolvedValue(jsonResponse({ data: { id: "abc" } }));
+      fetchMock.mockResolvedValue(jsonResponse({
+        data: { id: "abc" },
+      }));
       const result = await http<{ data: { id: string } }>("/foo");
       expect(result.data.id).toBe("abc");
     });
@@ -79,7 +90,9 @@ describe("http()", () => {
 
     it("throws SystemLockedError when error.code === SYSTEM_LOCKED", async () => {
       fetchMock.mockResolvedValue(jsonResponse(
-        { error: { code: "SYSTEM_LOCKED", message: "locked" } },
+        {
+          error: { code: "SYSTEM_LOCKED", message: "locked" },
+        },
         { status: 503 },
       ));
       const events: string[] = [];
@@ -95,7 +108,9 @@ describe("http()", () => {
 
     it("propagates server error.code through HttpError.code", async () => {
       fetchMock.mockResolvedValue(jsonResponse(
-        { error: { code: "VALIDATION_ERROR", message: "bad" } },
+        {
+          error: { code: "VALIDATION_ERROR", message: "bad" },
+        },
         { status: 422 },
       ));
       try {

@@ -15,7 +15,10 @@ registerBackupContribution(documentBackupContribution);
 registerTokenScope({
   name: "documents:read",
   description: "Read documents, their comments and attachments",
-  routes: [{ method: "GET", path: "/documents" }, { method: "GET", path: "/documents/*" }],
+  routes: [
+    { method: "GET", path: "/documents" },
+    { method: "GET", path: "/documents/*" },
+  ],
 });
 registerTokenScope({
   name: "documents:write",

@@ -34,7 +34,9 @@ const RE_DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 function normaliseToBoundary(value: string | undefined): string | undefined {
   if (value === undefined)
     return undefined;
-  return RE_DATE_ONLY.test(value) ? `${value}T23:59:59.999Z` : value;
+  return RE_DATE_ONLY.test(value)
+    ? `${value}T23:59:59.999Z`
+    : value;
 }
 
 const auditQuerySchema = z.object({
@@ -110,7 +112,9 @@ export function auditRoutes() {
       },
     }),
     adminRequired,
-    validator("param", z.object({ id: z.string() })),
+    validator("param", z.object({
+      id: z.string(),
+    })),
     async (c) => {
       const db = c.get("db");
       const { id } = c.req.valid("param");

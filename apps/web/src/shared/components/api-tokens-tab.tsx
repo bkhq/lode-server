@@ -117,7 +117,9 @@ export function ApiTokensTab() {
           <div className="flex items-center gap-2">
             <code className="min-w-0 flex-1 truncate rounded bg-muted px-2 py-1 text-xs">{secret}</code>
             <Button variant="ghost" size="icon-xs" aria-label={t("tokens:copy")} onClick={() => void copySecret()}>
-              {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+              {copied
+                ? <Check className="size-3.5" />
+                : <Copy className="size-3.5" />}
             </Button>
           </div>
           <div className="flex justify-end">
@@ -164,10 +166,22 @@ export function ApiTokensTab() {
                         {token.expiresAt === null
                           ? t("tokens:neverExpires")
                           : Date.parse(token.expiresAt) <= Date.now()
-                            ? <span className="text-destructive">{t("tokens:expired", { date: formatDate(token.expiresAt) })}</span>
-                            : t("tokens:expires", { date: formatDate(token.expiresAt) })}
+                            ? (
+                                <span className="text-destructive">
+                                  {t("tokens:expired", {
+                                    date: formatDate(token.expiresAt),
+                                  })}
+                                </span>
+                              )
+                            : t("tokens:expires", {
+                                date: formatDate(token.expiresAt),
+                              })}
                         {" · "}
-                        {token.lastUsedAt ? t("tokens:lastUsed", { date: formatDate(token.lastUsedAt) }) : t("tokens:neverUsed")}
+                        {token.lastUsedAt
+                          ? t("tokens:lastUsed", {
+                              date: formatDate(token.lastUsedAt),
+                            })
+                          : t("tokens:neverUsed")}
                       </div>
                     </div>
                   </div>
@@ -205,7 +219,9 @@ export function ApiTokensTab() {
 
 function ScopeBadges({ scopes }: { readonly scopes: readonly string[] }) {
   const [expanded, setExpanded] = useState(false);
-  const shown = expanded ? scopes : scopes.slice(0, VISIBLE_SCOPES);
+  const shown = expanded
+    ? scopes
+    : scopes.slice(0, VISIBLE_SCOPES);
   const hidden = scopes.length - shown.length;
   return (
     <div className="flex flex-wrap gap-1">
@@ -248,7 +264,9 @@ function RotateForm({
     setSubmitting(true);
     setError(null);
     try {
-      const expiresInDays = days.trim() === "" ? undefined : Number(days);
+      const expiresInDays = days.trim() === ""
+        ? undefined
+        : Number(days);
       const res = await http<{ data: ApiToken & { token: string } }>(`/account/me/tokens/${token.id}/rotate`, {
         method: "POST",
         body: JSON.stringify({ expiresInDays }),
@@ -256,7 +274,9 @@ function RotateForm({
       onRotated(res.data.token);
     }
     catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error.operationFailed"));
+      setError(err instanceof Error
+        ? err.message
+        : t("common.error.operationFailed"));
     }
     finally {
       setSubmitting(false);
@@ -286,7 +306,9 @@ function RotateForm({
       <div className="flex justify-end gap-2">
         <Button variant="outline" size="sm" onClick={onCancel}>{t("common.cancel")}</Button>
         <Button size="sm" onClick={() => void handleRotate()} disabled={!isValidDays(days) || submitting} aria-busy={submitting}>
-          {submitting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : t("tokens:rotate")}
+          {submitting
+            ? <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+            : t("tokens:rotate")}
         </Button>
       </div>
     </div>
@@ -305,7 +327,9 @@ function TokenForm({
   readonly onSaved: (saved: { readonly token?: string }) => void;
 }) {
   const { t } = useTranslation(["common", "tokens"]);
-  const editing = mode.kind === "edit" ? mode.token : null;
+  const editing = mode.kind === "edit"
+    ? mode.token
+    : null;
   const [name, setName] = useState(editing?.name ?? "");
   const [chosen, setChosen] = useState<ReadonlySet<string>>(() => new Set(editing?.scopes));
   const [days, setDays] = useState("90");
@@ -332,21 +356,32 @@ function TokenForm({
       if (editing) {
         await http(`/account/me/tokens/${editing.id}`, {
           method: "PATCH",
-          body: JSON.stringify({ name: name.trim(), scopes: [...chosen] }),
+          body: JSON.stringify({
+            name: name.trim(),
+            scopes: [...chosen],
+          }),
         });
         onSaved({});
       }
       else {
-        const expiresInDays = days.trim() === "" ? undefined : Number(days);
+        const expiresInDays = days.trim() === ""
+          ? undefined
+          : Number(days);
         const res = await http<{ data: ApiToken & { token: string } }>("/account/me/tokens", {
           method: "POST",
-          body: JSON.stringify({ name: name.trim(), scopes: [...chosen], expiresInDays }),
+          body: JSON.stringify({
+            name: name.trim(),
+            scopes: [...chosen],
+            expiresInDays,
+          }),
         });
         onSaved({ token: res.data.token });
       }
     }
     catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error.operationFailed"));
+      setError(err instanceof Error
+        ? err.message
+        : t("common.error.operationFailed"));
     }
     finally {
       setSubmitting(false);
@@ -370,9 +405,13 @@ function TokenForm({
               variant="ghost"
               size="sm"
               className="h-6 px-2 text-xs"
-              onClick={() => setChosen(allChosen ? new Set() : new Set(scopes.map(s => s.name)))}
+              onClick={() => setChosen(allChosen
+                ? new Set()
+                : new Set(scopes.map(s => s.name)))}
             >
-              {allChosen ? t("tokens:selectNone") : t("tokens:selectAll")}
+              {allChosen
+                ? t("tokens:selectNone")
+                : t("tokens:selectAll")}
             </Button>
           </div>
         </div>
@@ -407,7 +446,9 @@ function TokenForm({
         >
           {submitting
             ? <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-            : editing ? t("common.save") : t("tokens:create")}
+            : editing
+              ? t("common.save")
+              : t("tokens:create")}
         </Button>
       </div>
     </div>

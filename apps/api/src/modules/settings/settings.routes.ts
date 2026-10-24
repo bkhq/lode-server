@@ -58,7 +58,9 @@ export function settingsRoutes() {
     async (c) => {
       const db = c.get("db");
       const rawPrefix = c.req.query("prefix");
-      const prefix = rawPrefix ? escapeLike(rawPrefix) : undefined;
+      const prefix = rawPrefix
+        ? escapeLike(rawPrefix)
+        : undefined;
       const data = (await getSettings(db, prefix)).map(maskSensitiveValue);
       return c.json({ success: true, data });
     },
@@ -88,7 +90,13 @@ export function settingsRoutes() {
       if (value === null) {
         throw new NotFoundError("Setting", key);
       }
-      return c.json({ success: true, data: { key, value: maskValue(key, value) } });
+      return c.json({
+        success: true,
+        data: {
+          key,
+          value: maskValue(key, value),
+        },
+      });
     },
   );
 
@@ -136,7 +144,10 @@ export function settingsRoutes() {
         resourceType: "setting",
         resourceId: key,
         resourceName: key,
-        detail: { previousValue, newValue: maskValue(key, body.value) },
+        detail: {
+          previousValue,
+          newValue: maskValue(key, body.value),
+        },
         ...auditMeta(c),
         result: "success",
       });

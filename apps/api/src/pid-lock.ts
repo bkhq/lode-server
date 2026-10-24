@@ -39,7 +39,9 @@ async function probeProcess(port: number, basePath: string): Promise<"self" | "o
   const trimmedBase = basePath.replace(RE_TRAILING_SLASHES, "");
   const url = `http://127.0.0.1:${port}${trimmedBase}/api/health`;
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(2000),
+    });
     if (!res.ok) {
       // Server responded but the response status indicates it's not our
       // health endpoint (404, 500, etc.) — treat as a different process.
@@ -75,7 +77,13 @@ function parseLockFile(content: string): { pid: number; port: number } | null {
 function isProbablyAppByOs(pid: number): boolean {
   try {
     if (process.platform === "darwin") {
-      const res = Bun.spawnSync(["ps", "-p", String(pid), "-o", "command="]);
+      const res = Bun.spawnSync([
+        "ps",
+        "-p",
+        String(pid),
+        "-o",
+        "command=",
+      ]);
       if (res.exitCode !== 0)
         return false;
       return res.stdout.toString().toLowerCase().includes("bun");

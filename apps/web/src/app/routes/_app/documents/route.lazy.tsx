@@ -48,7 +48,9 @@ function useSidebarWidth() {
     if (typeof window === "undefined")
       return SIDEBAR_WIDTH_DEFAULT;
     const raw = window.localStorage.getItem(SIDEBAR_WIDTH_KEY);
-    return clampWidth(raw ? Number.parseInt(raw, 10) : SIDEBAR_WIDTH_DEFAULT);
+    return clampWidth(raw
+      ? Number.parseInt(raw, 10)
+      : SIDEBAR_WIDTH_DEFAULT);
   });
   const setAndPersist = useCallback((next: number) => {
     const v = clampWidth(next);
@@ -125,7 +127,9 @@ function DocumentsPage() {
     tree,
     loading: treeQuery.isLoading,
     error: treeQuery.error,
-    selectedId: mode.type === "detail" ? mode.docId : null,
+    selectedId: mode.type === "detail"
+      ? mode.docId
+      : null,
     onSelect: selectDoc,
     onCreate: startCreate,
   } as const;

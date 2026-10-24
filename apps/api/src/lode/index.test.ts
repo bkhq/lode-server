@@ -13,7 +13,12 @@ import {
   setLodeHold,
 } from "./index";
 
-const LODE_ENV = ["LODE_DIR", "LODE_INSTANCE", "LODE_ACTIVE_VERSION", "LODE_READINESS"] as const;
+const LODE_ENV = [
+  "LODE_DIR",
+  "LODE_INSTANCE",
+  "LODE_ACTIVE_VERSION",
+  "LODE_READINESS",
+] as const;
 const saved: Record<string, string | undefined> = Object.fromEntries(LODE_ENV.map(k => [k, process.env[k]]));
 
 let dir: string;
@@ -37,7 +42,12 @@ function rawState(): Record<string, unknown> {
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "bit-lode-"));
-  setEnv({ LODE_DIR: dir, LODE_INSTANCE: "inst-1", LODE_ACTIVE_VERSION: undefined, LODE_READINESS: undefined });
+  setEnv({
+    LODE_DIR: dir,
+    LODE_INSTANCE: "inst-1",
+    LODE_ACTIVE_VERSION: undefined,
+    LODE_READINESS: undefined,
+  });
   captureLodeConfigBaseline(); // no state.json yet → baseline null
 });
 
@@ -67,7 +77,10 @@ describe("getLodeSummary", () => {
       config_generation: 2,
       last_check: "2026-06-24T00:00:00Z",
       last_error: "boom",
-      history: [{ version: "1.0.0", at: "t1", result: "good" }, { version: "0.8.0", at: "t0", result: "bad" }],
+      history: [
+        { version: "1.0.0", at: "t1", result: "good" },
+        { version: "0.8.0", at: "t0", result: "bad" },
+      ],
       ready: "inst-1-0",
       hold: false,
     });
@@ -104,7 +117,9 @@ describe("reportLodeServing", () => {
 
   test("does not report ready when the probe fails", async () => {
     writeState({ current: "1.0.0" });
-    expect(await reportLodeServing({ probe: () => false })).toBe(false);
+    expect(await reportLodeServing({
+      probe: () => false,
+    })).toBe(false);
   });
 });
 

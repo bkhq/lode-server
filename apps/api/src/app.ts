@@ -128,9 +128,13 @@ export async function bootstrap(): Promise<BootstrapResult> {
 function resolveCorsOrigin(config: Config): string | string[] {
   if (config.CORS_ORIGIN) {
     const list = config.CORS_ORIGIN.split(",").map(s => s.trim()).filter(Boolean);
-    return list.length === 1 ? list[0]! : list;
+    return list.length === 1
+      ? list[0]!
+      : list;
   }
-  return config.NODE_ENV === "production" ? "" : "*";
+  return config.NODE_ENV === "production"
+    ? ""
+    : "*";
 }
 
 function installCommonMiddleware(
@@ -145,7 +149,9 @@ function installCommonMiddleware(
   // from `c.get("requestId")` and forward it as their own header.
   api.use("*", requestId());
   api.use("*", propagateRequestId);
-  api.use("*", cors({ origin: resolveCorsOrigin(config) }));
+  api.use("*", cors({
+    origin: resolveCorsOrigin(config),
+  }));
   api.use("*", (c, next) => {
     if (db !== undefined) {
       c.set("db", db);
@@ -233,7 +239,10 @@ export function buildLockedApp(config: Config, logger: Logger, encryption: Encry
   api.route("/", setupRoutes());
 
   api.all("*", (c) => {
-    return c.json({ success: false, error: { code: "SYSTEM_LOCKED", message: "System is locked. Provide decryption key to unlock." } }, 503);
+    return c.json({
+      success: false,
+      error: { code: "SYSTEM_LOCKED", message: "System is locked. Provide decryption key to unlock." },
+    }, 503);
   });
 
   api.onError(errorHandler);
@@ -303,7 +312,10 @@ export function buildRawApp(
   // the same prefix, and Hono runs matching handlers in registration order,
   // so a response from here ends the chain before any `/api` middleware.
   // Without it a mistyped endpoint would fall through to the `/api` stack.
-  raw.all("*", c => c.json({ success: false, error: { code: "NOT_FOUND", message: "Not found" } }, 404));
+  raw.all("*", c => c.json({
+    success: false,
+    error: { code: "NOT_FOUND", message: "Not found" },
+  }, 404));
 
   raw.onError(errorHandler);
   return raw;
@@ -379,7 +391,9 @@ export function buildOuterApp(api: Hono<AppEnv>, config: Config, raw?: Hono<AppE
     app.route(rawPrefix, raw);
   }
   app.route(`${base}/api`, api);
-  const serveSpa = spa ?? (hasStaticAssets() ? serveStaticAssets(base) : undefined);
+  const serveSpa = spa ?? (hasStaticAssets()
+    ? serveStaticAssets(base)
+    : undefined);
   if (serveSpa !== undefined) {
     // With a BASE_PATH the wildcard below does not reach "/"; without one
     // it already does.

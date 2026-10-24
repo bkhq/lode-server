@@ -53,7 +53,11 @@ export function DocumentsSidebar({
   // the edit form.
   const handleCreateChild = (parentId: string) => {
     createMutation.mutate(
-      { title: t("untitledPlaceholder"), content: "", parentId },
+      {
+        title: t("untitledPlaceholder"),
+        content: "",
+        parentId,
+      },
       {
         onSuccess: (doc) => {
           setExpanded((prev) => {
@@ -147,7 +151,13 @@ export function DocumentsSidebar({
         {loading
           ? <div className="px-4 py-6 text-center text-xs text-muted-foreground">{t("common.loading")}</div>
           : error
-            ? <div className="px-4 py-4 text-xs text-destructive">{error instanceof Error ? error.message : t("common.error.loadFailed")}</div>
+            ? (
+                <div className="px-4 py-4 text-xs text-destructive">
+                  {error instanceof Error
+                    ? error.message
+                    : t("common.error.loadFailed")}
+                </div>
+              )
             : roots.length === 0
               ? <div className="px-4 py-6 text-center text-xs text-muted-foreground">{t("noResults")}</div>
               : (
@@ -245,7 +255,9 @@ function TreeRow({
                 type="button"
                 onClick={() => onToggle(node.id)}
                 className="inline-flex size-4 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground"
-                aria-label={isExpanded ? t("tree.collapse") : t("tree.expand")}
+                aria-label={isExpanded
+                  ? t("tree.collapse")
+                  : t("tree.expand")}
               >
                 {isExpanded
                   ? <ChevronDown className="size-3.5" />

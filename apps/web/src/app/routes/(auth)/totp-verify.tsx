@@ -32,7 +32,10 @@ function TotpVerifyPage() {
     try {
       const body = await http<{ success: boolean; data?: { redirect?: string } }>(
         "/account/auth/totp/verify",
-        { method: "POST", body: JSON.stringify({ code }) },
+        {
+          method: "POST",
+          body: JSON.stringify({ code }),
+        },
       );
       window.location.href = body.data?.redirect ?? `${BASE_PATH}/overview`;
     }

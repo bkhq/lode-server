@@ -13,7 +13,9 @@ export function languageDetector(key: string): LanguageDetectorModule {
         stored = localStorage.getItem(key);
       }
       catch {}
-      const browser = navigator.languages?.length ? navigator.languages : [navigator.language];
+      const browser = navigator.languages?.length
+        ? navigator.languages
+        : [navigator.language];
       return [stored, ...browser].filter((lng): lng is string => Boolean(lng));
     },
     cacheUserLanguage(lng) {

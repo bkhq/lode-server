@@ -50,14 +50,23 @@ const channel = (args.channel as string | undefined) ?? "stable";
 const assetSuffix = (args["asset-suffix"] as string | undefined) ?? process.env.ASSET_SUFFIX ?? defaultAssetSuffix();
 
 function defaultAssetSuffix(): string {
-  const os = process.platform === "darwin" ? "darwin" : process.platform === "linux" ? "linux" : process.platform;
-  const arch = process.arch === "arm64" ? "aarch64" : process.arch;
+  const os = process.platform === "darwin"
+    ? "darwin"
+    : process.platform === "linux"
+      ? "linux"
+      : process.platform;
+  const arch = process.arch === "arm64"
+    ? "aarch64"
+    : process.arch;
   return `${os}-${arch}`;
 }
 
 async function run(cmd: readonly string[], cwd = ROOT): Promise<void> {
   console.log(`[package] ${cmd.join(" ")}`);
-  const child = Bun.spawn(cmd, { cwd, stdio: ["inherit", "inherit", "inherit"] });
+  const child = Bun.spawn(cmd, {
+    cwd,
+    stdio: ["inherit", "inherit", "inherit"],
+  });
   const code = await child.exited;
   if (code !== 0)
     throw new Error(`command failed (${code}): ${cmd.join(" ")}`);
@@ -85,7 +94,13 @@ function resolveBuildTime(): string {
       return new Date(seconds * 1000).toISOString();
   }
 
-  const commitIso = tryRun(["git", "show", "-s", "--format=%cI", "HEAD"]);
+  const commitIso = tryRun([
+    "git",
+    "show",
+    "-s",
+    "--format=%cI",
+    "HEAD",
+  ]);
   if (commitIso)
     return new Date(commitIso).toISOString();
 
@@ -115,7 +130,14 @@ function stageLibsqlNative(): void {
 }
 
 const envCommit = (process.env.BUILD_COMMIT ?? process.env.GITHUB_SHA ?? "").trim();
-const commit = (envCommit ? envCommit.slice(0, 12) : "") || tryRun(["git", "rev-parse", "--short=12", "HEAD"]) || "unknown";
+const commit = (envCommit
+  ? envCommit.slice(0, 12)
+  : "") || tryRun([
+  "git",
+  "rev-parse",
+  "--short=12",
+  "HEAD",
+]) || "unknown";
 const buildTime = resolveBuildTime();
 
 rmSync(STAGE, { recursive: true, force: true });
@@ -123,7 +145,13 @@ mkdirSync(STAGE, { recursive: true });
 mkdirSync(DIST, { recursive: true });
 
 console.log("[package] Building web...");
-await run(["bun", "run", "--filter", "@app/web", "build"]);
+await run([
+  "bun",
+  "run",
+  "--filter",
+  "@app/web",
+  "build",
+]);
 
 console.log("[package] Building API bundle...");
 rmSync(API_DIST, { recursive: true, force: true });
@@ -144,7 +172,11 @@ await run([
   `BUILD_VERSION=${JSON.stringify(version)}`,
 ], resolve(ROOT, "apps/api"));
 
-for (const path of [resolve(API_DIST, "index.js"), resolve(WEB_DIST, "index.html"), resolve(DRIZZLE_DIR, "meta/_journal.json")]) {
+for (const path of [
+  resolve(API_DIST, "index.js"),
+  resolve(WEB_DIST, "index.html"),
+  resolve(DRIZZLE_DIR, "meta/_journal.json"),
+]) {
   if (!existsSync(path))
     throw new Error(`required build input missing: ${path}`);
 }
@@ -168,7 +200,14 @@ await Bun.write(resolve(STAGE, "package.json"), `${JSON.stringify({
 const assetName = (args["asset-name"] as string | undefined) ?? process.env.ASSET_NAME ?? `${appName}-${assetSuffix}.tar.gz`;
 const assetPath = resolve(DIST, assetName);
 rmSync(assetPath, { force: true });
-await run(["tar", "-czf", assetPath, "-C", STAGE, "."]);
+await run([
+  "tar",
+  "-czf",
+  assetPath,
+  "-C",
+  STAGE,
+  ".",
+]);
 
 const hasher = new Bun.CryptoHasher("sha256");
 hasher.update(new Uint8Array(await Bun.file(assetPath).arrayBuffer()));

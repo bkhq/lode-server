@@ -19,7 +19,14 @@ import { createSession, SESSION_ABSOLUTE_LIFETIME_MS } from "./auth.service";
 import { sessions } from "./schema";
 import "@/modules/account";
 
-const noop = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
+const noop = {
+  debug() {},
+  info() {},
+  warn() {},
+  error() {},
+  fatal() {},
+  flush() {},
+} as unknown as Logger;
 
 const DAY_S = 86_400;
 const HOUR_MS = 3_600_000;
@@ -28,13 +35,29 @@ const T0 = new Date("2026-03-02T09:00:00.000Z").getTime();
 let dir: string;
 let db: AppDatabase;
 
-const config = { NODE_ENV: "test", BASE_PATH: "", TRUST_PROXY: false, SESSION_MAX_AGE: DAY_S, DEFAULT_ADMIN: "" } as unknown as Config;
+const config = {
+  NODE_ENV: "test",
+  BASE_PATH: "",
+  TRUST_PROXY: false,
+  SESSION_MAX_AGE: DAY_S,
+  DEFAULT_ADMIN: "",
+} as unknown as Config;
 
 beforeEach(async () => {
   setSystemTime(T0);
   dir = mkdtempSync(resolve(tmpdir(), "session-lifetime-"));
   db = await createDb(resolve(dir, "app.db"));
-  await db.insert(users).values({ id: "u1", oauthSub: "sub-u1", username: "u1", name: "u1", email: "u1@t.io", role: "user", status: "active", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }).run();
+  await db.insert(users).values({
+    id: "u1",
+    oauthSub: "sub-u1",
+    username: "u1",
+    name: "u1",
+    email: "u1@t.io",
+    role: "user",
+    status: "active",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }).run();
 });
 
 afterEach(() => {
@@ -59,7 +82,11 @@ function app(): Hono<AppEnv> {
 }
 
 const at = (ms: number) => setSystemTime(T0 + ms);
-const me = (sid: string) => app().request("/me", { headers: { Cookie: `session_id=${sid}` } });
+function me(sid: string) {
+  return app().request("/me", {
+    headers: { Cookie: `session_id=${sid}` },
+  });
+}
 const row = async (sid: string) => db.select().from(sessions).where(eq(sessions.id, sid)).get();
 
 describe("session lifetime", () => {

@@ -153,7 +153,9 @@ function TupleManager() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => http(`/tuples/${id}`, { method: "DELETE" }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tuples"] }),
+    onSuccess: () => queryClient.invalidateQueries({
+      queryKey: ["tuples"],
+    }),
   });
 
   const tuples = data?.data ?? [];
@@ -162,7 +164,9 @@ function TupleManager() {
 
   function resolveEntityName(id: string): string {
     const name = nameMap.get(id);
-    return name ? `${name} (${id})` : id;
+    return name
+      ? `${name} (${id})`
+      : id;
   }
 
   return (
@@ -179,7 +183,11 @@ function TupleManager() {
             }}
           >
             <SelectTrigger className="w-40">
-              <SelectValue>{(v: string) => v === "__all__" ? t("allNamespaces") : t(`ns.${v}`)}</SelectValue>
+              <SelectValue>
+                {(v: string) => v === "__all__"
+                  ? t("allNamespaces")
+                  : t(`ns.${v}`)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">{t("allNamespaces")}</SelectItem>
@@ -303,7 +311,9 @@ function CreateTupleDialog({ entities }: { readonly entities: EntitiesResponse |
       }),
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tuples"] });
+      queryClient.invalidateQueries({
+        queryKey: ["tuples"],
+      });
       setOpen(false);
       resetForm();
     },
@@ -349,7 +359,13 @@ function CreateTupleDialog({ entities }: { readonly entities: EntitiesResponse |
             </div>
             <div className="space-y-2">
               <Label>{t("object")}</Label>
-              <Combobox value={objectId ? { value: objectId, label: objectOptions.find(o => o.id === objectId)?.name ?? objectId } : null} onValueChange={v => setObjectId(v?.value ?? "")} isItemEqualToValue={(a, b) => a.value === b.value}>
+              <Combobox
+                value={objectId
+                  ? { value: objectId, label: objectOptions.find(o => o.id === objectId)?.name ?? objectId }
+                  : null}
+                onValueChange={v => setObjectId(v?.value ?? "")}
+                isItemEqualToValue={(a, b) => a.value === b.value}
+              >
                 <ComboboxInput placeholder={t("selectObject")} showClear />
                 <ComboboxContent>
                   <ComboboxList>
@@ -371,7 +387,13 @@ function CreateTupleDialog({ entities }: { readonly entities: EntitiesResponse |
           <div className="space-y-2">
             <Label>{t("relation")}</Label>
             <Select value={relation} onValueChange={handleSelect(setRelation)}>
-              <SelectTrigger><SelectValue>{(v: string) => v ? t(`rel.${v}`) : t("selectRelation")}</SelectValue></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue>
+                  {(v: string) => v
+                    ? t(`rel.${v}`)
+                    : t("selectRelation")}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 {availableRelations.map(r => <SelectItem key={r} value={r}>{t(`rel.${r}`)}</SelectItem>)}
               </SelectContent>
@@ -386,7 +408,9 @@ function CreateTupleDialog({ entities }: { readonly entities: EntitiesResponse |
                 onValueChange={handleSelect((v) => {
                   setSubjectNs(v);
                   setSubjectId("");
-                  setSubjectRelation(v === "group" ? "member" : "");
+                  setSubjectRelation(v === "group"
+                    ? "member"
+                    : "");
                 })}
               >
                 <SelectTrigger><SelectValue>{(v: string) => t(`ns.${v}`)}</SelectValue></SelectTrigger>
@@ -397,7 +421,13 @@ function CreateTupleDialog({ entities }: { readonly entities: EntitiesResponse |
             </div>
             <div className="space-y-2">
               <Label>{t("subject")}</Label>
-              <Combobox value={subjectId ? { value: subjectId, label: subjectOptions.find(o => o.id === subjectId)?.name ?? subjectId } : null} onValueChange={v => setSubjectId(v?.value ?? "")} isItemEqualToValue={(a, b) => a.value === b.value}>
+              <Combobox
+                value={subjectId
+                  ? { value: subjectId, label: subjectOptions.find(o => o.id === subjectId)?.name ?? subjectId }
+                  : null}
+                onValueChange={v => setSubjectId(v?.value ?? "")}
+                isItemEqualToValue={(a, b) => a.value === b.value}
+              >
                 <ComboboxInput placeholder={t("selectSubject")} showClear />
                 <ComboboxContent>
                   <ComboboxList>
@@ -434,7 +464,9 @@ function CreateTupleDialog({ entities }: { readonly entities: EntitiesResponse |
             onClick={() => mutation.mutate()}
             disabled={!objectId || !relation || !subjectId || mutation.isPending}
           >
-            {mutation.isPending ? t("creating") : t("create")}
+            {mutation.isPending
+              ? t("creating")
+              : t("create")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -456,7 +488,9 @@ function EditTupleDialog({ tuple }: { readonly tuple: RelationTuple }) {
       body: JSON.stringify({ relation }),
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tuples"] });
+      queryClient.invalidateQueries({
+        queryKey: ["tuples"],
+      });
       setOpen(false);
     },
   });
@@ -480,7 +514,13 @@ function EditTupleDialog({ tuple }: { readonly tuple: RelationTuple }) {
           <div className="space-y-2">
             <Label>{t("relation")}</Label>
             <Select value={relation} onValueChange={handleSelect(setRelation)}>
-              <SelectTrigger><SelectValue>{(v: string) => v ? t(`rel.${v}`) : t("selectRelation")}</SelectValue></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue>
+                  {(v: string) => v
+                    ? t(`rel.${v}`)
+                    : t("selectRelation")}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 {availableRelations.map(r => <SelectItem key={r} value={r}>{t(`rel.${r}`)}</SelectItem>)}
               </SelectContent>
@@ -496,7 +536,9 @@ function EditTupleDialog({ tuple }: { readonly tuple: RelationTuple }) {
             onClick={() => mutation.mutate()}
             disabled={relation === tuple.relation || mutation.isPending}
           >
-            {mutation.isPending ? t("common.saving") : t("common.save")}
+            {mutation.isPending
+              ? t("common.saving")
+              : t("common.save")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -543,7 +585,9 @@ function ResourceGroupManager() {
   const deleteMutation = useMutation({
     mutationFn: (group: ResourceGroup) => http(`/policy/resource-groups/${group.id}`, { method: "DELETE" }),
     onSuccess: (_data, group) => {
-      queryClient.invalidateQueries({ queryKey: ["resource-groups"] });
+      queryClient.invalidateQueries({
+        queryKey: ["resource-groups"],
+      });
       if (selectedId === group.id)
         setSelectedId(null);
       setDeleteConfirm(null);
@@ -713,11 +757,18 @@ function EditResourceGroupForm({
   const mutation = useMutation({
     mutationFn: () => http(`/policy/resource-groups/${group.id}`, {
       method: "PATCH",
-      body: JSON.stringify({ name: name.trim(), description: description.trim() || null }),
+      body: JSON.stringify({
+        name: name.trim(),
+        description: description.trim() || null,
+      }),
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["resource-groups"] });
-      toast.success(t("toast.resourceGroupUpdated", { name: name.trim() }));
+      queryClient.invalidateQueries({
+        queryKey: ["resource-groups"],
+      });
+      toast.success(t("toast.resourceGroupUpdated", {
+        name: name.trim(),
+      }));
       onClose();
     },
     onError: (err) => {
@@ -747,7 +798,9 @@ function EditResourceGroupForm({
           onClick={() => mutation.mutate()}
           disabled={!name.trim() || mutation.isPending}
         >
-          {mutation.isPending ? t("common.saving") : t("common.save")}
+          {mutation.isPending
+            ? t("common.saving")
+            : t("common.save")}
         </Button>
       </DialogFooter>
     </>
@@ -764,11 +817,18 @@ function CreateResourceGroupDialog() {
   const mutation = useMutation({
     mutationFn: () => http("/policy/resource-groups", {
       method: "POST",
-      body: JSON.stringify({ name: name.trim(), description: description.trim() || null }),
+      body: JSON.stringify({
+        name: name.trim(),
+        description: description.trim() || null,
+      }),
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["resource-groups"] });
-      toast.success(t("toast.resourceGroupCreated", { name: name.trim() }));
+      queryClient.invalidateQueries({
+        queryKey: ["resource-groups"],
+      });
+      toast.success(t("toast.resourceGroupCreated", {
+        name: name.trim(),
+      }));
       setOpen(false);
       setName("");
       setDescription("");
@@ -802,7 +862,9 @@ function CreateResourceGroupDialog() {
             onClick={() => mutation.mutate()}
             disabled={!name.trim() || mutation.isPending}
           >
-            {mutation.isPending ? t("creating") : t("create")}
+            {mutation.isPending
+              ? t("creating")
+              : t("create")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -822,7 +884,9 @@ function ResourceGroupMemberList({ groupId }: { readonly groupId: string }) {
   const removeMutation = useMutation({
     mutationFn: (tupleId: string) => http(`/policy/resource-groups/${groupId}/members/${tupleId}`, { method: "DELETE" }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["resource-group-members", groupId] });
+      queryClient.invalidateQueries({
+        queryKey: ["resource-group-members", groupId],
+      });
       toast.success(t("toast.memberRemoved"));
     },
     onError: (err) => {
@@ -919,7 +983,13 @@ function PermissionChecker() {
           </div>
           <div className="space-y-2">
             <Label>{t("object")}</Label>
-            <Combobox value={objectId ? { value: objectId, label: objectOptions.find(o => o.id === objectId)?.name ?? objectId } : null} onValueChange={v => setObjectId(v?.value ?? "")} isItemEqualToValue={(a, b) => a.value === b.value}>
+            <Combobox
+              value={objectId
+                ? { value: objectId, label: objectOptions.find(o => o.id === objectId)?.name ?? objectId }
+                : null}
+              onValueChange={v => setObjectId(v?.value ?? "")}
+              isItemEqualToValue={(a, b) => a.value === b.value}
+            >
               <ComboboxInput placeholder={t("selectObject")} showClear />
               <ComboboxContent>
                 <ComboboxList>
@@ -939,7 +1009,13 @@ function PermissionChecker() {
           <div className="space-y-2">
             <Label>{t("relation")}</Label>
             <Select value={relation} onValueChange={handleSelect(setRelation)}>
-              <SelectTrigger><SelectValue>{(v: string) => v ? t(`rel.${v}`) : t("select")}</SelectValue></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue>
+                  {(v: string) => v
+                    ? t(`rel.${v}`)
+                    : t("select")}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 {availableRelations.map(r => <SelectItem key={r} value={r}>{t(`rel.${r}`)}</SelectItem>)}
               </SelectContent>
@@ -962,7 +1038,13 @@ function PermissionChecker() {
           </div>
           <div className="space-y-2">
             <Label>{t("subject")}</Label>
-            <Combobox value={subjectId ? { value: subjectId, label: subjectOptions.find(o => o.id === subjectId)?.name ?? subjectId } : null} onValueChange={v => setSubjectId(v?.value ?? "")} isItemEqualToValue={(a, b) => a.value === b.value}>
+            <Combobox
+              value={subjectId
+                ? { value: subjectId, label: subjectOptions.find(o => o.id === subjectId)?.name ?? subjectId }
+                : null}
+              onValueChange={v => setSubjectId(v?.value ?? "")}
+              isItemEqualToValue={(a, b) => a.value === b.value}
+            >
               <ComboboxInput placeholder={t("selectSubject")} showClear />
               <ComboboxContent>
                 <ComboboxList>
@@ -985,7 +1067,9 @@ function PermissionChecker() {
           onClick={() => mutation.mutate()}
           disabled={!objectId || !relation || !subjectId || mutation.isPending}
         >
-          {mutation.isPending ? t("checking") : t("checkPermission")}
+          {mutation.isPending
+            ? t("checking")
+            : t("checkPermission")}
         </Button>
 
         {mutation.error && (
@@ -996,7 +1080,9 @@ function PermissionChecker() {
           <div className={`rounded-lg border p-4 ${result.allowed ? "border-green-500/50 bg-green-500/5" : "border-red-500/50 bg-red-500/5"}`}>
             <div className="flex items-center gap-2 mb-2">
               <Badge variant={result.allowed ? "default" : "destructive"}>
-                {result.allowed ? t("allowed") : t("denied")}
+                {result.allowed
+                  ? t("allowed")
+                  : t("denied")}
               </Badge>
               <span className="text-sm font-mono">
                 {ns}

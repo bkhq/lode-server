@@ -59,7 +59,10 @@ beforeAll(() => {
             setTimeout(() => resolve(new Response("eventually", { status: 200 })), 500);
           });
         case "/redirect-private":
-          return new Response(null, { status: 302, headers: { location: "http://10.0.0.1/latest/meta-data/" } });
+          return new Response(null, {
+            status: 302,
+            headers: { location: "http://10.0.0.1/latest/meta-data/" },
+          });
         case "/big":
           return new Response("x".repeat(4 * 1024 * 1024), { status: 200 });
         case "/big-404":
@@ -106,7 +109,10 @@ describe("http-request validate (via inputs[] + custom hook)", () => {
 
   test("rejects non-object headers", async () => {
     expect(await validate({ url: "https://x", headers: "no" })).toMatch(/headers must be a JSON object/);
-    expect(await validate({ url: "https://x", headers: ["a"] })).toMatch(/headers must be a JSON object/);
+    expect(await validate({
+      url: "https://x",
+      headers: ["a"],
+    })).toMatch(/headers must be a JSON object/);
   });
 
   test("accepts well-formed config", async () => {

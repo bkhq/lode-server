@@ -81,7 +81,9 @@ async function waitFor(url: string, label: string, opts: { acceptAny?: boolean; 
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(2000),
+      });
       if (acceptAny || (res.status >= 200 && res.status < 400)) {
         console.log(`[run] ${label} ready (status ${res.status})`);
         return;
@@ -165,7 +167,15 @@ function spawnApi(dataDir: string): Subprocess {
 
 function parseJunit(xmlPath: string, phase: string): PhaseSummary {
   if (!existsSync(xmlPath)) {
-    return { phase, tests: 0, assertions: 0, failures: 0, skipped: 0, time: 0, reportPath: xmlPath };
+    return {
+      phase,
+      tests: 0,
+      assertions: 0,
+      failures: 0,
+      skipped: 0,
+      time: 0,
+      reportPath: xmlPath,
+    };
   }
   const xml = readFileSync(xmlPath, "utf-8");
   const root = /<testsuites\b([^>]*)/.exec(xml);
@@ -194,7 +204,10 @@ async function runPhase(phaseId: string, label: string, paths: readonly string[]
   }).quiet().nothrow();
   process.stdout.write(result.stdout);
   process.stderr.write(result.stderr);
-  return { exit: result.exitCode, summary: parseJunit(reportPath, phaseId) };
+  return {
+    exit: result.exitCode,
+    summary: parseJunit(reportPath, phaseId),
+  };
 }
 
 function printSummary(summaries: readonly PhaseSummary[]): void {
@@ -206,7 +219,13 @@ function printSummary(summaries: readonly PhaseSummary[]): void {
       skipped: acc.skipped + s.skipped,
       time: acc.time + s.time,
     }),
-    { tests: 0, assertions: 0, failures: 0, skipped: 0, time: 0 },
+    {
+      tests: 0,
+      assertions: 0,
+      failures: 0,
+      skipped: 0,
+      time: 0,
+    },
   );
 
   const fmt = (n: number, w: number) => String(n).padStart(w);
@@ -328,7 +347,9 @@ async function main() {
       exitCode = unlock.exit;
   }
   catch (err) {
-    console.error("[run]", err instanceof Error ? err.message : err);
+    console.error("[run]", err instanceof Error
+      ? err.message
+      : err);
     if (exitCode === 0)
       exitCode = 1;
   }
