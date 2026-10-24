@@ -1,7 +1,7 @@
 {
   "name": "@app/api",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Hono API on Bun with Drizzle SQLite storage and optional ECIES at-rest encryption.",
   "homepage": "https://github.com/zzci",
