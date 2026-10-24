@@ -5,12 +5,42 @@ import { APP_DISPLAY_NAME } from "@/shared/lib/branding";
 import { ErrorBanner, saveSetting, SettingsCard, useSettingsByPrefix } from "./-settings-shared";
 
 const SMTP_FIELDS: readonly { key: string; label: string; sensitive: boolean; placeholder: string }[] = [
-  { key: "smtp.host", label: "settings:smtp.fieldHost", sensitive: false, placeholder: "smtp.example.com" },
-  { key: "smtp.port", label: "settings:smtp.fieldPort", sensitive: false, placeholder: "587" },
-  { key: "smtp.username", label: "settings:smtp.fieldUsername", sensitive: false, placeholder: "user@example.com" },
-  { key: "smtp.password", label: "settings:smtp.fieldPassword", sensitive: true, placeholder: "Password" },
-  { key: "smtp.from_address", label: "settings:smtp.fieldFromAddress", sensitive: false, placeholder: "noreply@example.com" },
-  { key: "smtp.from_name", label: "settings:smtp.fieldFromName", sensitive: false, placeholder: APP_DISPLAY_NAME },
+  {
+    key: "smtp.host",
+    label: "settings:smtp.fieldHost",
+    sensitive: false,
+    placeholder: "smtp.example.com",
+  },
+  {
+    key: "smtp.port",
+    label: "settings:smtp.fieldPort",
+    sensitive: false,
+    placeholder: "587",
+  },
+  {
+    key: "smtp.username",
+    label: "settings:smtp.fieldUsername",
+    sensitive: false,
+    placeholder: "user@example.com",
+  },
+  {
+    key: "smtp.password",
+    label: "settings:smtp.fieldPassword",
+    sensitive: true,
+    placeholder: "Password",
+  },
+  {
+    key: "smtp.from_address",
+    label: "settings:smtp.fieldFromAddress",
+    sensitive: false,
+    placeholder: "noreply@example.com",
+  },
+  {
+    key: "smtp.from_name",
+    label: "settings:smtp.fieldFromName",
+    sensitive: false,
+    placeholder: APP_DISPLAY_NAME,
+  },
 ];
 
 export function SmtpSettingsTab() {
@@ -25,7 +55,9 @@ export function SmtpSettingsTab() {
       void refetch();
     }
     catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error.operationFailed"));
+      setError(err instanceof Error
+        ? err.message
+        : t("common.error.operationFailed"));
     }
   };
 

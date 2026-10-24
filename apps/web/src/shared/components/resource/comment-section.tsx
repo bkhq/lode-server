@@ -110,20 +110,26 @@ export function ResourceCommentSection({
   // Render only the newest `visibleCount` (tail of the chronological list);
   // the rest stay collapsed behind a "show older" button.
   const hiddenCount = Math.max(0, allComments.length - visibleCount);
-  const visibleComments = hiddenCount > 0 ? allComments.slice(hiddenCount) : allComments;
+  const visibleComments = hiddenCount > 0
+    ? allComments.slice(hiddenCount)
+    : allComments;
 
   const submit = useMutation({
     mutationFn: async (input: { content: string; replyToId: string | null }) => {
       await http(`/${resource}/${resourceId}/comments`, {
         method: "POST",
-        body: JSON.stringify(enableReply ? input : { content: input.content }),
+        body: JSON.stringify(enableReply
+          ? input
+          : { content: input.content }),
       });
     },
     onSuccess: () => {
       setNewComment("");
       setReplyTarget(null);
       setEditorKey(k => k + 1);
-      void qc.invalidateQueries({ queryKey: commentsQueryKey(resource, resourceId) });
+      void qc.invalidateQueries({
+        queryKey: commentsQueryKey(resource, resourceId),
+      });
     },
     onError: err => setError(errorMessage(err, t("common.error.operationFailed"))),
   });
@@ -134,7 +140,9 @@ export function ResourceCommentSection({
     },
     onSuccess: () => {
       setDeleteTarget(null);
-      void qc.invalidateQueries({ queryKey: commentsQueryKey(resource, resourceId) });
+      void qc.invalidateQueries({
+        queryKey: commentsQueryKey(resource, resourceId),
+      });
     },
     onError: err => setError(errorMessage(err, t("common.error.deleteFailed"))),
   });
@@ -155,7 +163,9 @@ export function ResourceCommentSection({
         return;
       el.scrollIntoView({ behavior: "smooth", block: "center" });
       setFlashId(id);
-      window.setTimeout(() => setFlashId(prev => (prev === id ? null : prev)), 1500);
+      window.setTimeout(() => setFlashId(prev => (prev === id
+        ? null
+        : prev)), 1500);
     };
     if (commentNodesRef.current.has(id)) {
       scrollToEl();
@@ -204,7 +214,10 @@ export function ResourceCommentSection({
                 <Button
                   size="sm"
                   disabled={submit.isPending || !newComment.trim()}
-                  onClick={() => submit.mutate({ content: newComment.trim(), replyToId: replyTarget?.id ?? null })}
+                  onClick={() => submit.mutate({
+                    content: newComment.trim(),
+                    replyToId: replyTarget?.id ?? null,
+                  })}
                 >
                   <Send className="size-3.5 mr-1.5" />
                   {t("comments.send")}
@@ -239,7 +252,9 @@ export function ResourceCommentSection({
                     </div>
                   )}
                   {visibleComments.map((comment) => {
-                    const parent = enableReply && comment.replyToId ? commentById.get(comment.replyToId) : null;
+                    const parent = enableReply && comment.replyToId
+                      ? commentById.get(comment.replyToId)
+                      : null;
                     return (
                       <div
                         key={comment.id}

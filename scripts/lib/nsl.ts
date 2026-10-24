@@ -6,5 +6,7 @@
 export function nslGet(name: string): string | null {
   const result = Bun.spawnSync(["nsl", "get", name]);
   const url = result.stdout.toString().trim();
-  return result.exitCode === 0 && url.startsWith("http") ? url : null;
+  return result.exitCode === 0 && url.startsWith("http")
+    ? url
+    : null;
 }

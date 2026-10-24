@@ -179,7 +179,9 @@ export function LogsDialog({
                   ? (
                       <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                          {loading ? t("common.loading", { ns: "common" }) : t("logs.empty")}
+                          {loading
+                            ? t("common.loading", { ns: "common" })
+                            : t("logs.empty")}
                         </TableCell>
                       </TableRow>
                     )

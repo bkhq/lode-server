@@ -14,5 +14,7 @@ import { HttpError } from "@/shared/lib/http";
 export function errorMessage(err: unknown, fallback: string): string {
   if (err instanceof HttpError)
     return err.code ? fallback : err.message;
-  return err instanceof Error ? err.message : fallback;
+  return err instanceof Error
+    ? err.message
+    : fallback;
 }

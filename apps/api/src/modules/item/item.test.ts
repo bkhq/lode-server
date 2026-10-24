@@ -119,27 +119,49 @@ describe("createItem", () => {
 describe("get / resolve", () => {
   test("getItemById returns the live row", async () => {
     const userId = await seedUser("Alice");
-    const item = await createItem(db, { type: "issue", title: "Hi", status: "open", creatorId: userId });
+    const item = await createItem(db, {
+      type: "issue",
+      title: "Hi",
+      status: "open",
+      creatorId: userId,
+    });
     expect(await getItemById(db, item.id)).toEqual(item);
   });
 
   test("getItemById returns undefined for soft-deleted rows", async () => {
     const userId = await seedUser("Alice");
-    const item = await createItem(db, { type: "issue", title: "Hi", status: "open", creatorId: userId });
+    const item = await createItem(db, {
+      type: "issue",
+      title: "Hi",
+      status: "open",
+      creatorId: userId,
+    });
     await softDeleteItem(db, item.id);
     expect(await getItemById(db, item.id)).toBeUndefined();
   });
 
   test("getItemByShortId works for custom short ids", async () => {
     const userId = await seedUser("Alice");
-    await createItem(db, { type: "issue", title: "Hi", status: "open", creatorId: userId, shortId: "tkt-7" });
+    await createItem(db, {
+      type: "issue",
+      title: "Hi",
+      status: "open",
+      creatorId: userId,
+      shortId: "tkt-7",
+    });
     const row = await getItemByShortId(db, "tkt-7");
     expect(row?.shortId).toBe("tkt-7");
   });
 
   test("resolveItem matches by both id and short_id", async () => {
     const userId = await seedUser("Alice");
-    const item = await createItem(db, { type: "issue", title: "Hi", status: "open", creatorId: userId, shortId: "tkt-9" });
+    const item = await createItem(db, {
+      type: "issue",
+      title: "Hi",
+      status: "open",
+      creatorId: userId,
+      shortId: "tkt-9",
+    });
     expect((await resolveItem(db, item.id))?.id).toBe(item.id);
     expect((await resolveItem(db, "tkt-9"))?.id).toBe(item.id);
     expect(await resolveItem(db, "nope")).toBeUndefined();
@@ -153,7 +175,12 @@ describe("get / resolve", () => {
 describe("updateItem", () => {
   test("bumps version on every update", async () => {
     const userId = await seedUser("Alice");
-    const item = await createItem(db, { type: "issue", title: "v1", status: "open", creatorId: userId });
+    const item = await createItem(db, {
+      type: "issue",
+      title: "v1",
+      status: "open",
+      creatorId: userId,
+    });
     const updated = await updateItem(db, item.id, { title: "v2" });
     expect(isVersionConflict(updated)).toBe(false);
     if (!isVersionConflict(updated))
@@ -162,7 +189,12 @@ describe("updateItem", () => {
 
   test("returns a VersionConflict when expectedVersion mismatches", async () => {
     const userId = await seedUser("Alice");
-    const item = await createItem(db, { type: "issue", title: "v1", status: "open", creatorId: userId });
+    const item = await createItem(db, {
+      type: "issue",
+      title: "v1",
+      status: "open",
+      creatorId: userId,
+    });
     // First write bumps to v2.
     await updateItem(db, item.id, { title: "v2" });
     // Second write believes it's still on v1.
@@ -174,7 +206,12 @@ describe("updateItem", () => {
 
   test("does not update soft-deleted items", async () => {
     const userId = await seedUser("Alice");
-    const item = await createItem(db, { type: "issue", title: "v1", status: "open", creatorId: userId });
+    const item = await createItem(db, {
+      type: "issue",
+      title: "v1",
+      status: "open",
+      creatorId: userId,
+    });
     await softDeleteItem(db, item.id);
     await updateItem(db, item.id, { title: "ghost" });
     // Read raw (bypass live filter) — title is unchanged.
@@ -186,7 +223,12 @@ describe("updateItem", () => {
 describe("softDeleteItem / restoreItem", () => {
   test("softDelete stamps deleted_at and removes tuples for the item", async () => {
     const userId = await seedUser("Alice");
-    const item = await createItem(db, { type: "issue", title: "Hi", status: "open", creatorId: userId });
+    const item = await createItem(db, {
+      type: "issue",
+      title: "Hi",
+      status: "open",
+      creatorId: userId,
+    });
     await softDeleteItem(db, item.id);
 
     const raw = await db.select().from(items).where(eq(items.id, item.id)).get();
@@ -199,7 +241,12 @@ describe("softDeleteItem / restoreItem", () => {
   test("softDelete is idempotent and a no-op on missing rows", async () => {
     await softDeleteItem(db, "nope-1234");
     const userId = await seedUser("Alice");
-    const item = await createItem(db, { type: "issue", title: "Hi", status: "open", creatorId: userId });
+    const item = await createItem(db, {
+      type: "issue",
+      title: "Hi",
+      status: "open",
+      creatorId: userId,
+    });
     await softDeleteItem(db, item.id);
     // Tuple count: removed when alive.
     const t1 = await db.select().from(relationTuples).where(
@@ -212,7 +259,12 @@ describe("softDeleteItem / restoreItem", () => {
 
   test("restoreItem clears deleted_at and bumps version", async () => {
     const userId = await seedUser("Alice");
-    const item = await createItem(db, { type: "issue", title: "Hi", status: "open", creatorId: userId });
+    const item = await createItem(db, {
+      type: "issue",
+      title: "Hi",
+      status: "open",
+      creatorId: userId,
+    });
     await softDeleteItem(db, item.id);
     const restored = await restoreItem(db, item.id);
     expect(restored?.deletedAt).toBeNull();
@@ -227,9 +279,24 @@ describe("softDeleteItem / restoreItem", () => {
 describe("listItemsByIds / listItemsByType", () => {
   test("listItemsByIds filters by ids and excludes soft-deleted rows", async () => {
     const userId = await seedUser("Alice");
-    const a = await createItem(db, { type: "issue", title: "Apple", status: "open", creatorId: userId });
-    const b = await createItem(db, { type: "issue", title: "Banana", status: "open", creatorId: userId });
-    const c = await createItem(db, { type: "issue", title: "Cherry", status: "open", creatorId: userId });
+    const a = await createItem(db, {
+      type: "issue",
+      title: "Apple",
+      status: "open",
+      creatorId: userId,
+    });
+    const b = await createItem(db, {
+      type: "issue",
+      title: "Banana",
+      status: "open",
+      creatorId: userId,
+    });
+    const c = await createItem(db, {
+      type: "issue",
+      title: "Cherry",
+      status: "open",
+      creatorId: userId,
+    });
     await softDeleteItem(db, c.id);
 
     const result = await listItemsByIds(db, [a.id, b.id, c.id]);
@@ -245,9 +312,24 @@ describe("listItemsByIds / listItemsByType", () => {
 
   test("listItemsByType honours type + status + search", async () => {
     const userId = await seedUser("Alice");
-    await createItem(db, { type: "issue", title: "Apple bug", status: "open", creatorId: userId });
-    await createItem(db, { type: "issue", title: "Banana done", status: "done", creatorId: userId });
-    await createItem(db, { type: "document", title: "Apple doc", status: "active", creatorId: userId });
+    await createItem(db, {
+      type: "issue",
+      title: "Apple bug",
+      status: "open",
+      creatorId: userId,
+    });
+    await createItem(db, {
+      type: "issue",
+      title: "Banana done",
+      status: "done",
+      creatorId: userId,
+    });
+    await createItem(db, {
+      type: "document",
+      title: "Apple doc",
+      status: "active",
+      creatorId: userId,
+    });
 
     const issuesOpen = await listItemsByType(db, { type: "issue", status: "open" });
     expect(issuesOpen.total).toBe(1);
@@ -262,8 +344,18 @@ describe("listItemsByIds / listItemsByType", () => {
 
   test("listItemsByType matches % and _ in the search literally", async () => {
     const userId = await seedUser("Alice");
-    await createItem(db, { type: "issue", title: "Ship 50% of fixes", status: "open", creatorId: userId });
-    await createItem(db, { type: "issue", title: "Ship 500 fixes", status: "open", creatorId: userId });
+    await createItem(db, {
+      type: "issue",
+      title: "Ship 50% of fixes",
+      status: "open",
+      creatorId: userId,
+    });
+    await createItem(db, {
+      type: "issue",
+      title: "Ship 500 fixes",
+      status: "open",
+      creatorId: userId,
+    });
     const r = await listItemsByType(db, { type: "issue", search: "50%" });
     expect(r.data.map(i => i.title)).toEqual(["Ship 50% of fixes"]);
   });
@@ -271,7 +363,12 @@ describe("listItemsByIds / listItemsByType", () => {
   test("listItemsByType paginates", async () => {
     const userId = await seedUser("Alice");
     for (let i = 0; i < 5; i++) {
-      await createItem(db, { type: "issue", title: `Task ${i}`, status: "open", creatorId: userId });
+      await createItem(db, {
+        type: "issue",
+        title: `Task ${i}`,
+        status: "open",
+        creatorId: userId,
+      });
     }
     const page1 = await listItemsByType(db, { type: "issue", page: 1, limit: 2 });
     expect(page1.data).toHaveLength(2);

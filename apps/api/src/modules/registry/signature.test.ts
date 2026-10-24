@@ -46,7 +46,9 @@ function vectorById(id: string) {
 /** Replace the character at `index` with a different one of the same class. */
 function flipChar(text: string, index = 0): string {
   const char = text.charAt(index);
-  const replacement = char === "a" ? "b" : "a";
+  const replacement = char === "a"
+    ? "b"
+    : "a";
   return text.slice(0, index) + replacement + text.slice(index + 1);
 }
 
@@ -65,17 +67,32 @@ async function sha256Hex(text: string): Promise<string> {
 
 describe("artifactMessage", () => {
   test("matches lode's canonical bytes, absent overrides as empty fields", () => {
-    const message = artifactMessage({ app: "myapp", name: "app.tar.gz", version: "1.0.0", sha256: "abc" });
+    const message = artifactMessage({
+      app: "myapp",
+      name: "app.tar.gz",
+      version: "1.0.0",
+      sha256: "abc",
+    });
     expect(decoder.decode(message)).toBe("lode.artifact.v2\nmyapp\napp.tar.gz\n1.0.0\nabc\n\n");
   });
 
   test("null overrides encode like absent ones", () => {
-    const base = { app: "myapp", name: "app.tar.gz", version: "1.0.0", sha256: "abc" };
+    const base = {
+      app: "myapp",
+      name: "app.tar.gz",
+      version: "1.0.0",
+      sha256: "abc",
+    };
     expect(artifactMessage({ ...base, run: null, exec: null })).toEqual(artifactMessage(base));
   });
 
   test("run and exec occupy distinct fields with no trailing newline", () => {
-    const base = { app: "myapp", name: "app.tar.gz", version: "1.0.0", sha256: "abc" };
+    const base = {
+      app: "myapp",
+      name: "app.tar.gz",
+      version: "1.0.0",
+      sha256: "abc",
+    };
     expect(decoder.decode(artifactMessage({ ...base, run: "./app" }))).toBe(
       "lode.artifact.v2\nmyapp\napp.tar.gz\n1.0.0\nabc\n./app\n",
     );
@@ -145,7 +162,13 @@ describe("keyIdOf", () => {
 
 describe("verifyArtifactSignature", () => {
   test("covers the required vector shapes", () => {
-    expect(vectors.map(v => v.id)).toEqual(["plain", "run", "exec", "run-exec", "version"]);
+    expect(vectors.map(v => v.id)).toEqual([
+      "plain",
+      "run",
+      "exec",
+      "run-exec",
+      "version",
+    ]);
     expect(vectorById("plain")).toMatchObject({ run: null, exec: null });
     expect(vectorById("run").run).toBeString();
     expect(vectorById("run").exec).toBeNull();
@@ -169,38 +192,63 @@ describe("verifyArtifactSignature", () => {
       });
 
       test("rejects a tampered sha256", async () => {
-        expect(await verifyArtifactSignature({ ...input, sha256: flipChar(input.sha256) })).toBe(false);
+        expect(await verifyArtifactSignature({
+          ...input,
+          sha256: flipChar(input.sha256),
+        })).toBe(false);
         // The digest is bound verbatim: lode signs lowercase hex.
-        expect(await verifyArtifactSignature({ ...input, sha256: input.sha256.toUpperCase() })).toBe(false);
+        expect(await verifyArtifactSignature({
+          ...input,
+          sha256: input.sha256.toUpperCase(),
+        })).toBe(false);
       });
 
       test("rejects a tampered sig", async () => {
-        expect(await verifyArtifactSignature({ ...input, sig: flipChar(input.sig) })).toBe(false);
-        expect(await verifyArtifactSignature({ ...input, sig: flipChar(input.sig, 40) })).toBe(false);
+        expect(await verifyArtifactSignature({
+          ...input,
+          sig: flipChar(input.sig),
+        })).toBe(false);
+        expect(await verifyArtifactSignature({
+          ...input,
+          sig: flipChar(input.sig, 40),
+        })).toBe(false);
       });
 
       test("rejects another app", async () => {
-        expect(await verifyArtifactSignature({ ...input, app: flipChar(input.app) })).toBe(false);
+        expect(await verifyArtifactSignature({
+          ...input,
+          app: flipChar(input.app),
+        })).toBe(false);
         expect(await verifyArtifactSignature({ ...input, app: "lib" })).toBe(false);
       });
 
       test("rejects a tampered name", async () => {
-        expect(await verifyArtifactSignature({ ...input, name: flipChar(input.name) })).toBe(false);
+        expect(await verifyArtifactSignature({
+          ...input,
+          name: flipChar(input.name),
+        })).toBe(false);
       });
 
       test("rejects a tampered version", async () => {
-        expect(await verifyArtifactSignature({ ...input, version: flipChar(input.version) })).toBe(false);
+        expect(await verifyArtifactSignature({
+          ...input,
+          version: flipChar(input.version),
+        })).toBe(false);
       });
 
       test("rejects a tampered run", async () => {
-        const run = input.run === null ? "./evil" : flipChar(input.run, 2);
+        const run = input.run === null
+          ? "./evil"
+          : flipChar(input.run, 2);
         expect(await verifyArtifactSignature({ ...input, run })).toBe(false);
         if (input.run !== null)
           expect(await verifyArtifactSignature({ ...input, run: null })).toBe(false);
       });
 
       test("rejects a tampered exec", async () => {
-        const exec = input.exec === null ? "./evil" : flipChar(input.exec, 2);
+        const exec = input.exec === null
+          ? "./evil"
+          : flipChar(input.exec, 2);
         expect(await verifyArtifactSignature({ ...input, exec })).toBe(false);
         if (input.exec !== null)
           expect(await verifyArtifactSignature({ ...input, exec: null })).toBe(false);
@@ -237,16 +285,25 @@ describe("verifyArtifactSignature", () => {
     const malformed = [
       { ...input, sig: "" },
       { ...input, sig: "not-base64-!!!" },
-      { ...input, sig: input.sig.slice(0, -4) },
+      {
+        ...input,
+        sig: input.sig.slice(0, -4),
+      },
       { ...input, sig: `${input.sig}AAAA` },
       { ...input, publicKey: "" },
       { ...input, publicKey: "not-base64-!!!" },
-      { ...input, publicKey: input.publicKey.slice(0, -4) },
+      {
+        ...input,
+        publicKey: input.publicKey.slice(0, -4),
+      },
       { ...input, publicKey: `${input.publicKey}AAAA` },
       // A trusted-key entry is not a bare key: the caller splits it first.
       { ...input, publicKey: `${signer.keyId}:${input.publicKey}` },
       // An ECDSA-sized key (33-byte compressed point) is not ed25519.
-      { ...input, publicKey: encodeBase64Url(new Uint8Array(33).fill(2)) },
+      {
+        ...input,
+        publicKey: encodeBase64Url(new Uint8Array(33).fill(2)),
+      },
     ];
     for (const candidate of malformed) expect(await verifyArtifactSignature(candidate)).toBe(false);
   });
@@ -375,8 +432,14 @@ describe("revocation list", () => {
 
   test("the order of the ids is not bound; their set, the time and the signer are", async () => {
     const verifies = async (list: typeof revocationsBySub) => await verifyEd25519(sub.publicKey, revocationsBySub.sig, messageOf(list));
-    expect(await verifies({ ...revocationsBySub, revoked: [...revocationsBySub.revoked].reverse() })).toBe(true);
-    expect(await verifies({ ...revocationsBySub, revoked: revocationsBySub.revoked.slice(1) })).toBe(false);
+    expect(await verifies({
+      ...revocationsBySub,
+      revoked: [...revocationsBySub.revoked].reverse(),
+    })).toBe(true);
+    expect(await verifies({
+      ...revocationsBySub,
+      revoked: revocationsBySub.revoked.slice(1),
+    })).toBe(false);
     expect(await verifies({ ...revocationsBySub, issued_at: revocationsBySub.issued_at + 1 })).toBe(false);
     expect(await verifies({ ...revocationsBySub, key_id: root.keyId })).toBe(false);
   });

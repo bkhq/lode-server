@@ -18,13 +18,17 @@ const isBrowser = typeof window !== "undefined";
 function getSystemTheme(): "light" | "dark" {
   if (!isBrowser)
     return "light";
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 }
 
 function applyTheme(theme: Theme) {
   if (!isBrowser)
     return;
-  const resolved = theme === "system" ? getSystemTheme() : theme;
+  const resolved = theme === "system"
+    ? getSystemTheme()
+    : theme;
   document.documentElement.classList.toggle("dark", resolved === "dark");
 }
 
@@ -32,7 +36,9 @@ function getStoredTheme(): Theme {
   if (!isBrowser)
     return "system";
   const stored = localStorage.getItem(STORAGE_KEY);
-  return (stored === "light" || stored === "dark" || stored === "system") ? stored : "system";
+  return (stored === "light" || stored === "dark" || stored === "system")
+    ? stored
+    : "system";
 }
 
 export function ThemeProvider({ children }: { readonly children: ReactNode }) {

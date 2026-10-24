@@ -75,7 +75,9 @@ export async function bootstrapEncryption(
   if (!config.DB_ENCRYPTION) {
     // `meta.db` is a local artefact. A runtime without a filesystem never
     // wrote one, so there is no previously-encrypted database to detect.
-    const meta = capabilities.filesystem ? readEncryptionMeta(config.DB_PATH) : null;
+    const meta = capabilities.filesystem
+      ? readEncryptionMeta(config.DB_PATH)
+      : null;
     if (meta) {
       throw new Error(
         "DB_ENCRYPTION is disabled but the database was previously encrypted. "
@@ -141,7 +143,11 @@ export async function bootstrapEncryption(
       if ((fileMode & 0o077) !== 0 || (dirMode & 0o077) !== 0) {
         rmSync(tokenFile, { force: true });
         logger.error(
-          { tokenFile, fileMode: fileMode.toString(8), dirMode: dirMode.toString(8) },
+          {
+            tokenFile,
+            fileMode: fileMode.toString(8),
+            dirMode: dirMode.toString(8),
+          },
           "bootstrap-token.txt removed: filesystem permissions are too permissive (file/dir not 0o600/0o700). Read the token from stderr instead.",
         );
       }

@@ -55,8 +55,16 @@ describe("validateBackupData", () => {
   });
 
   test("rejects unsupported version numbers", () => {
-    expect(() => validateBackupData({ version: 0, modules: ["users"], tables: {} })).toThrow(/Invalid backup version/);
-    expect(() => validateBackupData({ version: 999, modules: ["users"], tables: {} })).toThrow(/newer than this build supports/);
+    expect(() => validateBackupData({
+      version: 0,
+      modules: ["users"],
+      tables: {},
+    })).toThrow(/Invalid backup version/);
+    expect(() => validateBackupData({
+      version: 999,
+      modules: ["users"],
+      tables: {},
+    })).toThrow(/newer than this build supports/);
   });
 
   test("rejects empty module list", () => {
@@ -64,11 +72,20 @@ describe("validateBackupData", () => {
   });
 
   test("rejects missing tables block", () => {
-    expect(() => validateBackupData({ version: 1, modules: ["users"], tables: null })).toThrow(/no table data/);
+    expect(() => validateBackupData({
+      version: 1,
+      modules: ["users"],
+      tables: null,
+    })).toThrow(/no table data/);
   });
 
   test("returns the parsed object on a well-formed payload", () => {
-    const ok = validateBackupData({ version: 1, exportedAt: "2026-05-14T00:00:00Z", modules: ["users"], tables: { users: [] } });
+    const ok = validateBackupData({
+      version: 1,
+      exportedAt: "2026-05-14T00:00:00Z",
+      modules: ["users"],
+      tables: { users: [] },
+    });
     // v1 input is migrated forward to the current format.
     expect(ok.version).toBe(3);
     expect(ok.modules).toEqual(["users"]);
@@ -99,9 +116,13 @@ describe("importJsonBackup — happy path round-trip", () => {
     expect(result.rowsImported).toBeGreaterThanOrEqual(2);
 
     const users = await db.all(sql`SELECT id, username FROM users`);
-    expect(users).toEqual([{ id: "u_1", username: "alice" }]);
+    expect(users).toEqual([
+      { id: "u_1", username: "alice" },
+    ]);
     const settings = await db.all(sql`SELECT key, value FROM settings`);
-    expect(settings).toEqual([{ key: "session.max_age", value: "86400" }]);
+    expect(settings).toEqual([
+      { key: "session.max_age", value: "86400" },
+    ]);
   });
 });
 
@@ -113,16 +134,52 @@ describe("validateBackupData — v1 → v2 migrator", () => {
       modules: ["policies"],
       tables: {
         relation_tuples: [
-          { id: "t1", namespace: "item", objectId: "o1", relation: "viewer", subjectNamespace: "user", subjectId: "u1", subjectRelation: null, createdBy: null, createdAt: "2026-01-01T00:00:00Z" },
-          { id: "t2", namespace: "item", objectId: "o1", relation: "viewer", subjectNamespace: "group", subjectId: "g1", subjectRelation: "member", createdBy: null, createdAt: "2026-01-01T00:00:00Z" },
-          { id: "m1", namespace: "resource_group", objectId: "rg1", relation: "__meta__", subjectNamespace: "resource_group", subjectId: "Ops", subjectRelation: "the ops group", createdBy: "u1", createdAt: "2026-01-02T00:00:00Z" },
+          {
+            id: "t1",
+            namespace: "item",
+            objectId: "o1",
+            relation: "viewer",
+            subjectNamespace: "user",
+            subjectId: "u1",
+            subjectRelation: null,
+            createdBy: null,
+            createdAt: "2026-01-01T00:00:00Z",
+          },
+          {
+            id: "t2",
+            namespace: "item",
+            objectId: "o1",
+            relation: "viewer",
+            subjectNamespace: "group",
+            subjectId: "g1",
+            subjectRelation: "member",
+            createdBy: null,
+            createdAt: "2026-01-01T00:00:00Z",
+          },
+          {
+            id: "m1",
+            namespace: "resource_group",
+            objectId: "rg1",
+            relation: "__meta__",
+            subjectNamespace: "resource_group",
+            subjectId: "Ops",
+            subjectRelation: "the ops group",
+            createdBy: "u1",
+            createdAt: "2026-01-02T00:00:00Z",
+          },
         ],
       },
     });
     expect(v2.version).toBe(3);
     expect(v2.tables.relation_tuples!.map(r => r.subjectRelation)).toEqual(["", "member"]);
     expect(v2.tables.resource_groups).toEqual([
-      { id: "rg1", name: "Ops", description: "the ops group", createdBy: "u1", createdAt: "2026-01-02T00:00:00Z" },
+      {
+        id: "rg1",
+        name: "Ops",
+        description: "the ops group",
+        createdBy: "u1",
+        createdAt: "2026-01-02T00:00:00Z",
+      },
     ]);
   });
 });
@@ -148,7 +205,12 @@ describe("importJsonBackup — error surfaces", () => {
         modules: ["settings"],
         tables: {
           settings: [
-            { key: "x", value: "y", updated_at: "2026-01-01T00:00:00Z", surprise_column: "boom" },
+            {
+              key: "x",
+              value: "y",
+              updated_at: "2026-01-01T00:00:00Z",
+              surprise_column: "boom",
+            },
           ],
         },
       });
@@ -223,7 +285,12 @@ describe("importJsonBackup — error surfaces", () => {
           groups: [],
           user_preferences: [],
           settings: [
-            { key: "x", value: "y", updated_at: "2026-01-01T00:00:00Z", ghost_column: "boom" },
+            {
+              key: "x",
+              value: "y",
+              updated_at: "2026-01-01T00:00:00Z",
+              ghost_column: "boom",
+            },
           ],
         },
       });
@@ -269,11 +336,39 @@ describe("reconcileRestoredFiles — blobs are out of backup scope", () => {
       modules: ["files"],
       tables: {
         users: [
-          { id: "u_f", oauthSub: "sub_f", username: "fuser", name: "F", email: "f@example.com", role: "admin", status: "active", createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z" },
+          {
+            id: "u_f",
+            oauthSub: "sub_f",
+            username: "fuser",
+            name: "F",
+            email: "f@example.com",
+            role: "admin",
+            status: "active",
+            createdAt: "2026-01-01T00:00:00Z",
+            updatedAt: "2026-01-01T00:00:00Z",
+          },
         ],
         files: [
-          { id: "file_present", sha256: present, size: 10, mimetype: "text/plain", storageDriver: "local", storageKey: presentKey, refCount: 1, uploadedBy: "u_f" },
-          { id: "file_missing", sha256: missing, size: 10, mimetype: "text/plain", storageDriver: "local", storageKey: missingKey, refCount: 1, uploadedBy: "u_f" },
+          {
+            id: "file_present",
+            sha256: present,
+            size: 10,
+            mimetype: "text/plain",
+            storageDriver: "local",
+            storageKey: presentKey,
+            refCount: 1,
+            uploadedBy: "u_f",
+          },
+          {
+            id: "file_missing",
+            sha256: missing,
+            size: 10,
+            mimetype: "text/plain",
+            storageDriver: "local",
+            storageKey: missingKey,
+            refCount: 1,
+            uploadedBy: "u_f",
+          },
         ],
         file_references: [],
       },

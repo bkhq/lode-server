@@ -39,7 +39,9 @@ export function getActiveBlobStore(config: BlobStoreConfig): BlobStore {
 
   if (name === "local") {
     const root = config.REGISTRY_BLOB_LOCAL_ROOT;
-    const store = createLocalBlobStore(isAbsolute(root) ? root : resolve(ROOT_DIR, root));
+    const store = createLocalBlobStore(isAbsolute(root)
+      ? root
+      : resolve(ROOT_DIR, root));
     stores.set(name, store);
     return store;
   }
@@ -48,7 +50,12 @@ export function getActiveBlobStore(config: BlobStoreConfig): BlobStore {
     throw new Error("REGISTRY_BLOB_DRIVER=r2 needs the PACKAGES R2 bucket binding, which this deployment does not have.");
   }
 
-  const known = [...new Set(["local", ...stores.keys()])].sort().join(", ");
+  const known = [
+    ...new Set([
+      "local",
+      ...stores.keys(),
+    ]),
+  ].sort().join(", ");
   throw new Error(`Unknown registry blob driver: '${name}'. Known: ${known}.`);
 }
 

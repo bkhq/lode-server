@@ -77,17 +77,28 @@ function CreatePackageForm({ namespace, onDone }: {
   const slugError = validatePackageSlug(slug);
   const nameError = validatePackageName(name);
   // An untouched field is incomplete, not wrong: no message until something is typed.
-  const shownSlugError = slug === "" ? undefined : slugError;
-  const shownNameError = name === "" ? undefined : nameError;
+  const shownSlugError = slug === ""
+    ? undefined
+    : slugError;
+  const shownNameError = name === ""
+    ? undefined
+    : nameError;
 
   const mutation = useMutation({
     mutationFn: createPackage,
     onSuccess: (pkg) => {
       toast.success(t("packages:create.created", { name: pkg.name }));
-      void queryClient.invalidateQueries({ queryKey: registryKeys.packages() });
-      void queryClient.invalidateQueries({ queryKey: registryKeys.quota() });
+      void queryClient.invalidateQueries({
+        queryKey: registryKeys.packages(),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: registryKeys.quota(),
+      });
       onDone();
-      void navigate({ to: "/packages/$ns/$pkg", params: { ns: pkg.namespace, pkg: pkg.slug } });
+      void navigate({
+        to: "/packages/$ns/$pkg",
+        params: { ns: pkg.namespace, pkg: pkg.slug },
+      });
     },
   });
 
@@ -103,7 +114,9 @@ function CreatePackageForm({ namespace, onDone }: {
       name: name.trim(),
       // Always sent: left out, the server would create the package public.
       visibility,
-      ...(trimmedDescription ? { description: trimmedDescription } : {}),
+      ...(trimmedDescription
+        ? { description: trimmedDescription }
+        : {}),
       require_signature: requireSignature,
     });
   };
@@ -208,7 +221,9 @@ function CreatePackageForm({ namespace, onDone }: {
       <DialogFooter>
         <DialogClose render={<Button type="button" variant="outline">{t("common.cancel")}</Button>} />
         <Button type="submit" disabled={!canSubmit}>
-          {mutation.isPending ? t("common.submitting") : t("packages:create.submit")}
+          {mutation.isPending
+            ? t("common.submitting")
+            : t("packages:create.submit")}
         </Button>
       </DialogFooter>
     </form>

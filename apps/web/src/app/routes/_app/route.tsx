@@ -27,7 +27,9 @@ function readSidebarPreference(): boolean {
   if (typeof document === "undefined")
     return true;
   const match = document.cookie.match(/(?:^|;\s*)sidebar_state=([^;]+)/);
-  return match ? match[1] === "true" : true;
+  return match
+    ? match[1] === "true"
+    : true;
 }
 
 function AppLayout() {
@@ -57,8 +59,18 @@ function AppLayout() {
     if (loading || systemStatus !== "unlocked" || user || networkError)
       return;
     const current = window.location.pathname + window.location.search;
-    void navigate({ to: "/login", search: { redirect: current }, replace: true });
-  }, [loading, systemStatus, user, networkError, navigate]);
+    void navigate({
+      to: "/login",
+      search: { redirect: current },
+      replace: true,
+    });
+  }, [
+    loading,
+    systemStatus,
+    user,
+    networkError,
+    navigate,
+  ]);
 
   // System not unlocked — __root.tsx handles redirect to /unlock or /setup
   if (systemStatus !== "unlocked") {

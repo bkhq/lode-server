@@ -24,12 +24,23 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-const alice = { username: "Alice", name: "Alice", email: "Alice@Example.com", role: "user" as const, password: "correct horse battery" };
+const alice = {
+  username: "Alice",
+  name: "Alice",
+  email: "Alice@Example.com",
+  role: "user" as const,
+  password: "correct horse battery",
+};
 
 describe("createLocalUser", () => {
   test("creates an active account, lower-casing username and email, without exposing the hash", async () => {
     const user = await createLocalUser(db, alice);
-    expect(user).toMatchObject({ username: "alice", email: "alice@example.com", role: "user", status: "active" });
+    expect(user).toMatchObject({
+      username: "alice",
+      email: "alice@example.com",
+      role: "user",
+      status: "active",
+    });
     expect(JSON.stringify(user)).not.toContain("passwordHash");
     const row = (await db.select().from(users).where(eq(users.id, user.id)).get())!;
     expect(row.passwordHash).toMatch(/^pbkdf2-sha256\$/);
@@ -55,8 +66,22 @@ describe("loginLocalUser", () => {
   test("rejects a wrong password, an unknown user, and an account with no password alike", async () => {
     await createLocalUser(db, alice);
     const now = new Date().toISOString();
-    await db.insert(users).values({ id: "idp", oauthSub: "sub", username: "idp", name: "idp", email: "idp@x.io", role: "user", status: "active", createdAt: now, updatedAt: now }).run();
-    for (const [name, pw] of [["alice", "wrong"], ["nobody", alice.password], ["idp", alice.password]] as const)
+    await db.insert(users).values({
+      id: "idp",
+      oauthSub: "sub",
+      username: "idp",
+      name: "idp",
+      email: "idp@x.io",
+      role: "user",
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+    }).run();
+    for (const [name, pw] of [
+      ["alice", "wrong"],
+      ["nobody", alice.password],
+      ["idp", alice.password],
+    ] as const)
       expect(await loginLocalUser(db, name, pw)).toEqual({ status: "invalid" });
   });
 
@@ -97,7 +122,17 @@ describe("setUserPassword", () => {
 
   test("gives an IdP-only account a password", async () => {
     const now = new Date().toISOString();
-    await db.insert(users).values({ id: "idp", oauthSub: "sub", username: "idp", name: "idp", email: "idp@x.io", role: "user", status: "active", createdAt: now, updatedAt: now }).run();
+    await db.insert(users).values({
+      id: "idp",
+      oauthSub: "sub",
+      username: "idp",
+      name: "idp",
+      email: "idp@x.io",
+      role: "user",
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+    }).run();
     expect(await setUserPassword(db, "idp", "an adequate passphrase")).toBe(true);
     expect((await loginLocalUser(db, "idp", "an adequate passphrase")).status).toBe("ok");
   });

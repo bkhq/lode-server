@@ -60,7 +60,13 @@ export async function createTotpDevice(db: AppDatabase, userId: string, name: st
   const uri = totp.toString();
   const qrCode = `data:image/svg+xml;base64,${btoa(renderSVG(uri))}`;
 
-  return { id, name, secret: secret.base32, uri, qrCode };
+  return {
+    id,
+    name,
+    secret: secret.base32,
+    uri,
+    qrCode,
+  };
 }
 
 export async function confirmTotpDevice(db: AppDatabase, deviceId: string, userId: string, code: string): Promise<boolean> {

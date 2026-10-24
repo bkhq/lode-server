@@ -20,8 +20,12 @@ export interface SpaEnv {
 }
 
 function normalizedBasePath(value: unknown): string {
-  const trimmed = typeof value === "string" ? value.replace(/^\/+|\/+$/g, "") : "";
-  return trimmed === "" ? "" : `/${trimmed}`;
+  const trimmed = typeof value === "string"
+    ? value.replace(/^\/+|\/+$/g, "")
+    : "";
+  return trimmed === ""
+    ? ""
+    : `/${trimmed}`;
 }
 
 /**

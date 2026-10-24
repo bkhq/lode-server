@@ -61,7 +61,9 @@ export function WebhookSettingsTab() {
       void refetch();
     }
     catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error.deleteFailed"));
+      setError(err instanceof Error
+        ? err.message
+        : t("common.error.deleteFailed"));
     }
   };
 
@@ -102,7 +104,11 @@ export function WebhookSettingsTab() {
                         <TableCell className="font-medium">{wh.name}</TableCell>
                         <TableCell className="font-mono text-sm">{wh.url || "—"}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{wh.events === "*" ? t("settings:webhook.allEvents") : wh.events}</Badge>
+                          <Badge variant="outline">
+                            {wh.events === "*"
+                              ? t("settings:webhook.allEvents")
+                              : wh.events}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           {wh.secret
@@ -176,7 +182,9 @@ function AddWebhookDialog({
       onSaved();
     }
     catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error.operationFailed"));
+      setError(err instanceof Error
+        ? err.message
+        : t("common.error.operationFailed"));
     }
     finally {
       setSaving(false);
@@ -213,7 +221,9 @@ function AddWebhookDialog({
         <DialogFooter>
           <DialogClose render={<Button variant="outline">{t("common.cancel")}</Button>} />
           <Button disabled={!canSave || saving} onClick={() => void handleAdd()}>
-            {saving ? t("settings:saving") : t("common.add")}
+            {saving
+              ? t("settings:saving")
+              : t("common.add")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -28,7 +28,14 @@ const sanitizeSchema = {
   // rehype-sanitize's default schema already permits `br`, but we list
   // the common formatting tags explicitly so they survive the sanitizer
   // when they appear in user markdown.
-  tagNames: [...(defaultSchema.tagNames ?? []), "br", "sub", "sup", "kbd", "mark"],
+  tagNames: [
+    ...(defaultSchema.tagNames ?? []),
+    "br",
+    "sub",
+    "sup",
+    "kbd",
+    "mark",
+  ],
 };
 
 interface MarkdownPreviewProps {
@@ -57,7 +64,9 @@ const markdownComponents: Components = {
         {...props}
         href={href}
         rel="noopener noreferrer ugc"
-        {...(external ? { target: "_blank" } : {})}
+        {...(external
+          ? { target: "_blank" }
+          : {})}
       />
     );
   },
@@ -81,7 +90,10 @@ export function MarkdownPreview({ value, className }: MarkdownPreviewProps) {
       <div className="ProseMirror">
         <Markdown
           remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
+          rehypePlugins={[
+            rehypeRaw,
+            [rehypeSanitize, sanitizeSchema],
+          ]}
           components={markdownComponents}
         >
           {value || ""}

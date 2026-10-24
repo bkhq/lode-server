@@ -93,7 +93,10 @@ export function StatCards() {
         {namespace.data && (
           <div className="flex items-center gap-2">
             <span className="truncate font-mono text-2xl font-semibold">{namespace.data.slug}</span>
-            <Badge variant={namespace.data.status === "active" ? "secondary" : "destructive"}>
+            <Badge variant={namespace.data.status === "active"
+              ? "secondary"
+              : "destructive"}
+            >
               {t(NAMESPACE_STATUS_KEYS[namespace.data.status])}
             </Badge>
           </div>

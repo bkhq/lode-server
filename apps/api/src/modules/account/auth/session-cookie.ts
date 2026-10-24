@@ -26,7 +26,9 @@ const SESSION_COOKIE_PROD = "__Secure-session_id";
 const SESSION_COOKIE_DEV = "session_id";
 
 export function sessionCookieName(env: "production" | "development" | "test"): string {
-  return env === "production" ? SESSION_COOKIE_PROD : SESSION_COOKIE_DEV;
+  return env === "production"
+    ? SESSION_COOKIE_PROD
+    : SESSION_COOKIE_DEV;
 }
 
 /**
@@ -42,7 +44,9 @@ export function readSessionId(c: Context<AppEnv>): string | undefined {
 
 /** Normalise BASE_PATH ("" or "/foo") into a non-empty cookie Path. */
 export function cookiePath(basePath: string): string {
-  return basePath === "" ? "/" : basePath;
+  return basePath === ""
+    ? "/"
+    : basePath;
 }
 
 /**

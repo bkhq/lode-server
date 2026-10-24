@@ -37,7 +37,10 @@ describe("errorHandler", () => {
     const app = buildApp(new AppError("nope", 418, "TEAPOT"));
     const res = await app.request("/p");
     expect(res.status).toBe(418);
-    expect(await res.json()).toEqual({ success: false, error: { code: "TEAPOT", message: "nope" } });
+    expect(await res.json()).toEqual({
+      success: false,
+      error: { code: "TEAPOT", message: "nope" },
+    });
   });
 
   test("specialized AppError subclasses pass through", async () => {
@@ -60,7 +63,10 @@ describe("errorHandler", () => {
     const app = buildApp(new Error("kaboom"));
     const res = await app.request("/p");
     expect(res.status).toBe(500);
-    expect(await res.json()).toEqual({ success: false, error: { code: "INTERNAL_ERROR", message: "Internal server error" } });
+    expect(await res.json()).toEqual({
+      success: false,
+      error: { code: "INTERNAL_ERROR", message: "Internal server error" },
+    });
     expect(captured.length).toBe(1);
     expect(captured[0]!.msg).toBe("unhandled error");
   });
@@ -80,7 +86,9 @@ describe("errorHandler — an AppError wrapped by the query layer", () => {
   });
 
   test("an error with no AppError in its chain is still a 500", async () => {
-    const res = await buildApp(new Error("boom", { cause: new Error("deeper") })).request("/p");
+    const res = await buildApp(new Error("boom", {
+      cause: new Error("deeper"),
+    })).request("/p");
     expect(res.status).toBe(500);
   });
 });

@@ -14,7 +14,9 @@ export const registryNamespaces = sqliteTable("registry_namespaces", {
   slug: text("slug").notNull(),
   ownerUserId: text("owner_user_id").notNull().references(() => users.id),
   // A suspended namespace is not served.
-  status: text("status", { enum: ["active", "suspended"] }).notNull().default("active"),
+  status: text("status", {
+    enum: ["active", "suspended"],
+  }).notNull().default("active"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 }, t => [
   uniqueIndex("idx_registry_namespaces_slug").on(sql`lower(${t.slug})`),
@@ -29,7 +31,9 @@ export const registryPackages = sqliteTable("registry_packages", {
   slug: text("slug").notNull(),
   // Free-text display name; not unique.
   name: text("name").notNull(),
-  visibility: text("visibility", { enum: ["public", "private"] }).notNull().default("public"),
+  visibility: text("visibility", {
+    enum: ["public", "private"],
+  }).notNull().default("public"),
   description: text("description"),
   requireSignature: integer("require_signature", { mode: "boolean" }).notNull().default(false),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
@@ -46,7 +50,9 @@ export const registryKeys = sqliteTable("registry_keys", {
   id: text("id").primaryKey(),
   packageId: text("package_id").notNull().references(() => registryPackages.id, { onDelete: "cascade" }),
   keyId: text("key_id").notNull(),
-  alg: text("alg", { enum: ["ed25519"] }).notNull().default("ed25519"),
+  alg: text("alg", {
+    enum: ["ed25519"],
+  }).notNull().default("ed25519"),
   publicKey: text("public_key").notNull(),
   name: text("name").notNull(),
   revokedAt: text("revoked_at"),
@@ -62,7 +68,9 @@ export const registryVersions = sqliteTable("registry_versions", {
   id: text("id").primaryKey(),
   packageId: text("package_id").notNull().references(() => registryPackages.id, { onDelete: "cascade" }),
   version: text("version").notNull(),
-  status: text("status", { enum: ["draft", "published", "yanked"] }).notNull().default("draft"),
+  status: text("status", {
+    enum: ["draft", "published", "yanked"],
+  }).notNull().default("draft"),
   notes: text("notes"),
   publishedAt: text("published_at"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
@@ -97,7 +105,9 @@ export const registryChannels = sqliteTable("registry_channels", {
   versionId: text("version_id").notNull().references(() => registryVersions.id),
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()).$onUpdateFn(() => new Date().toISOString()),
 }, t => [
-  primaryKey({ columns: [t.packageId, t.name] }),
+  primaryKey({
+    columns: [t.packageId, t.name],
+  }),
   index("idx_registry_channels_version").on(t.versionId),
 ]);
 
@@ -111,7 +121,9 @@ export const registryRetiredVersions = sqliteTable("registry_retired_versions", 
   version: text("version").notNull(),
   retiredAt: text("retired_at").notNull().$defaultFn(() => new Date().toISOString()),
 }, t => [
-  primaryKey({ columns: [t.namespaceId, t.packageSlug, t.version] }),
+  primaryKey({
+    columns: [t.namespaceId, t.packageSlug, t.version],
+  }),
 ]);
 
 // The publisher's signature over the generated manifest, one per package:
@@ -181,7 +193,9 @@ export const registryInstances = sqliteTable("registry_instances", {
   firstSeenAt: text("first_seen_at").notNull(),
   lastSeenAt: text("last_seen_at").notNull(),
 }, t => [
-  primaryKey({ columns: [t.packageId, t.instanceId] }),
+  primaryKey({
+    columns: [t.packageId, t.instanceId],
+  }),
   index("idx_registry_instances_last_seen").on(t.lastSeenAt),
 ]);
 
@@ -231,7 +245,9 @@ export const registryUploads = sqliteTable("registry_uploads", {
 export const registryTokenGrants = sqliteTable("registry_token_grants", {
   tokenId: text("token_id").notNull().references(() => apiTokens.id, { onDelete: "cascade" }),
   packageId: text("package_id").references(() => registryPackages.id, { onDelete: "cascade" }),
-  access: text("access", { enum: ["read", "write", "admin"] }).notNull(),
+  access: text("access", {
+    enum: ["read", "write", "admin"],
+  }).notNull(),
 }, t => [
   uniqueIndex("idx_registry_token_grants_token_pkg").on(t.tokenId, t.packageId),
   uniqueIndex("idx_registry_token_grants_token_all").on(t.tokenId).where(sql`package_id IS NULL`),

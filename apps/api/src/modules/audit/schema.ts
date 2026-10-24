@@ -11,7 +11,9 @@ export const auditEvents = sqliteTable("audit_events", {
   detail: text("detail"),
   ip: text("ip").notNull(),
   userAgent: text("user_agent").notNull(),
-  result: text("result", { enum: ["success", "failure"] }).notNull(),
+  result: text("result", {
+    enum: ["success", "failure"],
+  }).notNull(),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 }, t => [
   // `idx_audit_created` is kept as a single-column index because the

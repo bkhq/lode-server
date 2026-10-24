@@ -84,7 +84,9 @@ function evict(now: number): void {
   }
   if (cache.size <= MAX_CACHE_ENTRIES)
     return;
-  const victims = [...cache.entries()]
+  const victims = [
+    ...cache.entries(),
+  ]
     .sort((a, b) => a[1].resetAt - b[1].resetAt)
     .slice(0, cache.size - MAX_CACHE_ENTRIES);
   for (const [key] of victims)

@@ -33,7 +33,10 @@ function getKey(): Buffer {
 export function sealPkceVerifier(verifier: string): string {
   const iv = randomBytes(IV_LEN);
   const cipher = createCipheriv(ALGORITHM, getKey(), iv);
-  const ciphertext = Buffer.concat([cipher.update(verifier, "utf8"), cipher.final()]);
+  const ciphertext = Buffer.concat([
+    cipher.update(verifier, "utf8"),
+    cipher.final(),
+  ]);
   const tag = cipher.getAuthTag();
   return `${SCHEME_TAG}:${iv.toString("hex")}:${ciphertext.toString("hex")}:${tag.toString("hex")}`;
 }
@@ -49,7 +52,10 @@ export function openPkceVerifier(sealed: string): string | undefined {
     const tag = Buffer.from(parts[3]!, "hex");
     const decipher = createDecipheriv(ALGORITHM, getKey(), iv);
     decipher.setAuthTag(tag);
-    return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
+    return Buffer.concat([
+      decipher.update(ciphertext),
+      decipher.final(),
+    ]).toString("utf8");
   }
   catch {
     return undefined;

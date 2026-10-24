@@ -29,8 +29,14 @@ interface ObserveTabProps {
 
 export function ObserveTab({ ns, pkg }: ObserveTabProps) {
   const { t } = useTranslation(["common", "package", "regerrors"]);
-  const instances = useQuery({ ...instancesQuery(ns, pkg), refetchInterval: REFRESH_MS });
-  const events = useQuery({ ...eventsQuery(ns, pkg), refetchInterval: REFRESH_MS });
+  const instances = useQuery({
+    ...instancesQuery(ns, pkg),
+    refetchInterval: REFRESH_MS,
+  });
+  const events = useQuery({
+    ...eventsQuery(ns, pkg),
+    refetchInterval: REFRESH_MS,
+  });
   const snippet = reportSnippet(window.location.origin);
   const versions = versionCounts(instances.data ?? []);
   const error = instances.error ?? events.error;
@@ -98,7 +104,11 @@ export function ObserveTab({ ns, pkg }: ObserveTabProps) {
                 ? (
                     <TableRow>
                       <TableCell colSpan={INSTANCE_COLUMNS} className="h-24 text-center text-muted-foreground">
-                        {instances.isPending ? t("common:common.loading") : instances.error ? t("common:common.error.loadFailed") : t("package:observe.noInstances")}
+                        {instances.isPending
+                          ? t("common:common.loading")
+                          : instances.error
+                            ? t("common:common.error.loadFailed")
+                            : t("package:observe.noInstances")}
                       </TableCell>
                     </TableRow>
                   )
@@ -144,7 +154,11 @@ export function ObserveTab({ ns, pkg }: ObserveTabProps) {
                 ? (
                     <TableRow>
                       <TableCell colSpan={EVENT_COLUMNS} className="h-24 text-center text-muted-foreground">
-                        {events.isPending ? t("common:common.loading") : events.error ? t("common:common.error.loadFailed") : t("package:observe.noEvents")}
+                        {events.isPending
+                          ? t("common:common.loading")
+                          : events.error
+                            ? t("common:common.error.loadFailed")
+                            : t("package:observe.noEvents")}
                       </TableCell>
                     </TableRow>
                   )

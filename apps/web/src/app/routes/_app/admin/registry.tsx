@@ -11,11 +11,15 @@ export const Route = createFileRoute("/_app/admin/registry")({
 function RegistryLayout() {
   const { t } = useTranslation(["common", "registry"]);
   const navigate = useNavigate();
-  const pathname = useRouterState({ select: s => s.location.pathname });
+  const pathname = useRouterState({
+    select: s => s.location.pathname,
+  });
 
   const currentTab = pathname.includes("/registry/packages")
     ? "packages"
-    : pathname.includes("/registry/tokens") ? "tokens" : "namespaces";
+    : pathname.includes("/registry/tokens")
+      ? "tokens"
+      : "namespaces";
 
   const handleTabChange = (value: string | null) => {
     if (!value)

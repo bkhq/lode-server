@@ -42,7 +42,9 @@ export function maxAttachmentsPerResource(
 
 /** Total bytes accounted for by every stored blob. */
 async function recomputeUsedFromDb(db: AppDatabase): Promise<number> {
-  const fileRow = await db.select({ value: sum(files.size) }).from(files).get();
+  const fileRow = await db.select({
+    value: sum(files.size),
+  }).from(files).get();
   return Number(fileRow?.value ?? 0);
 }
 

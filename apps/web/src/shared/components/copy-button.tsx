@@ -33,7 +33,9 @@ export function CopyButton({ value, label }: CopyButtonProps) {
 
   return (
     <Button type="button" variant="ghost" size="icon-xs" aria-label={text} title={text} onClick={() => void copy()}>
-      {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+      {copied
+        ? <Check className="size-3.5" />
+        : <Copy className="size-3.5" />}
     </Button>
   );
 }

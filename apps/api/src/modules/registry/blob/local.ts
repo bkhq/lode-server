@@ -98,7 +98,10 @@ export function createLocalBlobStore(root: string): BlobStore {
       if (size === undefined) {
         return undefined;
       }
-      return { body: Readable.toWeb(createReadStream(path)) as unknown as ReadableStream<Uint8Array>, size };
+      return {
+        body: Readable.toWeb(createReadStream(path)) as unknown as ReadableStream<Uint8Array>,
+        size,
+      };
     },
 
     async delete(key) {
@@ -211,7 +214,9 @@ export function createLocalBlobStore(root: string): BlobStore {
 /** Size of the regular file at `path`; `undefined` when there is none. */
 async function fileSize(path: string): Promise<number | undefined> {
   const info = await stat(path).catch(() => undefined);
-  return info?.isFile() ? info.size : undefined;
+  return info?.isFile()
+    ? info.size
+    : undefined;
 }
 
 /**

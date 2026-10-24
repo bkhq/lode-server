@@ -32,7 +32,9 @@ export class CookieJar {
   }
 
   header(): string {
-    return [...this.store.entries()].map(([k, v]) => `${k}=${v}`).join("; ");
+    return [
+      ...this.store.entries(),
+    ].map(([k, v]) => `${k}=${v}`).join("; ");
   }
 
   has(name: string): boolean {
@@ -69,9 +71,17 @@ export class ApiClient {
     // exercise the Origin-mismatch branch override via opts.headers.
     const originHost = new URL(this.base).origin;
     const headers: Record<string, string> = {
-      ...(opts.body != null && opts.formData == null ? { "Content-Type": "application/json" } : {}),
-      ...(isMutating ? { "X-Requested-With": "XMLHttpRequest", "Origin": originHost } : {}),
-      ...(this.cookies.header() ? { Cookie: this.cookies.header() } : {}),
+      ...(opts.body != null && opts.formData == null
+        ? { "Content-Type": "application/json" }
+        : {}),
+      ...(isMutating
+        ? { "X-Requested-With": "XMLHttpRequest", "Origin": originHost }
+        : {}),
+      ...(this.cookies.header()
+        ? {
+            Cookie: this.cookies.header(),
+          }
+        : {}),
       ...opts.headers,
     };
     const init: RequestInit = { method, headers, redirect: opts.redirect ?? "manual" };

@@ -31,7 +31,12 @@ export type RelationTuple = Omit<RelationTupleRow, "subjectRelation"> & { readon
 
 /** Storage keeps the `""` sentinel (so idx_tuples_unique can enforce it); the API edge keeps `null`. */
 function toApiTuple(row: RelationTupleRow): RelationTuple {
-  return { ...row, subjectRelation: row.subjectRelation === DIRECT_SUBJECT ? null : row.subjectRelation };
+  return {
+    ...row,
+    subjectRelation: row.subjectRelation === DIRECT_SUBJECT
+      ? null
+      : row.subjectRelation,
+  };
 }
 
 function duplicateTuple(): ValidationError {
@@ -96,7 +101,9 @@ export async function createTuple(db: AppDatabase, input: CreateTupleInput, crea
     await db.insert(relationTuples).values(values).run();
   }
   catch (err) {
-    throw isUniqueViolation(err) ? duplicateTuple() : err;
+    throw isUniqueViolation(err)
+      ? duplicateTuple()
+      : err;
   }
 
   return toApiTuple(values);
@@ -145,7 +152,9 @@ export async function updateTupleRelation(db: AppDatabase, id: string, relation:
     });
   }
   catch (err) {
-    throw isUniqueViolation(err) ? duplicateTuple() : err;
+    throw isUniqueViolation(err)
+      ? duplicateTuple()
+      : err;
   }
 
   return toApiTuple(values);
@@ -240,7 +249,9 @@ export async function batchCreateTuples(db: AppDatabase, inputs: readonly Create
     });
   }
   catch (err) {
-    throw isUniqueViolation(err) ? duplicateTuple() : err;
+    throw isUniqueViolation(err)
+      ? duplicateTuple()
+      : err;
   }
   return tuples.map(toApiTuple);
 }
@@ -273,7 +284,9 @@ export async function listTuples(db: AppDatabase, filter: TupleFilter): Promise<
   if (filter.subjectId)
     conditions.push(eq(relationTuples.subjectId, filter.subjectId));
 
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const where = conditions.length > 0
+    ? and(...conditions)
+    : undefined;
 
   const countResult = await db
     .select({ count: sql<number>`count(*)` })

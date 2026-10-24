@@ -35,7 +35,12 @@ afterEach(() => {
 test("sha256OfBlob pipes into crypto.DigestStream where the runtime has one", async () => {
   const bytes = bytesOf(70_000);
   const store = {
-    get: async (key: string) => key === "pkg/a" ? { body: streamOf(bytes), size: bytes.length } : undefined,
+    get: async (key: string) => key === "pkg/a"
+      ? {
+          body: streamOf(bytes),
+          size: bytes.length,
+        }
+      : undefined,
   } as BlobStore;
   cryptoGlobals.DigestStream = FakeDigestStream;
 

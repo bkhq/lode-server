@@ -50,7 +50,11 @@ function RecentList({ packages }: { readonly packages: readonly RegistryPackage[
 
   const entries = packages.flatMap((pkg, i) => {
     const data = results[i]?.data;
-    return data ? [{ package: pkg, versions: data.versions }] : [];
+    return data
+      ? [
+          { package: pkg, versions: data.versions },
+        ]
+      : [];
   });
   const recent = recentVersions(entries, RECENT_LIMIT);
 

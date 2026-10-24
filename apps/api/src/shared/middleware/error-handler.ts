@@ -14,7 +14,11 @@ export function errorHandler(err: Error, c: Context<AppEnv>) {
   if (err instanceof ZodError) {
     return c.json({
       success: false,
-      error: { code: "VALIDATION_ERROR", message: "Validation failed", details: err.flatten() },
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Validation failed",
+        details: err.flatten(),
+      },
     }, 422);
   }
 
@@ -32,5 +36,8 @@ export function errorHandler(err: Error, c: Context<AppEnv>) {
   }
 
   c.get("logger").error({ err }, "unhandled error");
-  return c.json({ success: false, error: { code: "INTERNAL_ERROR", message: "Internal server error" } }, 500);
+  return c.json({
+    success: false,
+    error: { code: "INTERNAL_ERROR", message: "Internal server error" },
+  }, 500);
 }

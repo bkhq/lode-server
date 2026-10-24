@@ -23,7 +23,10 @@ describe("toOverride", () => {
   });
 
   it("treats whitespace as empty", () => {
-    expect(toOverride(form({ maxPackages: "  ", maxStorage: { value: " ", unit: "MiB" } }))).toEqual({
+    expect(toOverride(form({
+      maxPackages: "  ",
+      maxStorage: { value: " ", unit: "MiB" },
+    }))).toEqual({
       ok: true,
       override: { max_packages: null, max_storage_bytes: null, max_asset_bytes: null },
     });
@@ -41,14 +44,19 @@ describe("toOverride", () => {
   });
 
   it("passes a byte count through unchanged", () => {
-    expect(toOverride(form({ maxStorage: { value: "1000", unit: "B" } }))).toMatchObject({
+    expect(toOverride(form({
+      maxStorage: { value: "1000", unit: "B" },
+    }))).toMatchObject({
       ok: true,
       override: { max_storage_bytes: 1000 },
     });
   });
 
   it("accepts zero packages and zero storage", () => {
-    expect(toOverride(form({ maxPackages: "0", maxStorage: { value: "0", unit: "MiB" } }))).toMatchObject({
+    expect(toOverride(form({
+      maxPackages: "0",
+      maxStorage: { value: "0", unit: "MiB" },
+    }))).toMatchObject({
       ok: true,
       override: { max_packages: 0, max_storage_bytes: 0 },
     });
@@ -66,34 +74,72 @@ describe("toOverride", () => {
   });
 
   it("rejects non-integers and non-numbers", () => {
-    expect(toOverride(form({ maxPackages: "1.5" }))).toEqual({ ok: false, errors: { maxPackages: "invalid" } });
-    expect(toOverride(form({ maxStorage: { value: "0.5", unit: "GiB" } }))).toEqual({ ok: false, errors: { maxStorage: "invalid" } });
-    expect(toOverride(form({ maxAsset: { value: "abc", unit: "MiB" } }))).toEqual({ ok: false, errors: { maxAsset: "invalid" } });
-    expect(toOverride(form({ maxPackages: "1e3" }))).toEqual({ ok: false, errors: { maxPackages: "invalid" } });
+    expect(toOverride(form({ maxPackages: "1.5" }))).toEqual({
+      ok: false,
+      errors: { maxPackages: "invalid" },
+    });
+    expect(toOverride(form({
+      maxStorage: { value: "0.5", unit: "GiB" },
+    }))).toEqual({
+      ok: false,
+      errors: { maxStorage: "invalid" },
+    });
+    expect(toOverride(form({
+      maxAsset: { value: "abc", unit: "MiB" },
+    }))).toEqual({
+      ok: false,
+      errors: { maxAsset: "invalid" },
+    });
+    expect(toOverride(form({ maxPackages: "1e3" }))).toEqual({
+      ok: false,
+      errors: { maxPackages: "invalid" },
+    });
   });
 
   it("rejects a value too large to send exactly", () => {
-    expect(toOverride(form({ maxStorage: { value: "99999999999", unit: "GiB" } }))).toEqual({
+    expect(toOverride(form({
+      maxStorage: { value: "99999999999", unit: "GiB" },
+    }))).toEqual({
       ok: false,
       errors: { maxStorage: "invalid" },
     });
   });
 
   it("rejects a zero asset limit", () => {
-    expect(toOverride(form({ maxAsset: { value: "0", unit: "MiB" } }))).toEqual({ ok: false, errors: { maxAsset: "invalid" } });
+    expect(toOverride(form({
+      maxAsset: { value: "0", unit: "MiB" },
+    }))).toEqual({
+      ok: false,
+      errors: { maxAsset: "invalid" },
+    });
   });
 
   it("accepts an asset limit at the ceiling and rejects one above it", () => {
-    expect(toOverride(form({ maxAsset: { value: "500", unit: "MiB" } }))).toMatchObject({
+    expect(toOverride(form({
+      maxAsset: { value: "500", unit: "MiB" },
+    }))).toMatchObject({
       ok: true,
       override: { max_asset_bytes: MAX_ASSET_BYTES_CEILING },
     });
-    expect(toOverride(form({ maxAsset: { value: "501", unit: "MiB" } }))).toEqual({ ok: false, errors: { maxAsset: "assetTooLarge" } });
-    expect(toOverride(form({ maxAsset: { value: "1", unit: "GiB" } }))).toEqual({ ok: false, errors: { maxAsset: "assetTooLarge" } });
+    expect(toOverride(form({
+      maxAsset: { value: "501", unit: "MiB" },
+    }))).toEqual({
+      ok: false,
+      errors: { maxAsset: "assetTooLarge" },
+    });
+    expect(toOverride(form({
+      maxAsset: { value: "1", unit: "GiB" },
+    }))).toEqual({
+      ok: false,
+      errors: { maxAsset: "assetTooLarge" },
+    });
   });
 
   it("reports only the fields that are wrong", () => {
-    expect(toOverride(form({ maxPackages: "10", maxStorage: { value: "x", unit: "GiB" } }))).toEqual({
+    expect(toOverride(form({
+      maxPackages: "10",
+      maxStorage: { value: "x", unit: "GiB" },
+    }))).toEqual({
       ok: false,
       errors: { maxStorage: "invalid" },
     });
@@ -117,7 +163,10 @@ describe("fromOverride", () => {
 
   it("falls back to bytes when no unit divides evenly", () => {
     expect(fromOverride({ max_packages: null, max_storage_bytes: MIB + 1, max_asset_bytes: null }).maxStorage)
-      .toEqual({ value: String(MIB + 1), unit: "B" });
+      .toEqual({
+        value: String(MIB + 1),
+        unit: "B",
+      });
   });
 
   it("keeps a zero limit as zero, not as empty", () => {

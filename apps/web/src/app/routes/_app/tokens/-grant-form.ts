@@ -38,13 +38,19 @@ export function toWire(state: GrantFormState): Grants {
 /** One row per owned package; a grant naming any other package is dropped. */
 export function fromWire(grants: Grants, ownedPackages: readonly PackageRef[]): GrantFormState {
   const all = isAllGrant(grants);
-  const granted = new Map(all ? [] : grants.map(g => [g.package, g.access]));
+  const granted = new Map(all
+    ? []
+    : grants.map(g => [g.package, g.access]));
   const perPackage: Record<string, RowLevel> = {};
   for (const pkg of ownedPackages) {
     const key = packageKey(pkg);
     perPackage[key] = granted.get(key) ?? "none";
   }
-  return { all, allLevel: all ? grants.all : "read", perPackage };
+  return {
+    all,
+    allLevel: all ? grants.all : "read",
+    perPackage,
+  };
 }
 
 /** True when the token would reach no package. */
@@ -68,7 +74,9 @@ const EXPIRY_DAYS: Readonly<Record<ExpiryPreset, number | null>> = {
 /** The `expires_at` of a create request: ISO 8601 with an offset, or null for no expiry. */
 export function expiresAt(preset: ExpiryPreset, now: Date): string | null {
   const days = EXPIRY_DAYS[preset];
-  return days === null ? null : new Date(now.getTime() + days * DAY_MS).toISOString();
+  return days === null
+    ? null
+    : new Date(now.getTime() + days * DAY_MS).toISOString();
 }
 
 export function isExpired(expiresAt: string | null, now: number): boolean {

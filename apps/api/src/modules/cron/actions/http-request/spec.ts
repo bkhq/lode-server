@@ -2,7 +2,14 @@ import type { ActionSpec } from "../types";
 
 // Shared bounds + enumerations. Live here (the definition layer) so the
 // SPA, the validator, and the executor all read the same constants.
-export const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"] as const;
+export const HTTP_METHODS = [
+  "GET",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "HEAD",
+] as const;
 export const ALLOWED_METHODS = new Set<string>(HTTP_METHODS);
 export const MIN_TIMEOUT_MS = 100;
 export const MAX_TIMEOUT_MS = 60_000;

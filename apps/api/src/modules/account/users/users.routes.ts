@@ -80,7 +80,9 @@ export function userRoutes() {
       description: "The authenticated user's profile and group memberships.",
       security: SECURITY.session,
       responses: {
-        ...jsonOk(userSchema.extend({ groups: z.array(z.unknown()) }), "Current user"),
+        ...jsonOk(userSchema.extend({
+          groups: z.array(z.unknown()),
+        }), "Current user"),
         ...errors(401),
       },
     }),
@@ -133,7 +135,10 @@ export function userRoutes() {
       summary: "Get a user preference",
       security: SECURITY.session,
       responses: {
-        ...jsonOk(z.object({ key: z.string(), value: z.string() }).nullable(), "Preference"),
+        ...jsonOk(z.object({
+          key: z.string(),
+          value: z.string(),
+        }).nullable(), "Preference"),
         ...errors(401),
       },
     }),
@@ -147,7 +152,12 @@ export function userRoutes() {
         .where(and(eq(userPreferences.userId, user.id), eq(userPreferences.key, key)))
         .get();
 
-      return c.json({ success: true, data: row ? { key: row.key, value: row.value } : null });
+      return c.json({
+        success: true,
+        data: row
+          ? { key: row.key, value: row.value }
+          : null,
+      });
     },
   );
 
@@ -184,7 +194,9 @@ export function userRoutes() {
         throw new AppError("Body must be a JSON object with a `value` field", 422, "VALIDATION_ERROR");
       }
       const body = preferenceBodySchema.parse(raw);
-      const value = typeof body.value === "string" ? body.value : JSON.stringify(body.value);
+      const value = typeof body.value === "string"
+        ? body.value
+        : JSON.stringify(body.value);
 
       await db.insert(userPreferences).values({
         userId: user.id,
@@ -193,7 +205,10 @@ export function userRoutes() {
         updatedAt: new Date().toISOString(),
       }).onConflictDoUpdate({
         target: [userPreferences.userId, userPreferences.key],
-        set: { value, updatedAt: new Date().toISOString() },
+        set: {
+          value,
+          updatedAt: new Date().toISOString(),
+        },
       }).run();
 
       return c.json({ success: true, data: null });
@@ -221,7 +236,9 @@ export function userRoutes() {
     },
   );
 
-  const createTotpSchema = z.object({ name: z.string().min(1).max(100) });
+  const createTotpSchema = z.object({
+    name: z.string().min(1).max(100),
+  });
 
   router.post(
     "/account/me/totp",
@@ -285,7 +302,9 @@ export function userRoutes() {
         }
       }
 
-      const body = z.object({ code: z.string().length(6) }).parse(await c.req.json());
+      const body = z.object({
+        code: z.string().length(6),
+      }).parse(await c.req.json());
       const ok = await confirmTotpDevice(db, deviceId, user.id, body.code);
       if (!ok) {
         await audit(db, c.get("logger"), {
@@ -365,12 +384,16 @@ export function userRoutes() {
       summary: "Verify TOTP and issue step-up token",
       security: SECURITY.session,
       responses: {
-        ...jsonOk(z.object({ token: z.string() }), "Step-up token"),
+        ...jsonOk(z.object({
+          token: z.string(),
+        }), "Step-up token"),
         ...errors(400, 401, 422, 429),
       },
     }),
     rateLimit({ windowMs: 5 * 60 * 1000, max: 10, bucket: "totp-stepup" }),
-    validator("json", z.object({ code: z.string().length(6) })),
+    validator("json", z.object({
+      code: z.string().length(6),
+    })),
     async (c) => {
       const db = c.get("db");
       const user = c.get("user")!;
@@ -379,7 +402,10 @@ export function userRoutes() {
       if (!ok)
         throw new AppError("Invalid TOTP code", 400, "TOTP_VERIFY_FAILED");
       const token = await issueStepUpToken(user.id);
-      return c.json({ success: true, data: { token } });
+      return c.json({
+        success: true,
+        data: { token },
+      });
     },
   );
 
@@ -403,7 +429,11 @@ export function userRoutes() {
     async (c) => {
       const db = c.get("db");
       const data = await listActiveUsers(db);
-      return c.json({ success: true, data, meta: { total: data.length } });
+      return c.json({
+        success: true,
+        data,
+        meta: { total: data.length },
+      });
     },
   );
 
@@ -428,10 +458,18 @@ export function userRoutes() {
       const db = c.get("db");
       const query = c.req.valid("query");
       const result = await listUsers(db, {
-        ...query.q ? { q: query.q } : {},
-        ...query.role ? { role: query.role } : {},
-        ...query.status ? { status: query.status } : {},
-        ...query.group_id ? { groupId: query.group_id } : {},
+        ...query.q
+          ? { q: query.q }
+          : {},
+        ...query.role
+          ? { role: query.role }
+          : {},
+        ...query.status
+          ? { status: query.status }
+          : {},
+        ...query.group_id
+          ? { groupId: query.group_id }
+          : {},
         page: query.page,
         limit: query.limit,
       });
@@ -499,7 +537,9 @@ export function userRoutes() {
       },
     }),
     adminRequired,
-    validator("param", z.object({ id: z.string() })),
+    validator("param", z.object({
+      id: z.string(),
+    })),
     validator("json", z.object({ password: passwordSchema })),
     async (c) => {
       if (!isLocalLogin(c.get("config")))
@@ -634,7 +674,9 @@ export function userRoutes() {
         });
       }
       if (statusChanged) {
-        const action = body.status === "disabled" ? "user.disabled" : "user.enabled";
+        const action = body.status === "disabled"
+          ? "user.disabled"
+          : "user.enabled";
         await audit(db, c.get("logger"), {
           actorId: currentUser.id,
           actorName: currentUser.name,

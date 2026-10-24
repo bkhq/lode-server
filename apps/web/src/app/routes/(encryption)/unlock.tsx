@@ -68,7 +68,9 @@ function unlockBundleErrorMessage(err: unknown, t: (key: string) => string): str
       return t("encryption:unlock.notLocked");
     return err.message || t("encryption:unlock.invalidKey");
   }
-  return err instanceof Error ? err.message : t("encryption:unlock.invalidKey");
+  return err instanceof Error
+    ? err.message
+    : t("encryption:unlock.invalidKey");
 }
 
 export const Route = createFileRoute("/(encryption)/unlock")({
@@ -257,7 +259,15 @@ function UnlockPage() {
       setPassword("");
       setPrivateKey("");
     }
-  }, [mode, password, privateKey, encryptedDek, kdfSalt, challenge, t]);
+  }, [
+    mode,
+    password,
+    privateKey,
+    encryptedDek,
+    kdfSalt,
+    challenge,
+    t,
+  ]);
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -270,7 +280,9 @@ function UnlockPage() {
     reader.readAsText(file);
   }, []);
 
-  const canSubmit = mode === "password" ? password.trim().length > 0 : privateKey.trim().length > 0;
+  const canSubmit = mode === "password"
+    ? password.trim().length > 0
+    : privateKey.trim().length > 0;
   const bundleReady = encryptedDek != null && challenge != null;
 
   if (checking) {
@@ -319,7 +331,9 @@ function UnlockPage() {
             <div className="flex rounded-lg border p-0.5">
               <Button
                 type="button"
-                variant={mode === "password" ? "default" : "ghost"}
+                variant={mode === "password"
+                  ? "default"
+                  : "ghost"}
                 size="sm"
                 onClick={() => setMode("password")}
                 className="flex-1"
@@ -328,7 +342,9 @@ function UnlockPage() {
               </Button>
               <Button
                 type="button"
-                variant={mode === "keyfile" ? "default" : "ghost"}
+                variant={mode === "keyfile"
+                  ? "default"
+                  : "ghost"}
                 size="sm"
                 onClick={() => setMode("keyfile")}
                 className="flex-1"

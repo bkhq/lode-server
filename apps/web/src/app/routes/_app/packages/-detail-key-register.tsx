@@ -50,7 +50,9 @@ export function RegisterKeyDialog({
   const mutation = useMutation({
     mutationFn: (input: RegisterKeyInput) => registerKey(ns, pkg, input),
     onSuccess: (key) => {
-      void queryClient.invalidateQueries({ queryKey: registryKeys.keys(ns, pkg) });
+      void queryClient.invalidateQueries({
+        queryKey: registryKeys.keys(ns, pkg),
+      });
       toast.success(t("keys:toast.registered", { name: key.name }));
       close();
     },
@@ -70,7 +72,10 @@ export function RegisterKeyDialog({
     setInputError(error);
     if (error)
       return;
-    mutation.mutate({ name: name.trim(), public_key: publicKey.trim() });
+    mutation.mutate({
+      name: name.trim(),
+      public_key: publicKey.trim(),
+    });
   };
 
   const error = inputError
@@ -135,7 +140,9 @@ export function RegisterKeyDialog({
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline">{t("common:common.cancel")}</Button>} />
             <Button type="submit" disabled={mutation.isPending || name.trim() === ""}>
-              {mutation.isPending ? t("common:common.submitting") : t("keys:register.submit")}
+              {mutation.isPending
+                ? t("common:common.submitting")
+                : t("keys:register.submit")}
             </Button>
           </DialogFooter>
         </form>

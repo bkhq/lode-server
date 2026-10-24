@@ -27,7 +27,12 @@ async function deriveAesKey(sharedPoint: Uint8Array, usage: "encrypt" | "decrypt
   const sharedX = sharedPoint.subarray(1, 33);
   const ikm = await crypto.subtle.importKey("raw", toAB(sharedX), "HKDF", false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits(
-    { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: toAB(HKDF_INFO) },
+    {
+      name: "HKDF",
+      hash: "SHA-256",
+      salt: new Uint8Array(0),
+      info: toAB(HKDF_INFO),
+    },
     ikm,
     256,
   );
@@ -64,7 +69,12 @@ export async function deriveKeyPairFromPassword(
   const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]);
   const saltBytes = hexToBytes(saltHex);
   const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", hash: "SHA-256", salt: toAB(saltBytes), iterations: 600_000 },
+    {
+      name: "PBKDF2",
+      hash: "SHA-256",
+      salt: toAB(saltBytes),
+      iterations: 600_000,
+    },
     keyMaterial,
     256,
   );
@@ -104,7 +114,10 @@ export async function eciesEncrypt(publicKeyHex: string, plaintext: Uint8Array):
   const aesKey = await deriveAesKey(shared, "encrypt");
 
   const iv = randomIv();
-  const encrypted = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: toAB(iv) }, aesKey, toAB(plaintext)));
+  const encrypted = new Uint8Array(await crypto.subtle.encrypt({
+    name: "AES-GCM",
+    iv: toAB(iv),
+  }, aesKey, toAB(plaintext)));
 
   const result = new Uint8Array(ephPub.length + IV_LEN + encrypted.length);
   result.set(ephPub, 0);
@@ -126,7 +139,10 @@ export async function eciesDecrypt(privateKeyHex: string, data: Uint8Array): Pro
   const shared = getSharedSecret(privKeyBytes, ephPub, false);
   const aesKey = await deriveAesKey(shared, "decrypt");
 
-  return new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv: toAB(iv) }, aesKey, toAB(encrypted)));
+  return new Uint8Array(await crypto.subtle.decrypt({
+    name: "AES-GCM",
+    iv: toAB(iv),
+  }, aesKey, toAB(encrypted)));
 }
 
 /** Hex encode bytes */

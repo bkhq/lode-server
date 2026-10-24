@@ -73,7 +73,9 @@ export function buildSnippet(input: SnippetInput): Snippet {
   // A host trusts the root; the sub-key is accepted through the delegation the manifest carries.
   const delegated = signerId !== null && signerId === input.delegation?.key_id;
   const keyId = delegated ? input.delegation!.root_key_id : signerId;
-  const key = keyId === null ? undefined : input.keys.find(k => k.key_id === keyId);
+  const key = keyId === null
+    ? undefined
+    : input.keys.find(k => k.key_id === keyId);
 
   const blocks = [
     [
@@ -85,7 +87,9 @@ export function buildSnippet(input: SnippetInput): Snippet {
       "[update]",
       `manifest = ${str(url)}`,
       `asset = ${str(input.asset?.name ?? ASSET_PLACEHOLDER)}`,
-      ...(input.channel ? [`channel = ${str(input.channel)}`] : []),
+      ...(input.channel
+        ? [`channel = ${str(input.channel)}`]
+        : []),
       "policy = \"auto\"",
     ],
   ];
@@ -93,10 +97,14 @@ export function buildSnippet(input: SnippetInput): Snippet {
     blocks.push([
       "[trust]",
       // Older lode refuses sub-key signatures and an unknown `revocation_url`.
-      ...(delegated || input.hasRevocations ? ["# Needs lode 0.1.0 or later."] : []),
+      ...(delegated || input.hasRevocations
+        ? ["# Needs lode 0.1.0 or later."]
+        : []),
       "require_signature = \"enforce\"",
       `trusted_keys = [${str(`${keyId}:${key?.public_key ?? PUBLIC_KEY_PLACEHOLDER}`)}]`,
-      ...(input.hasRevocations ? [`revocation_url = ${str(revocationsUrl(input.origin, input.namespace, input.slug))}`] : []),
+      ...(input.hasRevocations
+        ? [`revocation_url = ${str(revocationsUrl(input.origin, input.namespace, input.slug))}`]
+        : []),
     ]);
   }
   if (input.visibility === "private") {

@@ -85,7 +85,9 @@ export function scanMarkdownHeadings(markdown: string): HeadingNode[] {
       continue;
     const seen = slugCounts.get(base) ?? 0;
     slugCounts.set(base, seen + 1);
-    const slug = seen === 0 ? base : `${base}-${seen}`;
+    const slug = seen === 0
+      ? base
+      : `${base}-${seen}`;
     headings.push({ level, text, slug });
   }
 

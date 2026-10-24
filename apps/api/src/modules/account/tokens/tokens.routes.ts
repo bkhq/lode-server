@@ -35,7 +35,9 @@ const rotateTokenSchema = z.object({
 });
 
 function expiresAtFor(expiresInDays: number | undefined): string | null {
-  return expiresInDays === undefined ? null : new Date(Date.now() + expiresInDays * 86_400_000).toISOString();
+  return expiresInDays === undefined
+    ? null
+    : new Date(Date.now() + expiresInDays * 86_400_000).toISOString();
 }
 
 const updateTokenSchema = z.object({
@@ -62,11 +64,17 @@ export function tokenRoutes() {
       description: "The scopes modules have registered, to choose from when creating a token.",
       security: SECURITY.session,
       responses: {
-        ...jsonOk(z.array(z.object({ name: z.string(), description: z.string() })), "Registered scopes"),
+        ...jsonOk(z.array(z.object({
+          name: z.string(),
+          description: z.string(),
+        })), "Registered scopes"),
         ...errors(401),
       },
     }),
-    c => c.json({ success: true, data: getTokenScopes() }),
+    c => c.json({
+      success: true,
+      data: getTokenScopes(),
+    }),
   );
 
   router.get(
@@ -91,7 +99,9 @@ export function tokenRoutes() {
       description: "Returns the token once, in `token`. Only its hash is stored.",
       security: SECURITY.session,
       responses: {
-        ...jsonCreated(tokenSchema.extend({ token: z.string() }), "Token created"),
+        ...jsonCreated(tokenSchema.extend({
+          token: z.string(),
+        }), "Token created"),
         ...errors(401, 403, 409, 422),
       },
     }),
@@ -100,7 +110,11 @@ export function tokenRoutes() {
       const db = c.get("db");
       const user = c.get("user")!;
       const body = c.req.valid("json");
-      const { token, record } = await createApiToken(db, user.id, { name: body.name, scopes: body.scopes, expiresAt: expiresAtFor(body.expiresInDays) });
+      const { token, record } = await createApiToken(db, user.id, {
+        name: body.name,
+        scopes: body.scopes,
+        expiresAt: expiresAtFor(body.expiresInDays),
+      });
       await audit(db, c.get("logger"), {
         actorId: user.id,
         actorName: user.name,
@@ -112,7 +126,10 @@ export function tokenRoutes() {
         ...auditMeta(c),
         result: "success",
       });
-      return c.json({ success: true, data: { ...record, token } }, 201);
+      return c.json({
+        success: true,
+        data: { ...record, token },
+      }, 201);
     },
   );
 
@@ -128,7 +145,9 @@ export function tokenRoutes() {
         ...errors(401, 403, 404, 422),
       },
     }),
-    validator("param", z.object({ id: z.string() })),
+    validator("param", z.object({
+      id: z.string(),
+    })),
     validator("json", updateTokenSchema),
     async (c) => {
       const db = c.get("db");
@@ -146,8 +165,16 @@ export function tokenRoutes() {
         resourceId: id,
         resourceName: after.name,
         detail: {
-          ...(before.name !== after.name ? { name: { from: before.name, to: after.name } } : {}),
-          ...(before.scopes.join() !== after.scopes.join() ? { scopes: { from: before.scopes, to: after.scopes } } : {}),
+          ...(before.name !== after.name
+            ? {
+                name: { from: before.name, to: after.name },
+              }
+            : {}),
+          ...(before.scopes.join() !== after.scopes.join()
+            ? {
+                scopes: { from: before.scopes, to: after.scopes },
+              }
+            : {}),
         },
         ...auditMeta(c),
         result: "success",
@@ -164,11 +191,15 @@ export function tokenRoutes() {
       description: "Replaces the token's secret and returns the new one once, in `token`. The old secret stops working at once; name and scopes are kept, and the expiry is set anew as at creation.",
       security: SECURITY.session,
       responses: {
-        ...jsonOk(tokenSchema.extend({ token: z.string() }), "Token rotated"),
+        ...jsonOk(tokenSchema.extend({
+          token: z.string(),
+        }), "Token rotated"),
         ...errors(401, 403, 404, 422),
       },
     }),
-    validator("param", z.object({ id: z.string() })),
+    validator("param", z.object({
+      id: z.string(),
+    })),
     validator("json", rotateTokenSchema),
     async (c) => {
       const db = c.get("db");
@@ -189,7 +220,10 @@ export function tokenRoutes() {
         ...auditMeta(c),
         result: "success",
       });
-      return c.json({ success: true, data: { ...record, token } });
+      return c.json({
+        success: true,
+        data: { ...record, token },
+      });
     },
   );
 
@@ -204,7 +238,9 @@ export function tokenRoutes() {
         ...errors(401, 403, 404),
       },
     }),
-    validator("param", z.object({ id: z.string() })),
+    validator("param", z.object({
+      id: z.string(),
+    })),
     async (c) => {
       const db = c.get("db");
       const user = c.get("user")!;

@@ -1,7 +1,19 @@
 import { Cron } from "cronbake";
 
-const EVERY_UNITS = new Set(["seconds", "minutes", "hours", "dayOfMonth", "months", "dayOfWeek"]);
-const SHORT_UNIT_MAP: Record<string, string> = { s: "seconds", m: "minutes", h: "hours", d: "dayOfMonth" };
+const EVERY_UNITS = new Set([
+  "seconds",
+  "minutes",
+  "hours",
+  "dayOfMonth",
+  "months",
+  "dayOfWeek",
+]);
+const SHORT_UNIT_MAP: Record<string, string> = {
+  s: "seconds",
+  m: "minutes",
+  h: "hours",
+  d: "dayOfMonth",
+};
 const NAMED_ALIASES = new Set([
   "@every_second",
   "@every_minute",

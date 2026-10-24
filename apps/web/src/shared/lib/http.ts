@@ -62,8 +62,12 @@ export async function httpRaw(path: string, init?: RequestInit): Promise<Respons
     ...init,
     credentials: "include",
     headers: {
-      ...(hasBody && !isFormData ? { "Content-Type": "application/json" } : {}),
-      ...(isMutating ? { "X-Requested-With": "XMLHttpRequest" } : {}),
+      ...(hasBody && !isFormData
+        ? { "Content-Type": "application/json" }
+        : {}),
+      ...(isMutating
+        ? { "X-Requested-With": "XMLHttpRequest" }
+        : {}),
       ...init?.headers,
     },
   });

@@ -30,8 +30,12 @@ describe("auth provider chain", () => {
   test("a second provider adds to the chain instead of replacing the first", async () => {
     // Each provider only knows its own credential: a session provider and a
     // token provider must both keep working once both are registered.
-    register(async (_db, ctx) => (ctx as unknown as { cred?: string }).cred === "session" ? userNamed("by-session") : undefined);
-    register(async (_db, ctx) => (ctx as unknown as { cred?: string }).cred === "token" ? userNamed("by-token") : undefined);
+    register(async (_db, ctx) => (ctx as unknown as { cred?: string }).cred === "session"
+      ? userNamed("by-session")
+      : undefined);
+    register(async (_db, ctx) => (ctx as unknown as { cred?: string }).cred === "token"
+      ? userNamed("by-token")
+      : undefined);
 
     const provider = getAuthProvider();
     expect((await provider(db, { cred: "session" } as unknown as Context<AppEnv>))?.id).toBe("by-session");

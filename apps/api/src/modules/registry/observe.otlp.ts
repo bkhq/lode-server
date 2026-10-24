@@ -40,14 +40,22 @@ export interface ResourceLogs {
 type Json = Record<string, unknown>;
 
 /** Every OTLP metric type, for counting data points. */
-const POINT_KINDS = ["gauge", "sum", "histogram", "exponentialHistogram", "summary"] as const;
+const POINT_KINDS = [
+  "gauge",
+  "sum",
+  "histogram",
+  "exponentialHistogram",
+  "summary",
+] as const;
 
 function isObject(value: unknown): value is Json {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function list(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : [];
+  return Array.isArray(value)
+    ? value
+    : [];
 }
 
 /** An `AnyValue` as a scalar. int64 arrives as a string; it is kept a number when it fits. */
@@ -60,7 +68,9 @@ function anyValue(value: unknown): AttributeValue | undefined {
     return value.boolValue;
   if (value.intValue !== undefined) {
     const n = Number(value.intValue);
-    return Number.isFinite(n) ? n : String(value.intValue);
+    return Number.isFinite(n)
+      ? n
+      : String(value.intValue);
   }
   if (typeof value.doubleValue === "number")
     return value.doubleValue;
@@ -82,7 +92,9 @@ export function attributes(value: unknown): Attributes {
 }
 
 function resourceAttributes(entry: Json): Attributes {
-  return isObject(entry.resource) ? attributes(entry.resource.attributes) : {};
+  return isObject(entry.resource)
+    ? attributes(entry.resource.attributes)
+    : {};
 }
 
 function pointValue(point: Json): number | undefined {
@@ -90,7 +102,9 @@ function pointValue(point: Json): number | undefined {
     return point.asDouble;
   if (point.asInt !== undefined) {
     const n = Number(point.asInt);
-    return Number.isFinite(n) ? n : undefined;
+    return Number.isFinite(n)
+      ? n
+      : undefined;
   }
   return undefined;
 }
@@ -102,7 +116,9 @@ function isoFromNanos(value: unknown): string | undefined {
   try {
     const ms = Number(BigInt(String(value)) / 1_000_000n);
     const date = new Date(ms);
-    return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+    return Number.isNaN(date.getTime())
+      ? undefined
+      : date.toISOString();
   }
   catch {
     return undefined;
@@ -123,17 +139,29 @@ export function readMetrics(body: unknown): ResourceMetrics[] {
           if (isObject(data))
             points += list(data.dataPoints).length;
         }
-        const data = isObject(metric.gauge) ? metric.gauge : isObject(metric.sum) ? metric.sum : undefined;
+        const data = isObject(metric.gauge)
+          ? metric.gauge
+          : isObject(metric.sum)
+            ? metric.sum
+            : undefined;
         if (typeof metric.name !== "string" || data === undefined)
           continue;
         for (const point of list(data.dataPoints).filter(isObject)) {
           const value = pointValue(point);
-          if (value !== undefined)
-            (metrics[metric.name] ??= []).push({ value, attributes: attributes(point.attributes) });
+          if (value !== undefined) {
+            (metrics[metric.name] ??= []).push({
+              value,
+              attributes: attributes(point.attributes),
+            });
+          }
         }
       }
     }
-    return { resource: resourceAttributes(entry), metrics, points };
+    return {
+      resource: resourceAttributes(entry),
+      metrics,
+      points,
+    };
   });
 }
 
@@ -149,16 +177,25 @@ export function readLogs(body: unknown): ResourceLogs[] {
     for (const scope of list(entry.scopeLogs).filter(isObject)) {
       for (const record of list(scope.logRecords).filter(isObject)) {
         const attrs = attributes(record.attributes);
-        const named = typeof record.eventName === "string" && record.eventName !== "" ? record.eventName : attrs["event.name"];
+        const named = typeof record.eventName === "string" && record.eventName !== ""
+          ? record.eventName
+          : attrs["event.name"];
         const body = anyValue(record.body);
         events.push({
-          name: typeof named === "string" && named !== "" ? named : "log",
-          body: body === undefined ? null : String(body),
+          name: typeof named === "string" && named !== ""
+            ? named
+            : "log",
+          body: body === undefined
+            ? null
+            : String(body),
           attributes: attrs,
           at: isoFromNanos(record.timeUnixNano) ?? isoFromNanos(record.observedTimeUnixNano),
         });
       }
     }
-    return { resource: resourceAttributes(entry), events };
+    return {
+      resource: resourceAttributes(entry),
+      events,
+    };
   });
 }

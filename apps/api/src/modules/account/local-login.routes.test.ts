@@ -16,7 +16,14 @@ import { accountRoutes } from "./account.routes";
 import { createLocalUser } from "./users/local-users.service";
 import "@/modules/account";
 
-const noop = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
+const noop = {
+  debug() {},
+  info() {},
+  warn() {},
+  error() {},
+  fatal() {},
+  flush() {},
+} as unknown as Logger;
 const PASSWORD = "correct horse battery";
 
 let dir: string;
@@ -57,7 +64,12 @@ function app(overrides: Partial<Config> = {}): Hono<AppEnv> {
 function post(a: Hono<AppEnv>, path: string, body: unknown, cookie?: string): Promise<Response> {
   return Promise.resolve(a.request(path, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...cookie ? { Cookie: cookie } : {} },
+    headers: {
+      "Content-Type": "application/json",
+      ...cookie
+        ? { Cookie: cookie }
+        : {},
+    },
     body: JSON.stringify(body),
   }));
 }
@@ -68,27 +80,65 @@ function cookieOf(res: Response): string {
 
 async function adminCookie(): Promise<string> {
   const now = new Date().toISOString();
-  await db.insert(users).values({ id: "adm", oauthSub: "local:adm", username: "adm", name: "Adm", email: "adm@t.io", role: "admin", status: "active", createdAt: now, updatedAt: now }).run();
+  await db.insert(users).values({
+    id: "adm",
+    oauthSub: "local:adm",
+    username: "adm",
+    name: "Adm",
+    email: "adm@t.io",
+    role: "admin",
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  }).run();
   return `session_id=${await createSession(db, "adm", "tok", undefined, 3600)}`;
 }
 
 describe("POST /account/auth/login-local with LOCAL_LOGIN", () => {
   test("signs a database account in; the session then works", async () => {
-    await createLocalUser(db, { username: "alice", name: "Alice", email: "a@t.io", role: "user", password: PASSWORD });
+    await createLocalUser(db, {
+      username: "alice",
+      name: "Alice",
+      email: "a@t.io",
+      role: "user",
+      password: PASSWORD,
+    });
     const res = await post(app(), "/account/auth/login-local", { username: "Alice", password: PASSWORD });
     expect(res.status).toBe(200);
     const cookie = cookieOf(res);
     expect(cookie).toContain("session_id=");
-    const me = await app().request("/account/me", { headers: { Cookie: cookie } });
+    const me = await app().request("/account/me", {
+      headers: { Cookie: cookie },
+    });
     expect(((await me.json()) as { data: { username: string } }).data.username).toBe("alice");
   });
 
   test("a wrong password, an unknown user and a passwordless account all answer the same 401", async () => {
-    await createLocalUser(db, { username: "alice", name: "Alice", email: "a@t.io", role: "user", password: PASSWORD });
+    await createLocalUser(db, {
+      username: "alice",
+      name: "Alice",
+      email: "a@t.io",
+      role: "user",
+      password: PASSWORD,
+    });
     const now = new Date().toISOString();
-    await db.insert(users).values({ id: "idp", oauthSub: "s", username: "idp", name: "i", email: "i@t.io", role: "user", status: "active", createdAt: now, updatedAt: now }).run();
+    await db.insert(users).values({
+      id: "idp",
+      oauthSub: "s",
+      username: "idp",
+      name: "i",
+      email: "i@t.io",
+      role: "user",
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+    }).run();
     const bodies = [];
-    for (const [username, password] of [["alice", "wrong"], ["ghost", PASSWORD], ["idp", PASSWORD]] as const) {
+    for (const [username, password] of [
+      ["alice", "wrong"],
+      ["ghost", PASSWORD],
+      ["idp", PASSWORD],
+    ] as const) {
       const res = await post(app(), "/account/auth/login-local", { username, password });
       expect(res.status).toBe(401);
       bodies.push(await res.json());
@@ -98,7 +148,13 @@ describe("POST /account/auth/login-local with LOCAL_LOGIN", () => {
   });
 
   test("locks the username after repeated failures", async () => {
-    await createLocalUser(db, { username: "alice", name: "Alice", email: "a@t.io", role: "user", password: PASSWORD });
+    await createLocalUser(db, {
+      username: "alice",
+      name: "Alice",
+      email: "a@t.io",
+      role: "user",
+      password: PASSWORD,
+    });
     let last = 0;
     for (let i = 0; i < 10; i++)
       last = (await post(app(), "/account/auth/login-local", { username: "alice", password: "wrong" })).status;
@@ -107,8 +163,20 @@ describe("POST /account/auth/login-local with LOCAL_LOGIN", () => {
   });
 
   test("with two-step verification on, no session yet: a pending challenge instead", async () => {
-    const u = await createLocalUser(db, { username: "alice", name: "Alice", email: "a@t.io", role: "user", password: PASSWORD });
-    await db.insert(userTotpDevices).values({ id: "d", userId: u.id, name: "phone", secret: "JBSWY3DPEHPK3PXP", verified: true }).run();
+    const u = await createLocalUser(db, {
+      username: "alice",
+      name: "Alice",
+      email: "a@t.io",
+      role: "user",
+      password: PASSWORD,
+    });
+    await db.insert(userTotpDevices).values({
+      id: "d",
+      userId: u.id,
+      name: "phone",
+      secret: "JBSWY3DPEHPK3PXP",
+      verified: true,
+    }).run();
     const res = await post(app(), "/account/auth/login-local", { username: "alice", password: PASSWORD });
     expect(res.status).toBe(200);
     expect(((await res.json()) as { data: { totpRequired?: boolean } }).data.totpRequired).toBe(true);
@@ -118,7 +186,13 @@ describe("POST /account/auth/login-local with LOCAL_LOGIN", () => {
   });
 
   test("is off unless LOCAL_LOGIN is set", async () => {
-    await createLocalUser(db, { username: "alice", name: "Alice", email: "a@t.io", role: "user", password: PASSWORD });
+    await createLocalUser(db, {
+      username: "alice",
+      name: "Alice",
+      email: "a@t.io",
+      role: "user",
+      password: PASSWORD,
+    });
     const res = await post(app({ LOCAL_LOGIN: false }), "/account/auth/login-local", { username: "alice", password: PASSWORD });
     expect(res.status).toBe(404);
   });
@@ -126,7 +200,12 @@ describe("POST /account/auth/login-local with LOCAL_LOGIN", () => {
 
 describe("GET /account/auth/mode", () => {
   test("reports password login next to OAuth, which stays on offer", async () => {
-    const res = await app({ OAUTH_CLIENT_ID: "c", OAUTH_AUTHORIZE_URL: "https://i/a", OAUTH_TOKEN_URL: "https://i/t", OAUTH_USERINFO_URL: "https://i/u" }).request("/account/auth/mode");
+    const res = await app({
+      OAUTH_CLIENT_ID: "c",
+      OAUTH_AUTHORIZE_URL: "https://i/a",
+      OAUTH_TOKEN_URL: "https://i/t",
+      OAUTH_USERINFO_URL: "https://i/u",
+    }).request("/account/auth/mode");
     expect(((await res.json()) as { data: unknown }).data).toEqual({ mode: "oauth", oauthConfigured: true, localLogin: true });
   });
 
@@ -137,7 +216,13 @@ describe("GET /account/auth/mode", () => {
 });
 
 describe("admin creates users", () => {
-  const input = { username: "bob", name: "Bob", email: "bob@t.io", role: "user", password: PASSWORD };
+  const input = {
+    username: "bob",
+    name: "Bob",
+    email: "bob@t.io",
+    role: "user",
+    password: PASSWORD,
+  };
 
   test("creates an account that can then sign in, and never returns the hash", async () => {
     const cookie = await adminCookie();
@@ -146,15 +231,29 @@ describe("admin creates users", () => {
     expect(JSON.stringify(await res.json())).not.toMatch(/passwordHash|pbkdf2/);
     expect((await post(app(), "/account/auth/login-local", { username: "bob", password: PASSWORD })).status).toBe(200);
     // Nor does any read of the user directory.
-    const list = await app().request("/account/users", { headers: { Cookie: cookie } });
-    const one = await app().request(`/account/users/${((await (await post(app(), "/account/users", { ...input, username: "dan", email: "d@t.io" }, cookie)).json()) as { data: { id: string } }).data.id}`, { headers: { Cookie: cookie } });
+    const list = await app().request("/account/users", {
+      headers: { Cookie: cookie },
+    });
+    const one = await app().request(`/account/users/${((await (await post(app(), "/account/users", { ...input, username: "dan", email: "d@t.io" }, cookie)).json()) as { data: { id: string } }).data.id}`, {
+      headers: { Cookie: cookie },
+    });
     expect(await list.text()).not.toMatch(/passwordHash|password_hash|pbkdf2/);
     expect(await one.text()).not.toMatch(/passwordHash|password_hash|pbkdf2/);
   });
 
   test("is admin-only", async () => {
     const now = new Date().toISOString();
-    await db.insert(users).values({ id: "u", oauthSub: "s", username: "u", name: "u", email: "u@t.io", role: "user", status: "active", createdAt: now, updatedAt: now }).run();
+    await db.insert(users).values({
+      id: "u",
+      oauthSub: "s",
+      username: "u",
+      name: "u",
+      email: "u@t.io",
+      role: "user",
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+    }).run();
     const cookie = `session_id=${await createSession(db, "u", "tok", undefined, 3600)}`;
     expect((await post(app(), "/account/users", input, cookie)).status).toBe(403);
     expect((await post(app(), "/account/users/u/password", { password: PASSWORD }, cookie)).status).toBe(403);
@@ -176,10 +275,14 @@ describe("admin creates users", () => {
     const cookie = await adminCookie();
     const created = ((await (await post(app(), "/account/users", input, cookie)).json()) as { data: { id: string } }).data;
     const bobCookie = cookieOf(await post(app(), "/account/auth/login-local", { username: "bob", password: PASSWORD }));
-    expect((await app().request("/account/me", { headers: { Cookie: bobCookie } })).status).toBe(200);
+    expect((await app().request("/account/me", {
+      headers: { Cookie: bobCookie },
+    })).status).toBe(200);
 
     expect((await post(app(), `/account/users/${created.id}/password`, { password: "a different passphrase" }, cookie)).status).toBe(200);
-    expect((await app().request("/account/me", { headers: { Cookie: bobCookie } })).status).toBe(401);
+    expect((await app().request("/account/me", {
+      headers: { Cookie: bobCookie },
+    })).status).toBe(401);
     expect((await post(app(), "/account/auth/login-local", { username: "bob", password: PASSWORD })).status).toBe(401);
     expect((await post(app(), "/account/auth/login-local", { username: "bob", password: "a different passphrase" })).status).toBe(200);
   });

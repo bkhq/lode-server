@@ -15,7 +15,9 @@ function buildPolicyRequest(c: Context<AppEnv>): PolicyRequest {
   const correlationId = c.get("requestId");
   // `+?` preserves the optional modifier; the default mapped type drops `?`
   // and `exactOptionalPropertyTypes` then rejects `string | undefined`.
-  const req: { -readonly [K in keyof PolicyRequest]+?: PolicyRequest[K] } = { ip: getClientIp(c, c.get("config")) };
+  const req: { -readonly [K in keyof PolicyRequest]+?: PolicyRequest[K] } = {
+    ip: getClientIp(c, c.get("config")),
+  };
   if (userAgent !== undefined)
     req.userAgent = userAgent;
   if (correlationId !== undefined)
@@ -30,7 +32,12 @@ export function policyContext(c: Context<AppEnv>): PolicyContext | null {
   return {
     db: c.get("db"),
     logger: c.get("logger"),
-    actor: { id: user.id, type: "user", role: user.role, name: user.name },
+    actor: {
+      id: user.id,
+      type: "user",
+      role: user.role,
+      name: user.name,
+    },
     request: buildPolicyRequest(c),
     cache: createPermissionCache(),
   };
@@ -101,7 +108,11 @@ function compileBinding(basePath: string, b: RouteBinding): CompiledBinding {
     paramNames.push(name);
     return "([^/]+)";
   });
-  return { binding: b, regex: new RegExp(`^${pattern}$`), paramNames };
+  return {
+    binding: b,
+    regex: new RegExp(`^${pattern}$`),
+    paramNames,
+  };
 }
 
 // Idempotent actor load: reuse `c.var.user` when `authRequired` already

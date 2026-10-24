@@ -107,7 +107,10 @@ export function rateLimit(opts: RateLimitOptions) {
     if (retryAfter > 0) {
       c.header("Retry-After", String(retryAfter));
       return c.json(
-        { success: false, error: { code: "RATE_LIMITED", message: "Too many requests. Try again later." } },
+        {
+          success: false,
+          error: { code: "RATE_LIMITED", message: "Too many requests. Try again later." },
+        },
         429,
       );
     }
@@ -122,5 +125,7 @@ export function rateLimit(opts: RateLimitOptions) {
  * a bucket across all synthetic Requests).
  */
 export async function __resetRateLimitForTests(): Promise<void> {
-  await Promise.all([...buckets.values()].map(ns => ns.clear()));
+  await Promise.all([
+    ...buckets.values(),
+  ].map(ns => ns.clear()));
 }

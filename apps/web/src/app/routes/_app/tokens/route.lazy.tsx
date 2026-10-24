@@ -41,15 +41,25 @@ function GrantsCell({ grants }: { readonly grants: Grants }) {
 
   if (summary.kind === "none")
     return <span className="text-muted-foreground">{t("table.noAccess")}</span>;
-  if (summary.kind === "all")
-    return <Badge variant="secondary">{t("table.all", { level: t(`level.${summary.access}`) })}</Badge>;
+  if (summary.kind === "all") {
+    return (
+      <Badge variant="secondary">
+        {t("table.all", {
+          level: t(`level.${summary.access}`),
+        })}
+      </Badge>
+    );
+  }
 
   const hidden = summary.items.length - MAX_GRANT_CHIPS;
   return (
     <div className="flex flex-wrap items-center gap-1">
       {summary.items.slice(0, MAX_GRANT_CHIPS).map(grant => (
         <Badge key={grant.package} variant="outline" className="font-mono text-xs">
-          {t("table.package", { package: grant.package, level: t(`level.${grant.access}`) })}
+          {t("table.package", {
+            package: grant.package,
+            level: t(`level.${grant.access}`),
+          })}
         </Badge>
       ))}
       {hidden > 0 && <span className="text-xs text-muted-foreground">{t("table.more", { n: hidden })}</span>}
@@ -71,7 +81,9 @@ function TokensPage() {
   const revoke = useMutation({
     mutationFn: (token: RegistryToken) => revokeToken(token.id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: registryKeys.tokens() });
+      void queryClient.invalidateQueries({
+        queryKey: registryKeys.tokens(),
+      });
       toast.success(t("grants:revoke.done"));
     },
     onError: err => toast.error(registryErrorMessage(err, t, t("common.error.deleteFailed"))),
@@ -145,7 +157,9 @@ function TokensPage() {
                               )}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {token.last_used_at ? formatDateTime(token.last_used_at) : t("grants:table.never")}
+                          {token.last_used_at
+                            ? formatDateTime(token.last_used_at)
+                            : t("grants:table.never")}
                         </TableCell>
                         <TableCell className="text-muted-foreground">{formatDate(token.created_at)}</TableCell>
                         <TableCell>

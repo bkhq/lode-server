@@ -44,7 +44,9 @@ export async function loginLocalUser(db: AppDatabase, usernameRaw: string, passw
     // refuses): a server fault, not a bad credential, so it neither says
     // "invalid" nor counts toward the lockout.
     throw new AppError(
-      `Password verification is unavailable on this runtime: ${err instanceof Error ? err.message : String(err)}`,
+      `Password verification is unavailable on this runtime: ${err instanceof Error
+        ? err.message
+        : String(err)}`,
       500,
       "PASSWORD_VERIFY_UNAVAILABLE",
     );
@@ -52,11 +54,16 @@ export async function loginLocalUser(db: AppDatabase, usernameRaw: string, passw
 
   if (user === undefined || user.passwordHash === null || user.status !== "active" || !matches) {
     const after = await recordFailure(db, lockKey(username), POLICY);
-    return after.locked ? { status: "locked", retryAfterSeconds: after.retryAfterSeconds } : { status: "invalid" };
+    return after.locked
+      ? { status: "locked", retryAfterSeconds: after.retryAfterSeconds }
+      : { status: "invalid" };
   }
 
   await clearFailures(db, lockKey(username));
   const now = new Date().toISOString();
   await db.update(users).set({ lastLoginAt: now }).where(eq(users.id, user.id)).run();
-  return { status: "ok", user: { ...user, lastLoginAt: now } };
+  return {
+    status: "ok",
+    user: { ...user, lastLoginAt: now },
+  };
 }

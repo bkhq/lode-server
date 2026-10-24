@@ -41,7 +41,11 @@ export interface Manifest {
 // Stays well below the 100 bound parameters a Durable Object query takes.
 const ID_CHUNK = 50;
 
-const newestFirst = [desc(registryVersions.publishedAt), desc(registryVersions.createdAt), desc(registryVersions.id)];
+const newestFirst = [
+  desc(registryVersions.publishedAt),
+  desc(registryVersions.createdAt),
+  desc(registryVersions.id),
+];
 
 /**
  * Generate the manifest of a package: its published versions, newest first,
@@ -69,14 +73,25 @@ export async function buildManifest(db: AppDatabase, pkg: RegistryPackage, opts:
     versions.set(pointer.version.id, pointer.version);
 
   const assets = new Map<string, RegistryAsset[]>();
-  const ids = [...versions.keys()];
+  const ids = [
+    ...versions.keys(),
+  ];
   for (let i = 0; i < ids.length; i += ID_CHUNK) {
     const rows = await db.select().from(registryAssets).where(inArray(registryAssets.versionId, ids.slice(i, i + ID_CHUNK))).orderBy(asc(registryAssets.name)).all();
-    for (const row of rows)
-      assets.set(row.versionId, [...(assets.get(row.versionId) ?? []), row]);
+    for (const row of rows) {
+      assets.set(row.versionId, [
+        ...(assets.get(row.versionId) ?? []),
+        row,
+      ]);
+    }
   }
 
-  const manifest: Manifest = { schema: "lode/v1", name: pkg.slug, channels: {}, versions: {} };
+  const manifest: Manifest = {
+    schema: "lode/v1",
+    name: pkg.slug,
+    channels: {},
+    versions: {},
+  };
   for (const pointer of pointers)
     manifest.channels[pointer.name] = { latest: pointer.version.version };
   for (const version of versions.values()) {

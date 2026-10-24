@@ -187,7 +187,9 @@ function toggleTaskList(ctx: Ctx) {
       return false;
     const node = $from.node(depth);
     const pos = $from.before(depth);
-    const nextChecked = node.attrs.checked == null ? false : null;
+    const nextChecked = node.attrs.checked == null
+      ? false
+      : null;
     view.dispatch(state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, checked: nextChecked }));
     return true;
   };
@@ -308,7 +310,10 @@ function Toolbar({
       setLinkError(true);
       return;
     }
-    run(callCommand(toggleLinkCommand.key, { href: linkUrl.trim(), title: "" }));
+    run(callCommand(toggleLinkCommand.key, {
+      href: linkUrl.trim(),
+      title: "",
+    }));
     setLinkOpen(false);
   };
 
@@ -522,7 +527,12 @@ function ExternalValueSync({
       return;
     lastEmittedRef.current = value;
     editor.action(replaceAll(value));
-  }, [loading, getInstance, value, lastEmittedRef]);
+  }, [
+    loading,
+    getInstance,
+    value,
+    lastEmittedRef,
+  ]);
 
   return null;
 }

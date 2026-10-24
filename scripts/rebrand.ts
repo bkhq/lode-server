@@ -154,7 +154,9 @@ function rewriteComposeFile(): void {
         nextDef = APP_NAME;
       else if (key === "OAUTH_CLIENT_SECRET" && def === "app-secret")
         nextDef = `${APP_NAME}-secret`;
-      return nextDef === def ? match : `\${${key}:-${nextDef}}`;
+      return nextDef === def
+        ? match
+        : `\${${key}:-${nextDef}}`;
     },
   );
   if (next !== text)
@@ -364,7 +366,13 @@ for (const rel of manifests) {
 
   if (REPO_URL !== undefined) {
     json.homepage = REPO_URL;
-    json.repository = { type: "git", url: `${REPO_URL.replace(/\.git$/, "")}.git`, ...(json.repository?.directory ? { directory: json.repository.directory } : {}) };
+    json.repository = {
+      type: "git",
+      url: `${REPO_URL.replace(/\.git$/, "")}.git`,
+      ...(json.repository?.directory
+        ? { directory: json.repository.directory }
+        : {}),
+    };
   }
 
   if (JSON.stringify(json) !== before) {

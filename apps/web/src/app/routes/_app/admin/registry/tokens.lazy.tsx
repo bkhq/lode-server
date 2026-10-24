@@ -52,16 +52,27 @@ function RegistryTokensTab() {
   );
 
   const rows = useMemo(() => {
-    const sorted = [...(data ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at));
+    const sorted = [
+      ...(data ?? []),
+    ].sort((a, b) => b.created_at.localeCompare(a.created_at));
     return filterRows(sorted, filter, (token) => {
       const ns = owners.get(token.user_id);
-      return [ns?.owner.name, ns?.owner.username, ns?.slug, token.user_id, token.name, token.prefix];
+      return [
+        ns?.owner.name,
+        ns?.owner.username,
+        ns?.slug,
+        token.user_id,
+        token.name,
+        token.prefix,
+      ];
     });
   }, [data, filter, owners]);
 
   const describeOwner = (id: string) => {
     const ns = owners.get(id);
-    return ns ? ownerLabel(ns.owner) : id;
+    return ns
+      ? ownerLabel(ns.owner)
+      : id;
   };
 
   const revokeMutation = useMutation({
@@ -69,7 +80,9 @@ function RegistryTokensTab() {
     onSuccess: (_, token) => {
       toast.success(t("registry:tokens.revoked", { name: token.name }));
       setRevokeTarget(null);
-      return queryClient.invalidateQueries({ queryKey: registryKeys.adminTokens() });
+      return queryClient.invalidateQueries({
+        queryKey: registryKeys.adminTokens(),
+      });
     },
     onError: (err) => {
       toast.error(registryErrorMessage(err, t, t("common.error.operationFailed")));
@@ -81,12 +94,17 @@ function RegistryTokensTab() {
 
   return (
     <div className="space-y-4">
-      <ErrorBanner message={error ? registryErrorMessage(error, t, t("common.error.loadFailed")) : null} />
+      <ErrorBanner message={error
+        ? registryErrorMessage(error, t, t("common.error.loadFailed"))
+        : null}
+      />
 
       <ListFilter value={filter} onChange={setFilter} shown={rows.length} total={data?.length ?? 0}>
         {userId && (
           <Badge variant="outline" className="h-7 gap-1 pr-1">
-            {t("registry:tokens.onlyOwner", { owner: describeOwner(userId) })}
+            {t("registry:tokens.onlyOwner", {
+              owner: describeOwner(userId),
+            })}
             <Button
               variant="ghost"
               size="icon-xs"
@@ -120,7 +138,9 @@ function RegistryTokensTab() {
               : rows.length === 0
                 ? (
                     <MessageRow colSpan={COLUMNS}>
-                      {data.length === 0 ? t("registry:tokens.empty") : t("registry:filter.noMatch")}
+                      {data.length === 0
+                        ? t("registry:tokens.empty")
+                        : t("registry:filter.noMatch")}
                     </MessageRow>
                   )
                 : rows.map((token) => {
@@ -152,7 +172,9 @@ function RegistryTokensTab() {
                               )}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {token.last_used_at ? formatDateTime(token.last_used_at) : t("registry:tokens.neverUsed")}
+                          {token.last_used_at
+                            ? formatDateTime(token.last_used_at)
+                            : t("registry:tokens.neverUsed")}
                         </TableCell>
                         <TableCell className="text-muted-foreground">{formatDate(token.created_at)}</TableCell>
                         <TableCell>

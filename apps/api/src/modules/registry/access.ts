@@ -31,7 +31,12 @@ export type PackageAccessLevel = "read" | "write" | "admin" | "owner";
 /** The levels a token grant can carry: everything but `owner`. */
 export type GrantLevel = Exclude<PackageAccessLevel, "owner">;
 
-const LEVEL_RANK: Record<PackageAccessLevel, number> = { read: 1, write: 2, admin: 3, owner: 4 };
+const LEVEL_RANK: Record<PackageAccessLevel, number> = {
+  read: 1,
+  write: 2,
+  admin: 3,
+  owner: 4,
+};
 
 async function isPublicPackage(db: AppDatabase, packageId: string): Promise<boolean> {
   const row = await db.select({ visibility: registryPackages.visibility }).from(registryPackages).where(eq(registryPackages.id, packageId)).get();
@@ -92,7 +97,9 @@ export const packageAccess = defineResource({
         .innerJoin(registryNamespaces, eq(registryNamespaces.id, registryPackages.namespaceId))
         .where(eq(registryPackages.id, objectId))
         .get();
-      return row ? { name: `${row.namespace}/${row.slug}`, type: "package" } : null;
+      return row
+        ? { name: `${row.namespace}/${row.slug}`, type: "package" }
+        : null;
     },
   },
 });
@@ -116,7 +123,9 @@ const LEVEL_ACTIONS = {
  */
 export async function findNamespaceBySlug(db: AppDatabase, slug: string): Promise<RegistryNamespace | undefined> {
   const row = await db.select().from(registryNamespaces).where(sql`lower(${registryNamespaces.slug}) = ${slug.toLowerCase()}`).get();
-  return row?.slug === slug ? row : undefined;
+  return row?.slug === slug
+    ? row
+    : undefined;
 }
 
 /** Look a package up by the `:ns/:pkg` of a URL: its namespace's slug and its own. */
@@ -218,7 +227,9 @@ export async function listGrantedPackages(db: AppDatabase, token: RequestToken):
     .select({ namespace: registryNamespaces, package: registryPackages })
     .from(registryPackages)
     .innerJoin(registryNamespaces, eq(registryNamespaces.id, registryPackages.namespaceId))
-    .where(token.ownerIsAdmin ? undefined : eq(registryNamespaces.ownerUserId, token.userId))
+    .where(token.ownerIsAdmin
+      ? undefined
+      : eq(registryNamespaces.ownerUserId, token.userId))
     .orderBy(asc(registryNamespaces.slug), asc(registryPackages.slug))
     .all();
   return rows.filter(row => named.has(row.package.id) || (all && row.namespace.ownerUserId === token.userId));
@@ -280,7 +291,9 @@ export async function findReportPackage(db: AppDatabase, token: RequestToken, na
   const resolved = await findPackage(db, nsSlug, name);
   if (!resolved || resolved.namespace.status !== "active")
     return undefined;
-  return await grantedLevel(db, token, resolved) === undefined ? undefined : resolved.package;
+  return await grantedLevel(db, token, resolved) === undefined
+    ? undefined
+    : resolved.package;
 }
 
 /** What `requirePackageAccess` hands a handler: the package, and the token the request came with. */
@@ -325,7 +338,12 @@ export async function requireUploadAccess(c: Context<AppEnv>, level: PackageAcce
   let found: Omit<UploadRequest, "tokenId"> | undefined;
   const access = await requireAccess(c, level, "Upload", async (db) => {
     found = await db
-      .select({ upload: registryUploads, version: registryVersions, package: registryPackages, namespace: registryNamespaces })
+      .select({
+        upload: registryUploads,
+        version: registryVersions,
+        package: registryPackages,
+        namespace: registryNamespaces,
+      })
       .from(registryUploads)
       .innerJoin(registryVersions, eq(registryVersions.id, registryUploads.versionId))
       .innerJoin(registryPackages, eq(registryPackages.id, registryVersions.packageId))
@@ -353,7 +371,9 @@ async function requireAccess(
   if (!resolved)
     throw new NotFoundError(what);
 
-  const granted = token ? await grantedLevel(ctx.db, token, resolved) : undefined;
+  const granted = token
+    ? await grantedLevel(ctx.db, token, resolved)
+    : undefined;
   const readable = await canReadPackage(ctx, resolved.package.id) && (!token || granted !== undefined);
   if (!readable) {
     if (what === "Upload" || resolved.package.visibility === "private")

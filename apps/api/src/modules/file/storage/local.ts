@@ -24,7 +24,9 @@ export const localDriver: FileStorageDriver = {
 
   setup(config) {
     const root = config.FILE_STORAGE_LOCAL_ROOT;
-    localRoot = isAbsolute(root) ? root : resolve(ROOT_DIR, root);
+    localRoot = isAbsolute(root)
+      ? root
+      : resolve(ROOT_DIR, root);
     if (!existsSync(localRoot)) {
       mkdirSync(localRoot, { recursive: true, mode: 0o700 });
     }

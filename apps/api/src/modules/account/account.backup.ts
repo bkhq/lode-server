@@ -9,6 +9,11 @@ import { userPreferences, users } from "@/modules/account/users/schema";
 // export.service.ts).
 export const accountBackupContribution: BackupContribution = {
   name: "users",
-  tables: [users, groups, groupMembers, userPreferences],
+  tables: [
+    users,
+    groups,
+    groupMembers,
+    userPreferences,
+  ],
   deps: [],
 };

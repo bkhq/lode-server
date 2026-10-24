@@ -79,7 +79,9 @@ export function decodeBase64Flexible(text: string): Uint8Array<ArrayBuffer> | nu
     }
   }
   // Whatever is left over must be zero padding bits.
-  return buffer === 0 ? bytes : null;
+  return buffer === 0
+    ? bytes
+    : null;
 }
 
 /** Encode bytes as unpadded base64url, the encoding lode emits. */
@@ -141,7 +143,11 @@ export interface ManifestCatalog {
 // lode keeps both maps in a BTreeMap<String>: byte order. Channel names and
 // version ids are ASCII here, where code-unit order is the same.
 function sortedEntries<T>(map: Record<string, T>): [string, T][] {
-  return Object.entries(map).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  return Object.entries(map).sort(([a], [b]) => (a < b
+    ? -1
+    : a > b
+      ? 1
+      : 0));
 }
 
 /**
@@ -182,6 +188,12 @@ export function delegationMessage(name: string, keyB64: string, notBefore: numbe
 
 /** Signed message of a revocation list: the revoked ids sorted by byte order and deduplicated, one per line. */
 export function revocationMessage(keyId: string, issuedAt: number, revoked: readonly string[]): Uint8Array<ArrayBuffer> {
-  const ids = [...new Set(revoked)].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const ids = [
+    ...new Set(revoked),
+  ].sort((a, b) => (a < b
+    ? -1
+    : a > b
+      ? 1
+      : 0));
   return new TextEncoder().encode([`lode.revocations.v1\n${keyId}\n${issuedAt}`, ...ids].join("\n"));
 }

@@ -684,9 +684,9 @@ output and the files it installs. Six scenarios:
 
 The lode binary is static and runs directly on the test host; the API is
 reached on loopback, where lode allows plain http. It is located in this
-order: `E2E_LODE_BIN`; `tests/e2e/.cache/lode-v0.1.0/lode` from an earlier run;
-extraction from the local image `bkhq/lode:v0.1.0-mini`
-(`docker pull docker.io/bkhq/lode:v0.1.0-mini` once — the container is created,
+order: `E2E_LODE_BIN`; `tests/e2e/.cache/lode-v0.3.0/lode` from an earlier run;
+extraction from the local image `bkhq/lode:v0.3.0-mini`
+(`docker pull docker.io/bkhq/lode:v0.3.0-mini` once — the container is created,
 never started, and removed). With none of them the suite is **skipped with a
 message**, it does not fail. Operator data dirs and the publisher's private
 key live in a per-run directory under `tests/e2e/.cache/` and are removed

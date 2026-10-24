@@ -16,7 +16,9 @@ export function tokenView(token: RegistryToken): z.infer<typeof tokenSchema> {
     name: token.name,
     prefix: token.prefix,
     // A fresh array: the service's is read-only.
-    grants: "all" in token.grants ? token.grants : [...token.grants],
+    grants: "all" in token.grants
+      ? token.grants
+      : [...token.grants],
     expires_at: token.expiresAt,
     last_used_at: token.lastUsedAt,
     created_at: token.createdAt,
@@ -32,7 +34,9 @@ const createTokenSchema = z.object({
   grants: grantsSchema,
 });
 
-const tokenParamSchema = z.object({ id: z.string() });
+const tokenParamSchema = z.object({
+  id: z.string(),
+});
 
 /**
  * Token management, mounted by `registryRoutes` behind its `authRequired`.
@@ -49,11 +53,17 @@ export function registryTokenRoutes() {
       summary: "List my tokens",
       description: "The caller's personal API tokens with their package grants, expiry and last use. `grants` is `{ all }` for every package the caller owns, or a list of `{ package, access }` where `package` is `<namespace>/<package slug>`. Session only.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.array(tokenSchema), "Tokens, without their secrets"), ...errors(401, 403) },
+      responses: {
+        ...jsonOk(z.array(tokenSchema), "Tokens, without their secrets"),
+        ...errors(401, 403),
+      },
     }),
     async (c) => {
       const tokens = await listTokens(c.get("db"), c.get("user")!.id);
-      return c.json({ success: true, data: tokens.map(tokenView) });
+      return c.json({
+        success: true,
+        data: tokens.map(tokenView),
+      });
     },
   );
 
@@ -64,7 +74,12 @@ export function registryTokenRoutes() {
       summary: "Create a token with package grants",
       description: "Creates a personal API token narrowed to packages and returns the secret once, in `token`. A grant can only name a package the caller may manage; `{ all }` covers every package the caller owns, including future ones. Session only.",
       security: SECURITY.session,
-      responses: { ...jsonCreated(tokenSchema.extend({ token: z.string() }), "Token created"), ...errors(401, 403, 409, 422) },
+      responses: {
+        ...jsonCreated(tokenSchema.extend({
+          token: z.string(),
+        }), "Token created"),
+        ...errors(401, 403, 409, 422),
+      },
     }),
     validator("json", createTokenSchema),
     async (c) => {
@@ -72,7 +87,9 @@ export function registryTokenRoutes() {
       const body = c.req.valid("json");
       const { token, record } = await createToken(policyContext(c)!, {
         name: body.name,
-        expiresAt: body.expires_at == null ? null : new Date(body.expires_at).toISOString(),
+        expiresAt: body.expires_at == null
+          ? null
+          : new Date(body.expires_at).toISOString(),
         grants: body.grants,
       });
       await audit(db, c.get("logger"), {
@@ -83,7 +100,13 @@ export function registryTokenRoutes() {
         resourceName: record.name,
         detail: { grants: record.grants, expires_at: record.expiresAt },
       });
-      return c.json({ success: true, data: { ...tokenView(record), token } }, 201);
+      return c.json({
+        success: true,
+        data: {
+          ...tokenView(record),
+          token,
+        },
+      }, 201);
     },
   );
 
@@ -94,15 +117,23 @@ export function registryTokenRoutes() {
       summary: "Replace a token's grants",
       description: "Replaces every grant of the token, and its name when `name` is given; the secret is not reissued. Session only.",
       security: SECURITY.session,
-      responses: { ...jsonOk(tokenSchema), ...errors(401, 403, 404, 422) },
+      responses: {
+        ...jsonOk(tokenSchema),
+        ...errors(401, 403, 404, 422),
+      },
     }),
     validator("param", tokenParamSchema),
-    validator("json", z.object({ name: tokenNameSchema.optional(), grants: grantsSchema })),
+    validator("json", z.object({
+      name: tokenNameSchema.optional(),
+      grants: grantsSchema,
+    })),
     async (c) => {
       const db = c.get("db");
       const { id } = c.req.valid("param");
       const { name, grants } = c.req.valid("json");
-      const previous = name === undefined ? undefined : await getToken(db, id);
+      const previous = name === undefined
+        ? undefined
+        : await getToken(db, id);
       const record = await replaceGrants(policyContext(c)!, id, grants, name);
       if (!record)
         throw new NotFoundError("API token", id);
@@ -113,9 +144,17 @@ export function registryTokenRoutes() {
         resourceType: "api_token",
         resourceId: record.id,
         resourceName: record.name,
-        detail: { grants: record.grants, ...(renamed ? { name: record.name, previous_name: previous.name } : {}) },
+        detail: {
+          grants: record.grants,
+          ...(renamed
+            ? { name: record.name, previous_name: previous.name }
+            : {}),
+        },
       });
-      return c.json({ success: true, data: tokenView(record) });
+      return c.json({
+        success: true,
+        data: tokenView(record),
+      });
     },
   );
 
@@ -126,7 +165,12 @@ export function registryTokenRoutes() {
       summary: "Revoke a token",
       description: "Deletes the token and its grants. Session only.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.object({ id: z.string() }), "Token revoked"), ...errors(401, 403, 404) },
+      responses: {
+        ...jsonOk(z.object({
+          id: z.string(),
+        }), "Token revoked"),
+        ...errors(401, 403, 404),
+      },
     }),
     validator("param", tokenParamSchema),
     async (c) => {
@@ -142,7 +186,10 @@ export function registryTokenRoutes() {
         resourceId: id,
         resourceName: revoked.name,
       });
-      return c.json({ success: true, data: { id } });
+      return c.json({
+        success: true,
+        data: { id },
+      });
     },
   );
 

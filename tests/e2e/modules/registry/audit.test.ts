@@ -31,10 +31,18 @@ describe("registry audit entries", () => {
 
     const pkg = await createPackage(user);
     const name = `${pkg.namespace}/${pkg.slug}`;
-    const ci = await createToken(user, [{ package: name, access: "write" }]);
-    await release(ci.token, pkg, "1.0.0", { name: "app.bin", bytes: text("one") });
+    const ci = await createToken(user, [
+      { package: name, access: "write" },
+    ]);
+    await release(ci.token, pkg, "1.0.0", {
+      name: "app.bin",
+      bytes: text("one"),
+    });
     // An administrator acting on the user's package.
-    await admin.json(`/api/registry/packages/${name}`, { method: "PATCH", body: { description: "reviewed" } });
+    await admin.json(`/api/registry/packages/${name}`, {
+      method: "PATCH",
+      body: { description: "reviewed" },
+    });
     await deletePackage(user, pkg);
 
     const onPackage = await events(admin, `resource_id=${pkg.id}`);
@@ -44,7 +52,10 @@ describe("registry audit entries", () => {
     // The acting administrator, and the owner the package belongs to.
     const updated = onPackage.find(e => e.action === "registry.package.updated")!;
     expect(updated.actorId).toBe(adminId);
-    expect(detailOf(updated)).toMatchObject({ owner_user_id: me, changes: { description: "reviewed" } });
+    expect(detailOf(updated)).toMatchObject({
+      owner_user_id: me,
+      changes: { description: "reviewed" },
+    });
 
     // Release steps made with a token carry its id next to the user.
     for (const [action, resourceName] of [

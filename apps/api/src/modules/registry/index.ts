@@ -16,9 +16,27 @@ export { startRegistryUploadSweep, stopRegistryUploadSweep } from "./upload.swee
 registerNamespace({
   name: "package",
   relations: {
-    owner: { union: [{ this: {} }] },
-    maintainer: { union: [{ this: {} }, { computed_userset: { relation: "owner" } }] },
-    reader: { union: [{ this: {} }, { computed_userset: { relation: "maintainer" } }] },
+    owner: {
+      union: [
+        { this: {} },
+      ],
+    },
+    maintainer: {
+      union: [
+        { this: {} },
+        {
+          computed_userset: { relation: "owner" },
+        },
+      ],
+    },
+    reader: {
+      union: [
+        { this: {} },
+        {
+          computed_userset: { relation: "maintainer" },
+        },
+      ],
+    },
   },
 });
 

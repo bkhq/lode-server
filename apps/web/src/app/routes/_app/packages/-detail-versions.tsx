@@ -94,10 +94,22 @@ export function VersionsTab({ ns, pkg, canWrite, versions, channels }: VersionsT
     tooLong: t("package:validation.tooLong", { max: MAX_ID_LENGTH }),
   };
   const dialogText = {
-    publish: { title: "package:versions.publishDialog.title", description: t("package:versions.publishDialog.description") },
-    yank: { title: "package:versions.yankDialog.title", description: t("package:versions.yankDialog.description") },
-    restore: { title: "package:versions.restoreDialog.title", description: t("package:versions.restoreDialog.description") },
-    delete: { title: "package:versions.deleteDialog.title", description: t("package:versions.deleteDialog.description") },
+    publish: {
+      title: "package:versions.publishDialog.title",
+      description: t("package:versions.publishDialog.description"),
+    },
+    yank: {
+      title: "package:versions.yankDialog.title",
+      description: t("package:versions.yankDialog.description"),
+    },
+    restore: {
+      title: "package:versions.restoreDialog.title",
+      description: t("package:versions.restoreDialog.description"),
+    },
+    delete: {
+      title: "package:versions.deleteDialog.title",
+      description: t("package:versions.deleteDialog.description"),
+    },
   };
   const successKey = {
     publish: "package:versions.publishDialog.success",
@@ -138,9 +150,13 @@ export function VersionsTab({ ns, pkg, canWrite, versions, channels }: VersionsT
       setAction(null);
   };
   const toggle = (id: string) =>
-    setExpanded(ids => (ids.includes(id) ? ids.filter(i => i !== id) : [...ids, id]));
+    setExpanded(ids => (ids.includes(id)
+      ? ids.filter(i => i !== id)
+      : [...ids, id]));
 
-  const channelError = action?.kind === "publish" ? channelNameError(channel) : undefined;
+  const channelError = action?.kind === "publish"
+    ? channelNameError(channel)
+    : undefined;
 
   return (
     <div className="space-y-4">
@@ -192,10 +208,14 @@ export function VersionsTab({ ns, pkg, canWrite, versions, channels }: VersionsT
                         variant="ghost"
                         size="icon-xs"
                         aria-expanded={isOpen}
-                        aria-label={isOpen ? t("package:versions.collapse") : t("package:versions.expand")}
+                        aria-label={isOpen
+                          ? t("package:versions.collapse")
+                          : t("package:versions.expand")}
                         onClick={() => toggle(v.id)}
                       >
-                        {isOpen ? <ChevronDown /> : <ChevronRight />}
+                        {isOpen
+                          ? <ChevronDown />
+                          : <ChevronRight />}
                       </Button>
                     </TableCell>
                     <TableCell className="font-mono font-medium">{v.version}</TableCell>
@@ -203,7 +223,9 @@ export function VersionsTab({ ns, pkg, canWrite, versions, channels }: VersionsT
                       <Badge variant={STATUS_VARIANT[v.status]}>{statusLabel[v.status]}</Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {v.published_at ? formatDateTime(v.published_at) : "-"}
+                      {v.published_at
+                        ? formatDateTime(v.published_at)
+                        : "-"}
                     </TableCell>
                     <TableCell>{v.assets.length}</TableCell>
                     <TableCell>{formatBytes(totalSize(v.assets))}</TableCell>
@@ -306,7 +328,9 @@ export function VersionsTab({ ns, pkg, canWrite, versions, channels }: VersionsT
             <DialogFooter>
               <DialogClose render={<Button type="button" variant="outline">{t("common:common.cancel")}</Button>} />
               <Button
-                variant={action.kind === "yank" ? "destructive" : "default"}
+                variant={action.kind === "yank"
+                  ? "destructive"
+                  : "default"}
                 disabled={mutation.isPending || channelError !== undefined}
                 onClick={() => mutation.mutate(action)}
               >
@@ -386,7 +410,12 @@ function CreateDraftDialog({ ns, pkg, open, onOpenChange }: {
   const error = versionError(version);
 
   const mutation = useMutation({
-    mutationFn: () => createVersion(ns, pkg, { version, ...(notes.trim() ? { notes } : {}) }),
+    mutationFn: () => createVersion(ns, pkg, {
+      version,
+      ...(notes.trim()
+        ? { notes }
+        : {}),
+    }),
     onSuccess: async (created) => {
       toast.success(t("package:versions.create.success", { version: created.version }));
       setVersion("");

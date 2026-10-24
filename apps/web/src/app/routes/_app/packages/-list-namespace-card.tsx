@@ -45,7 +45,11 @@ export function NamespaceCard() {
                       <dt className="text-xs text-muted-foreground">{t("packages:namespace.owner")}</dt>
                       <dd className="flex h-6 items-center gap-1.5">
                         <span className="truncate font-medium">{user?.name}</span>
-                        <span className="truncate text-muted-foreground">{user ? `@${user.username}` : ""}</span>
+                        <span className="truncate text-muted-foreground">
+                          {user
+                            ? `@${user.username}`
+                            : ""}
+                        </span>
                       </dd>
                     </div>
                   </dl>

@@ -22,7 +22,11 @@ describe("/api/account/me/tokens — personal API tokens", () => {
 
     const created = await user.json<{ data: CreatedToken }>("/api/account/me/tokens", {
       method: "POST",
-      body: { name: `e2e-${Date.now()}`, scopes: ["account:read"], expiresInDays: 1 },
+      body: {
+        name: `e2e-${Date.now()}`,
+        scopes: ["account:read"],
+        expiresInDays: 1,
+      },
     });
     const { token, id } = created.data;
     expect(token.startsWith("pat_")).toBe(true);
@@ -34,7 +38,10 @@ describe("/api/account/me/tokens — personal API tokens", () => {
     expect((await withToken(token, "/api/account/me/groups")).status).toBe(200);
 
     // Not covered: a write, and token management itself.
-    expect((await withToken(token, "/api/account/me/preferences/e2e", { method: "PUT", body: JSON.stringify({ value: "nope" }) })).status).toBe(403);
+    expect((await withToken(token, "/api/account/me/preferences/e2e", {
+      method: "PUT",
+      body: JSON.stringify({ value: "nope" }),
+    })).status).toBe(403);
     expect((await withToken(token, "/api/account/me/tokens")).status).toBe(403);
     expect((await withToken(token, "/api/settings")).status).toBe(403);
 

@@ -152,7 +152,9 @@ describe("auth/admin gating", () => {
   test("GET /policy/resource-groups → 403 for a non-admin user", async () => {
     const app = buildApp(db);
     const { cookie } = await sessionCookieFor("user");
-    const res = await app.request("/policy/resource-groups", { headers: { Cookie: cookie } });
+    const res = await app.request("/policy/resource-groups", {
+      headers: { Cookie: cookie },
+    });
     expect(res.status).toBe(403);
   });
 
@@ -294,7 +296,9 @@ describe("PATCH /policy/resource-groups/:id", () => {
     const res = await app.request(`/policy/resource-groups/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", "Cookie": cookie },
-      body: JSON.stringify({ name: "x".repeat(101) }),
+      body: JSON.stringify({
+        name: "x".repeat(101),
+      }),
     });
     expect(res.status).toBe(422);
   });
@@ -315,7 +319,9 @@ describe("resource-group members", () => {
     const { cookie } = await sessionCookieFor("admin");
     const id = await createGroup(cookie, app);
 
-    const res = await app.request(`/policy/resource-groups/${id}/members`, { headers: { Cookie: cookie } });
+    const res = await app.request(`/policy/resource-groups/${id}/members`, {
+      headers: { Cookie: cookie },
+    });
     expect(res.status).toBe(200);
     const body = await res.json() as { success: boolean; data: unknown[] };
     expect(body.success).toBe(true);
@@ -347,7 +353,9 @@ describe("resource-group members", () => {
     expect(auditRow).toBeDefined();
     expect(auditRow!.resourceId).toBe(id);
 
-    const listRes = await app.request(`/policy/resource-groups/${id}/members`, { headers: { Cookie: cookie } });
+    const listRes = await app.request(`/policy/resource-groups/${id}/members`, {
+      headers: { Cookie: cookie },
+    });
     const listBody = await listRes.json() as { data: { objectId: string }[] };
     expect(listBody.data).toHaveLength(1);
     expect(listBody.data[0]!.objectId).toBe("item-1");
@@ -439,7 +447,13 @@ describe("PATCH /policy/tuples/:id", () => {
     const res = await app!.request("/policy/tuples", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Cookie": cookie },
-      body: JSON.stringify({ namespace: "item", objectId: "doc-1", relation, subjectNamespace: "user", subjectId: "u1" }),
+      body: JSON.stringify({
+        namespace: "item",
+        objectId: "doc-1",
+        relation,
+        subjectNamespace: "user",
+        subjectId: "u1",
+      }),
     });
     expect(res.status).toBe(201);
     const body = await res.json() as { data: { id: string } };
@@ -546,7 +560,13 @@ describe("POST /policy/tuples — group membership guard", () => {
       headers: { "Content-Type": "application/json", "Cookie": cookie },
       body: JSON.stringify({
         create: [
-          { namespace: "group", objectId: "g1", relation: "member", subjectNamespace: "user", subjectId: "u1" },
+          {
+            namespace: "group",
+            objectId: "g1",
+            relation: "member",
+            subjectNamespace: "user",
+            subjectId: "u1",
+          },
         ],
       }),
     });

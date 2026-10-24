@@ -24,7 +24,9 @@ export async function sha256OfBlob(store: BlobStore, key: string): Promise<strin
   if (DigestStream) {
     const digester = new DigestStream("SHA-256");
     await object.body.pipeTo(digester);
-    return [...new Uint8Array(await digester.digest)].map(b => b.toString(16).padStart(2, "0")).join("");
+    return [
+      ...new Uint8Array(await digester.digest),
+    ].map(b => b.toString(16).padStart(2, "0")).join("");
   }
 
   const hash = createHash("sha256");

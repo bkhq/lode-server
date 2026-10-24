@@ -49,8 +49,14 @@ function PackagePage() {
   const isAdmin = user?.role === "admin";
   const isOwner = namespace.data?.slug === ns;
   // The package response carries no owner; only the administrator's list does.
-  const adminPackages = useQuery({ ...adminPackagesQuery(), enabled: isAdmin && namespace.isSuccess && !isOwner });
-  const versions = useQuery({ ...versionsQuery(ns, slug), enabled: pkgQuery.isSuccess });
+  const adminPackages = useQuery({
+    ...adminPackagesQuery(),
+    enabled: isAdmin && namespace.isSuccess && !isOwner,
+  });
+  const versions = useQuery({
+    ...versionsQuery(ns, slug),
+    enabled: pkgQuery.isSuccess,
+  });
 
   if (pkgQuery.isPending) {
     return (
@@ -94,8 +100,13 @@ function PackagePage() {
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-bold">{pkg.name}</h1>
-          <Badge variant={pkg.visibility === "public" ? "secondary" : "outline"}>
-            {pkg.visibility === "public" ? t("package:visibility.public") : t("package:visibility.private")}
+          <Badge variant={pkg.visibility === "public"
+            ? "secondary"
+            : "outline"}
+          >
+            {pkg.visibility === "public"
+              ? t("package:visibility.public")
+              : t("package:visibility.private")}
           </Badge>
           {pkg.require_signature && <Badge variant="outline">{t("package:header.signatureRequired")}</Badge>}
         </div>

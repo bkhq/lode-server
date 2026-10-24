@@ -4,7 +4,10 @@ import { describe, expect, it } from "bun:test";
 import { getClient } from "../../lib/oidc";
 import { createDraft, createPackage, createToken, deletePackage, feed, FEED_BASE, manifestOf, packagePath, release, sha256Hex, text, uploadAsset } from "./helpers";
 
-const NOT_FOUND = { success: false, error: { code: "NOT_FOUND", message: "Not found" } };
+const NOT_FOUND = {
+  success: false,
+  error: { code: "NOT_FOUND", message: "Not found" },
+};
 
 async function expectNotFound(res: Response): Promise<void> {
   expect(res.status).toBe(404);
@@ -24,7 +27,10 @@ describe("/r — the read feed lode polls", () => {
     await createDraft(user, pkg, "1.0.0", "notes of 1.0.0");
     await uploadAsset(user, pkg, "1.0.0", "app-linux-x64.tar.gz", one);
     await uploadAsset(user, pkg, "1.0.0", "app-darwin-arm64.tar.gz", one, { run: "./app serve", exec: "./app" });
-    await user.json(`${packagePath(pkg)}/versions/1.0.0/publish`, { method: "POST", body: { channel: "stable" } });
+    await user.json(`${packagePath(pkg)}/versions/1.0.0/publish`, {
+      method: "POST",
+      body: { channel: "stable" },
+    });
     await release(user, pkg, "2.0.0-rc.1", { name: "app-linux-x64.tar.gz", bytes: two }, "beta");
     // A draft never shows.
     await createDraft(user, pkg, "3.0.0");
@@ -39,17 +45,39 @@ describe("/r — the read feed lode polls", () => {
       schema: "lode/v1",
       // The package slug: what the operator sets as `[global].app`.
       name: pkg.slug,
-      channels: { beta: { latest: "2.0.0-rc.1" }, stable: { latest: "1.0.0" } },
+      channels: {
+        beta: { latest: "2.0.0-rc.1" },
+        stable: { latest: "1.0.0" },
+      },
       versions: {
         "1.0.0": {
           notes: "notes of 1.0.0",
           assets: [
-            { name: "app-darwin-arm64.tar.gz", url: `${base}/1.0.0/app-darwin-arm64.tar.gz`, sha256: await sha256Hex(one), size: one.length, run: "./app serve", exec: "./app" },
-            { name: "app-linux-x64.tar.gz", url: `${base}/1.0.0/app-linux-x64.tar.gz`, sha256: await sha256Hex(one), size: one.length },
+            {
+              name: "app-darwin-arm64.tar.gz",
+              url: `${base}/1.0.0/app-darwin-arm64.tar.gz`,
+              sha256: await sha256Hex(one),
+              size: one.length,
+              run: "./app serve",
+              exec: "./app",
+            },
+            {
+              name: "app-linux-x64.tar.gz",
+              url: `${base}/1.0.0/app-linux-x64.tar.gz`,
+              sha256: await sha256Hex(one),
+              size: one.length,
+            },
           ],
         },
         "2.0.0-rc.1": {
-          assets: [{ name: "app-linux-x64.tar.gz", url: `${base}/2.0.0-rc.1/app-linux-x64.tar.gz`, sha256: await sha256Hex(two), size: two.length }],
+          assets: [
+            {
+              name: "app-linux-x64.tar.gz",
+              url: `${base}/2.0.0-rc.1/app-linux-x64.tar.gz`,
+              sha256: await sha256Hex(two),
+              size: two.length,
+            },
+          ],
         },
       },
     });
@@ -59,7 +87,10 @@ describe("/r — the read feed lode polls", () => {
     expect(etag).toMatch(/^"[0-9a-f]{64}"$/);
     const unchanged = await feed(feedPath(pkg, "manifest.json"), undefined, { "If-None-Match": etag });
     expect(unchanged.status).toBe(304);
-    await user.json(`${packagePath(pkg)}/versions/3.0.0/publish`, { method: "POST", body: { channel: "stable" } });
+    await user.json(`${packagePath(pkg)}/versions/3.0.0/publish`, {
+      method: "POST",
+      body: { channel: "stable" },
+    });
     const changed = await feed(feedPath(pkg, "manifest.json"), undefined, { "If-None-Match": etag });
     expect(changed.status).toBe(200);
     expect(changed.headers.get("etag")).not.toBe(etag);
@@ -73,7 +104,10 @@ describe("/r — the read feed lode polls", () => {
     const pkg = await createPackage(user);
     const bytes = crypto.getRandomValues(new Uint8Array(200_000));
     await release(user, pkg, "1.0.0", { name: "app.bin", bytes });
-    await release(user, pkg, "2.0.0", { name: "app.bin", bytes: text("two") });
+    await release(user, pkg, "2.0.0", {
+      name: "app.bin",
+      bytes: text("two"),
+    });
     await createDraft(user, pkg, "3.0.0");
     await uploadAsset(user, pkg, "3.0.0", "app.bin", text("draft"));
 
@@ -112,15 +146,21 @@ describe("/r — the read feed lode polls", () => {
     const bytes = text("private bytes");
     await release(user, pkg, "1.0.0", { name: "app.bin", bytes });
 
-    const reader = await createToken(user, [{ package: `${pkg.namespace}/${pkg.slug}`, access: "read" }]);
-    const elsewhere = await createToken(user, [{ package: `${other.namespace}/${other.slug}`, access: "admin" }]);
+    const reader = await createToken(user, [
+      { package: `${pkg.namespace}/${pkg.slug}`, access: "read" },
+    ]);
+    const elsewhere = await createToken(user, [
+      { package: `${other.namespace}/${other.slug}`, access: "admin" },
+    ]);
     const stranger = await createToken(admin, { all: "admin" });
 
     for (const path of ["manifest.json", "1.0.0/app.bin"]) {
       // Anonymous, a session cookie, a token granted on another package,
       // another user's token, a made-up token: all the 404 of an unknown package.
       await expectNotFound(await feed(feedPath(pkg, path)));
-      await expectNotFound(await feed(feedPath(pkg, path), undefined, { Cookie: user.cookies.header() }));
+      await expectNotFound(await feed(feedPath(pkg, path), undefined, {
+        Cookie: user.cookies.header(),
+      }));
       await expectNotFound(await feed(feedPath(pkg, path), elsewhere.token));
       await expectNotFound(await feed(feedPath(pkg, path), stranger.token));
       await expectNotFound(await feed(feedPath(pkg, path), "pat_made_up"));
@@ -132,13 +172,18 @@ describe("/r — the read feed lode polls", () => {
     }
     const manifest = await manifestOf(pkg, reader.token);
     expect(manifest.name).toBe(pkg.slug);
-    const download = await fetch(manifest.versions["1.0.0"]!.assets[0]!.url, { headers: { Authorization: `Bearer ${reader.token}` } });
+    const download = await fetch(manifest.versions["1.0.0"]!.assets[0]!.url, {
+      headers: { Authorization: `Bearer ${reader.token}` },
+    });
     expect(new Uint8Array(await download.arrayBuffer())).toEqual(bytes);
 
     // Revoked, the token reads nothing; made public, the package needs none.
     await user.json(`/api/registry/tokens/${reader.id}`, { method: "DELETE" });
     await expectNotFound(await feed(feedPath(pkg, "manifest.json"), reader.token));
-    await user.json(packagePath(pkg), { method: "PATCH", body: { visibility: "public" } });
+    await user.json(packagePath(pkg), {
+      method: "PATCH",
+      body: { visibility: "public" },
+    });
     expect((await feed(feedPath(pkg, "manifest.json"))).status).toBe(200);
 
     await user.json(`/api/registry/tokens/${elsewhere.id}`, { method: "DELETE" });
@@ -150,7 +195,10 @@ describe("/r — the read feed lode polls", () => {
   it("is read only", async () => {
     const user = await getClient("user@example.com");
     const pkg = await createPackage(user);
-    await release(user, pkg, "1.0.0", { name: "app.bin", bytes: text("one") });
+    await release(user, pkg, "1.0.0", {
+      name: "app.bin",
+      bytes: text("one"),
+    });
     for (const method of ["POST", "PUT", "DELETE"]) {
       const res = await fetch(`${FEED_BASE}${feedPath(pkg, "manifest.json")}`, { method });
       expect(res.status).toBe(404);

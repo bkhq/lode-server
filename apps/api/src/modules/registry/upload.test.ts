@@ -31,7 +31,14 @@ import "@/modules/account";
 
 const { signer, vectors } = fixture;
 
-const noop = { debug() {}, info() {}, warn() {}, error() {}, fatal() {}, flush() {} } as unknown as Logger;
+const noop = {
+  debug() {},
+  info() {},
+  warn() {},
+  error() {},
+  fatal() {},
+  flush() {},
+} as unknown as Logger;
 
 // Small enough that a three-part upload is a few kilobytes.
 const PART = 1000;
@@ -87,11 +94,20 @@ function client(id: string, auth: Record<string, string>): Client {
     call: async (method, path, body) => await app().request(`/api/registry${path}`, {
       method,
       headers: { ...auth, "Content-Type": "application/json" },
-      ...(body !== undefined && { body: JSON.stringify(body) }),
+      ...(body !== undefined && {
+        body: JSON.stringify(body),
+      }),
     }),
-    put: async (path, body, length = body instanceof Uint8Array ? body.length : null) => await app().request(`/api/registry${path}`, {
+    put: async (path, body, length = body instanceof Uint8Array
+      ? body.length
+      : null) => await app().request(`/api/registry${path}`, {
       method: "PUT",
-      headers: { ...auth, ...(length !== null && { "Content-Length": String(length) }) },
+      headers: {
+        ...auth,
+        ...(length !== null && {
+          "Content-Length": String(length),
+        }),
+      },
       body,
       duplex: "half",
     } as RequestInit),
@@ -100,7 +116,17 @@ function client(id: string, auth: Record<string, string>): Client {
 
 async function seedUser(id: string, role: "user" | "admin" = "user"): Promise<Client> {
   const now = new Date().toISOString();
-  await db.insert(users).values({ id, oauthSub: `sub-${id}`, username: id, name: id, email: `${id}@t.io`, role, status: "active", createdAt: now, updatedAt: now }).run();
+  await db.insert(users).values({
+    id,
+    oauthSub: `sub-${id}`,
+    username: id,
+    name: id,
+    email: `${id}@t.io`,
+    role,
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  }).run();
   const session = await createSession(db, id, "access", undefined, 3600);
   return client(id, { Cookie: `session_id=${session}` });
 }
@@ -118,7 +144,10 @@ async function mint(owner: Client, grants: unknown): Promise<Client & { tokenId:
   const res = await owner.call("POST", "/tokens", { name: "ci", grants });
   expect(res.status).toBe(201);
   const created = await data<{ id: string; token: string }>(res);
-  return { ...client(owner.id, { Authorization: `Bearer ${created.token}` }), tokenId: created.id };
+  return {
+    ...client(owner.id, { Authorization: `Bearer ${created.token}` }),
+    tokenId: created.id,
+  };
 }
 
 async function data<T = Record<string, unknown>>(res: Response): Promise<T> {
@@ -144,7 +173,12 @@ interface Started {
 
 /** Start an upload of `bytes` as `asset`; `changes` overrides the declared fields. */
 async function start(who: Client, pkg: string, asset: string, bytes: Uint8Array, changes: Record<string, unknown> = {}, version = "1.0.0"): Promise<Response> {
-  return await who.call("POST", `/packages/${pkg}/versions/${version}/uploads`, { asset, size: bytes.length, sha256: sha256Hex(bytes), ...changes });
+  return await who.call("POST", `/packages/${pkg}/versions/${version}/uploads`, {
+    asset,
+    size: bytes.length,
+    sha256: sha256Hex(bytes),
+    ...changes,
+  });
 }
 
 async function started(res: Response): Promise<Started> {
@@ -180,7 +214,9 @@ async function blobPath(pkg: string, versionId: string, asset: string): Promise<
 /** The multipart uploads the local store still holds parts for. */
 function storedUploads(): string[] {
   const root = join(blobRoot, "multipart");
-  return existsSync(root) ? readdirSync(root) : [];
+  return existsSync(root)
+    ? readdirSync(root)
+    : [];
 }
 
 async function auditActions(): Promise<string[]> {
@@ -232,7 +268,16 @@ describe("multipart upload", () => {
 
     const completed = await alice.call("POST", `/uploads/${upload.uploadId}/complete`);
     expect(completed.status).toBe(201);
-    expect(await data(completed)).toMatchObject({ name: "big.bin", size: 2500, sha256: sha256Hex(bytes), sig: null, key_id: null, alg: null, run: "./tool serve", exec: null });
+    expect(await data(completed)).toMatchObject({
+      name: "big.bin",
+      size: 2500,
+      sha256: sha256Hex(bytes),
+      sig: null,
+      key_id: null,
+      alg: null,
+      run: "./tool serve",
+      exec: null,
+    });
 
     expect(sha256Hex(readFileSync(await blobPath("tool", versionId, "big.bin")))).toBe(sha256Hex(bytes));
     expect(await uploadRows()).toHaveLength(0);
@@ -250,7 +295,12 @@ describe("multipart upload", () => {
     expect(MULTIPART_PART_SIZE).toBe(67108864);
     const alice = await seedPublisher("alice", ["tool"]);
     await draft(alice, "alice/tool");
-    const res = await alice.call("POST", "/packages/alice/tool/versions/1.0.0/uploads", { asset: "big.bin", size: 200 * 1024 * 1024, sha256: "0".repeat(64), partSize: 5 });
+    const res = await alice.call("POST", "/packages/alice/tool/versions/1.0.0/uploads", {
+      asset: "big.bin",
+      size: 200 * 1024 * 1024,
+      sha256: "0".repeat(64),
+      partSize: 5,
+    });
     expect(await started(res)).toMatchObject({ partSize: 67108864, partCount: 4 });
   });
 
@@ -258,7 +308,9 @@ describe("multipart upload", () => {
     const alice = await seedPublisher("alice", ["tool"]);
     const versionId = await draft(alice, "alice/tool");
     const bytes = bytesOf(2500);
-    const upload = await started(await start(alice, "alice/tool", "big.bin", bytes, { sha256: sha256Hex(bytesOf(2500, 2)) }));
+    const upload = await started(await start(alice, "alice/tool", "big.bin", bytes, {
+      sha256: sha256Hex(bytesOf(2500, 2)),
+    }));
     await putParts(alice, upload, bytes);
 
     await expectError(await alice.call("POST", `/uploads/${upload.uploadId}/complete`), 422, "DIGEST_MISMATCH");
@@ -307,7 +359,18 @@ describe("multipart upload", () => {
     const alice = await seedPublisher("alice", ["tool"]);
     await draft(alice, "alice/tool");
     const bytes = bytesOf(2500);
-    for (const changes of [{ asset: "../x" }, { asset: "" }, { sha256: sha256Hex(bytes).toUpperCase() }, { sha256: "abc" }, { size: 0 }, { size: 1.5 }, { size: "10" }, { run: "a\nb" }])
+    for (const changes of [
+      { asset: "../x" },
+      { asset: "" },
+      {
+        sha256: sha256Hex(bytes).toUpperCase(),
+      },
+      { sha256: "abc" },
+      { size: 0 },
+      { size: 1.5 },
+      { size: "10" },
+      { run: "a\nb" },
+    ])
       expect((await start(alice, "alice/tool", "big.bin", bytes, changes)).status).toBe(422);
     expect((await start(alice, "alice/tool", "big.bin", bytes, {}, "9.9.9")).status).toBe(404);
     expect(await uploadRows()).toHaveLength(0);
@@ -327,7 +390,11 @@ describe("multipart upload", () => {
 
     await db.delete(registryQuotas).run();
     // Nothing above the 500 MiB ceiling, whatever the configuration says.
-    await expectError(await alice.call("POST", "/packages/alice/tool/versions/1.0.0/uploads", { asset: "huge.bin", size: 500 * 1024 * 1024 + 1, sha256: "0".repeat(64) }), 413, "ASSET_TOO_LARGE");
+    await expectError(await alice.call("POST", "/packages/alice/tool/versions/1.0.0/uploads", {
+      asset: "huge.bin",
+      size: 500 * 1024 * 1024 + 1,
+      sha256: "0".repeat(64),
+    }), 413, "ASSET_TOO_LARGE");
 
     expect((await alice.call("DELETE", `/uploads/${first.uploadId}`)).status).toBe(200);
     expect((await getUsage(db, "alice")).storageBytes).toBe(0);
@@ -379,7 +446,13 @@ describe("multipart upload", () => {
     const upload = await started(await start(alice, "alice/tool", "big.bin", bytes));
     await putParts(alice, upload, bytes);
     expect((await alice.call("POST", `/uploads/${upload.uploadId}/complete`)).status).toBe(200);
-    expect(await assetRows()).toMatchObject([{ name: "big.bin", size: 2500, sha256: sha256Hex(bytes) }]);
+    expect(await assetRows()).toMatchObject([
+      {
+        name: "big.bin",
+        size: 2500,
+        sha256: sha256Hex(bytes),
+      },
+    ]);
     expect(sha256Hex(readFileSync(await blobPath("tool", versionId, "big.bin")))).toBe(sha256Hex(bytes));
   });
 });
@@ -387,7 +460,13 @@ describe("multipart upload", () => {
 describe("multipart upload: signatures", () => {
   const vector = vectors.find(v => v.id === "run")!;
   const content = new TextEncoder().encode(vector.content);
-  const declared = { asset: vector.name, size: content.length, sha256: vector.sha256, sig: vector.sig, run: vector.run };
+  const declared = {
+    asset: vector.name,
+    size: content.length,
+    sha256: vector.sha256,
+    sig: vector.sig,
+    run: vector.run,
+  };
 
   test("a signature is verified at start and stored with its key", async () => {
     __setPartSizeForTests(20);
@@ -406,7 +485,13 @@ describe("multipart upload: signatures", () => {
     await alice.put(`/uploads/${upload.uploadId}/parts/2`, content.subarray(20));
     const completed = await alice.call("POST", `/uploads/${upload.uploadId}/complete`);
     expect(completed.status).toBe(201);
-    expect(await data(completed)).toMatchObject({ name: vector.name, sig: vector.sig, key_id: signer.keyId, alg: "ed25519", run: vector.run });
+    expect(await data(completed)).toMatchObject({
+      name: vector.name,
+      sig: vector.sig,
+      key_id: signer.keyId,
+      alg: "ed25519",
+      run: vector.run,
+    });
   });
 
   test("an upload whose key was revoked since the start is refused at complete", async () => {
@@ -434,7 +519,13 @@ describe("multipart upload: signatures", () => {
     await data(await alice.call("POST", "/packages/alice/tool/keys", { public_key: root, name: "root" }));
     const [notBefore, notAfter] = [Math.floor(Date.now() / 1000) - 60, Math.floor(Date.now() / 1000) + 3600];
     const sig = encodeBase64Url(new Uint8Array(await crypto.subtle.sign({ name: "Ed25519" }, pair.privateKey, delegationMessage("tool", signer.publicKey, notBefore, notAfter))));
-    await data(await alice.call("PUT", "/packages/alice/tool/delegation", { key: signer.publicKey, name: "tool", not_before: notBefore, not_after: notAfter, sig }));
+    await data(await alice.call("PUT", "/packages/alice/tool/delegation", {
+      key: signer.publicKey,
+      name: "tool",
+      not_before: notBefore,
+      not_after: notAfter,
+      sig,
+    }));
 
     await draft(alice, "alice/tool", vector.version);
     const upload = await started(await alice.call("POST", `/packages/alice/tool/versions/${vector.version}/uploads`, declared));
@@ -470,8 +561,12 @@ describe("multipart upload: access", () => {
     const upload = await started(await start(alice, "alice/tool", "big.bin", bytes));
     const hidden = await started(await start(alice, "alice/hidden", "big.bin", bytes));
 
-    const elsewhere = await mint(alice, [{ package: "alice/other", access: "admin" }]);
-    const reader = await mint(alice, [{ package: "alice/tool", access: "read" }]);
+    const elsewhere = await mint(alice, [
+      { package: "alice/other", access: "admin" },
+    ]);
+    const reader = await mint(alice, [
+      { package: "alice/tool", access: "read" },
+    ]);
     const bobToken = await mint(bob, { all: "admin" });
 
     // The package is public, the upload is not: a stranger learns nothing.
@@ -509,7 +604,9 @@ describe("multipart upload: access", () => {
   test("a write-granted token runs the whole upload and is named in the audit trail", async () => {
     const alice = await seedPublisher("alice", ["tool"]);
     await draft(alice, "alice/tool");
-    const ci = await mint(alice, [{ package: "alice/tool", access: "write" }]);
+    const ci = await mint(alice, [
+      { package: "alice/tool", access: "write" },
+    ]);
     const bytes = bytesOf(2500);
     const upload = await started(await start(ci, "alice/tool", "big.bin", bytes));
     await putParts(ci, upload, bytes);
@@ -519,7 +616,12 @@ describe("multipart upload: access", () => {
     expect(events).toHaveLength(2);
     for (const event of events) {
       expect(event.resourceName).toBe("alice/tool@1.0.0/big.bin");
-      expect(JSON.parse(event.detail!)).toMatchObject({ owner_user_id: "alice", token_id: ci.tokenId, upload_id: upload.uploadId, size: 2500 });
+      expect(JSON.parse(event.detail!)).toMatchObject({
+        owner_user_id: "alice",
+        token_id: ci.tokenId,
+        upload_id: upload.uploadId,
+        size: 2500,
+      });
     }
   });
 
@@ -556,7 +658,13 @@ describe("multipart upload: version lifecycle", () => {
 
     expect((await uploadRows()).map(u => u.id)).toEqual([late.uploadId]);
     expect(storedUploads()).toHaveLength(1);
-    expect(await assetRows()).toMatchObject([{ name: "tool", size: 64, sha256: sha256Hex(small) }]);
+    expect(await assetRows()).toMatchObject([
+      {
+        name: "tool",
+        size: 64,
+        sha256: sha256Hex(small),
+      },
+    ]);
     expect(sha256Hex(readFileSync(await blobPath("tool", versionId, "tool")))).toBe(sha256Hex(small));
   });
 
@@ -611,7 +719,9 @@ describe("expired-upload sweep", () => {
     expect(await runUploadSweepOnce(db, config)).toBe(0);
     expect((await getUsage(db, "alice")).storageBytes).toBe(5000);
 
-    await db.update(registryUploads).set({ expiresAt: new Date(Date.now() - 1000).toISOString() }).where(eq(registryUploads.id, stale.uploadId)).run();
+    await db.update(registryUploads).set({
+      expiresAt: new Date(Date.now() - 1000).toISOString(),
+    }).where(eq(registryUploads.id, stale.uploadId)).run();
     expect(await runUploadSweepOnce(db, config)).toBe(1);
     expect((await uploadRows()).map(u => u.id)).toEqual([fresh.uploadId]);
     expect(storedUploads()).toHaveLength(1);
@@ -628,7 +738,9 @@ describe("expired-upload sweep", () => {
     const alice = await seedPublisher("alice", ["tool"]);
     await draft(alice, "alice/tool");
     await started(await start(alice, "alice/tool", "stale.bin", bytesOf(2500)));
-    await db.update(registryUploads).set({ expiresAt: new Date(Date.now() - 1000).toISOString() }).run();
+    await db.update(registryUploads).set({
+      expiresAt: new Date(Date.now() - 1000).toISOString(),
+    }).run();
 
     startRegistryUploadSweep(db, { ...config, REGISTRY_UPLOAD_SWEEP_INTERVAL_SECONDS: 0 }, noop, 5);
     await Bun.sleep(60);
@@ -655,7 +767,9 @@ describe("expired-upload sweep", () => {
         ...real.scheduler,
         every: (name) => {
           scheduled.push(name);
-          return { stop: async () => {} };
+          return {
+            stop: async () => {},
+          };
         },
       },
     });
@@ -674,7 +788,9 @@ describe("expired-upload sweep", () => {
         }),
         db,
         logger: noop,
-        encryption: { isSystemLocked: () => false } as unknown as AppDeps["encryption"],
+        encryption: {
+          isSystemLocked: () => false,
+        } as unknown as AppDeps["encryption"],
       };
       await buildFullApp(deps);
       return [...scheduled];
@@ -693,7 +809,9 @@ describe("expired-upload sweep", () => {
 
 describe("expired upload", () => {
   async function expire(uploadId: string): Promise<void> {
-    await db.update(registryUploads).set({ expiresAt: new Date(Date.now() - 1000).toISOString() }).where(eq(registryUploads.id, uploadId)).run();
+    await db.update(registryUploads).set({
+      expiresAt: new Date(Date.now() - 1000).toISOString(),
+    }).where(eq(registryUploads.id, uploadId)).run();
   }
 
   test("a part sent after expiry is refused, and the upload is gone", async () => {

@@ -33,19 +33,28 @@ describe("csrfGuard", () => {
 
   test("Bearer token bypasses the X-Requested-With requirement", async () => {
     const app = buildApp();
-    const res = await app.request("/p", { method: "POST", headers: { Authorization: "Bearer x" } });
+    const res = await app.request("/p", {
+      method: "POST",
+      headers: { Authorization: "Bearer x" },
+    });
     expect(res.status).toBe(200);
   });
 
   test("non-Bearer Authorization (e.g. Basic) does NOT bypass — falls through to X-Requested-With", async () => {
     const app = buildApp();
-    const res = await app.request("/p", { method: "POST", headers: { Authorization: "Basic xyz" } });
+    const res = await app.request("/p", {
+      method: "POST",
+      headers: { Authorization: "Basic xyz" },
+    });
     expect(res.status).toBe(403);
   });
 
   test("with X-Requested-With and no CORS_ORIGIN / no APP_URL configured: passes (dev fallback)", async () => {
     const app = buildApp();
-    const res = await app.request("/p", { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" } });
+    const res = await app.request("/p", {
+      method: "POST",
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    });
     expect(res.status).toBe(200);
   });
 
@@ -69,7 +78,10 @@ describe("csrfGuard", () => {
 
   test("APP_URL fallback: rejects when neither Origin nor Referer is present", async () => {
     const app = buildApp(undefined, "https://allowed.example.com");
-    const res = await app.request("/p", { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" } });
+    const res = await app.request("/p", {
+      method: "POST",
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    });
     expect(res.status).toBe(403);
   });
 
@@ -89,7 +101,10 @@ describe("csrfGuard", () => {
 
   test("with CORS_ORIGIN set: rejects when neither Origin nor Referer is present", async () => {
     const app = buildApp("https://allowed.example.com");
-    const res = await app.request("/p", { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" } });
+    const res = await app.request("/p", {
+      method: "POST",
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    });
     expect(res.status).toBe(403);
     expect((await res.json() as { error: { message: string } }).error.message).toMatch(/Origin/);
   });

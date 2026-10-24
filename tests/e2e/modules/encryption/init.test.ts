@@ -60,7 +60,11 @@ describe("encryption init flow (fresh API)", () => {
     // leaked onto every path mounted after it; guards are scoped now.
     const res = await c.raw("/api/encryption/init", {
       method: "POST",
-      body: { bootstrapToken: BOOTSTRAP_TOKEN, publicKey: "0".repeat(66), kdfSalt: "0".repeat(64) },
+      body: {
+        bootstrapToken: BOOTSTRAP_TOKEN,
+        publicKey: "0".repeat(66),
+        kdfSalt: "0".repeat(64),
+      },
     });
     expect(res.status).toBe(404);
   });

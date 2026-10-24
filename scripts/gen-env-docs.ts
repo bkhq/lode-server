@@ -13,7 +13,9 @@ import { parseArgs } from "node:util";
 
 const { values: cli } = parseArgs({
   args: process.argv.slice(2),
-  options: { check: { type: "boolean", default: false } },
+  options: {
+    check: { type: "boolean", default: false },
+  },
   strict: true,
   allowPositionals: false,
 });
@@ -213,7 +215,9 @@ function render(fields: FieldDoc[], extras: ExtraDoc[]): string {
   const rows = fields
     .toSorted((a, b) => a.key.localeCompare(b.key))
     .map((f) => {
-      const def = f.defaultValue ? `\`${f.defaultValue}\`` : "—";
+      const def = f.defaultValue
+        ? `\`${f.defaultValue}\``
+        : "—";
       const req = f.required ? "yes" : "no";
       const desc = f.description.replace(/\|/g, "\\|");
       return `| \`${f.key}\` | ${f.type} | ${def} | ${req} | ${desc} |`;
@@ -239,7 +243,9 @@ const descriptions = parseEnvExample();
 const envReads = scanEnvReads();
 
 const schemaKeys = new Set(schemaFields.map(f => f.key));
-const extraKeys = [...envReads.keys()].filter(k => !schemaKeys.has(k));
+const extraKeys = [
+  ...envReads.keys(),
+].filter(k => !schemaKeys.has(k));
 const envKeys = new Set(descriptions.keys());
 
 const missingFromEnv = [...schemaKeys].filter(k => !envKeys.has(k));

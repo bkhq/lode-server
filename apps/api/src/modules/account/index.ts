@@ -16,5 +16,8 @@ registerAuthProvider(apiTokenAuthProvider);
 registerTokenScope({
   name: "account:read",
   description: "Read your own profile and group memberships",
-  routes: [{ method: "GET", path: "/account/me" }, { method: "GET", path: "/account/me/groups" }],
+  routes: [
+    { method: "GET", path: "/account/me" },
+    { method: "GET", path: "/account/me/groups" },
+  ],
 });

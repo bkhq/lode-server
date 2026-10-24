@@ -43,7 +43,9 @@ export function createR2BlobStore(bucket: R2Bucket): BlobStore {
       do {
         // A page holds at most 1000 keys, which is also the most one delete
         // call takes.
-        const page = await bucket.list(cursor ? { prefix, cursor } : { prefix });
+        const page = await bucket.list(cursor
+          ? { prefix, cursor }
+          : { prefix });
         if (page.objects.length > 0) {
           await bucket.delete(page.objects.map(object => object.key));
         }

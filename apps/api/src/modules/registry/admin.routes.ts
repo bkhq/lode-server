@@ -16,7 +16,11 @@ import { tokenView } from "./token.routes";
 import { listTokens, revokeToken } from "./token.service";
 import { auditMeta, limitsSchema, limitsView, namespaceSchema, namespaceView, packageSchema, packageView, tokenSchema, usageSchema, usageView } from "./wire";
 
-const ownerSchema = z.object({ id: z.string(), username: z.string(), name: z.string() });
+const ownerSchema = z.object({
+  id: z.string(),
+  username: z.string(),
+  name: z.string(),
+});
 
 const adminNamespaceSchema = namespaceSchema.extend({
   owner: ownerSchema,
@@ -24,7 +28,10 @@ const adminNamespaceSchema = namespaceSchema.extend({
   storage_bytes: z.number(),
 });
 
-const adminPackageSchema = packageSchema.extend({ owner: ownerSchema, storage_bytes: z.number() });
+const adminPackageSchema = packageSchema.extend({
+  owner: ownerSchema,
+  storage_bytes: z.number(),
+});
 
 const MAX_ASSET_BYTES_CEILING = 500 * 1024 * 1024;
 
@@ -46,8 +53,12 @@ const userQuotaSchema = z.object({
   usage: usageSchema,
 });
 
-const slugParamSchema = z.object({ slug: z.string() });
-const userParamSchema = z.object({ userId: z.string() });
+const slugParamSchema = z.object({
+  slug: z.string(),
+});
+const userParamSchema = z.object({
+  userId: z.string(),
+});
 
 async function requireUser(db: AppDatabase, id: string): Promise<Owner> {
   const user = await db.select({ id: users.id, username: users.username, name: users.name }).from(users).where(eq(users.id, id)).get();
@@ -88,20 +99,38 @@ export function registryAdminRoutes() {
       summary: "List every namespace",
       description: "All namespaces with their owner, package count and storage usage. Admin only.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.array(adminNamespaceSchema)), ...errors(401, 403) },
+      responses: {
+        ...jsonOk(z.array(adminNamespaceSchema)),
+        ...errors(401, 403),
+      },
     }),
     async (c) => {
       const namespaces = await listAllNamespaces(c.get("db"));
       return c.json({
         success: true,
-        data: namespaces.map(n => ({ ...namespaceView(n.namespace), owner: n.owner, packages: n.packages, storage_bytes: n.storageBytes })),
+        data: namespaces.map(n => ({
+          ...namespaceView(n.namespace),
+          owner: n.owner,
+          packages: n.packages,
+          storage_bytes: n.storageBytes,
+        })),
       });
     },
   );
 
   for (const [verb, status, summary, description] of [
-    ["suspend", "suspended", "Suspend a namespace", "While suspended, the namespace's packages are read-only to its owner, its feed is not served and its owner's tokens are refused. Admin only."],
-    ["restore", "active", "Restore a suspended namespace", "Puts a suspended namespace back in service. Admin only."],
+    [
+      "suspend",
+      "suspended",
+      "Suspend a namespace",
+      "While suspended, the namespace's packages are read-only to its owner, its feed is not served and its owner's tokens are refused. Admin only.",
+    ],
+    [
+      "restore",
+      "active",
+      "Restore a suspended namespace",
+      "Puts a suspended namespace back in service. Admin only.",
+    ],
   ] as const) {
     router.post(
       `/registry/admin/namespaces/:slug/${verb}`,
@@ -110,7 +139,10 @@ export function registryAdminRoutes() {
         summary,
         description,
         security: SECURITY.session,
-        responses: { ...jsonOk(namespaceSchema), ...errors(401, 403, 404) },
+        responses: {
+          ...jsonOk(namespaceSchema),
+          ...errors(401, 403, 404),
+        },
       }),
       validator("param", slugParamSchema),
       async (c) => {
@@ -122,14 +154,19 @@ export function registryAdminRoutes() {
         if (result.changed) {
           await audit(db, c.get("logger"), {
             ...auditMeta(c),
-            action: status === "suspended" ? "registry.namespace.suspended" : "registry.namespace.restored",
+            action: status === "suspended"
+              ? "registry.namespace.suspended"
+              : "registry.namespace.restored",
             resourceType: "registry_namespace",
             resourceId: result.namespace.id,
             resourceName: result.namespace.slug,
             detail: { owner_user_id: result.namespace.ownerUserId },
           });
         }
-        return c.json({ success: true, data: namespaceView(result.namespace) });
+        return c.json({
+          success: true,
+          data: namespaceView(result.namespace),
+        });
       },
     );
   }
@@ -143,13 +180,20 @@ export function registryAdminRoutes() {
       summary: "List every package",
       description: "All packages across users with their owner and storage usage. Admin only. To change, yank from or delete any of them, an administrator uses the ordinary `/registry/packages/:ns/:pkg` routes, which they pass for every package.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.array(adminPackageSchema)), ...errors(401, 403) },
+      responses: {
+        ...jsonOk(z.array(adminPackageSchema)),
+        ...errors(401, 403),
+      },
     }),
     async (c) => {
       const packages = await listAllPackages(c.get("db"));
       return c.json({
         success: true,
-        data: packages.map(p => ({ ...packageView(p.namespace, p.package), owner: p.owner, storage_bytes: p.storageBytes })),
+        data: packages.map(p => ({
+          ...packageView(p.namespace, p.package),
+          owner: p.owner,
+          storage_bytes: p.storageBytes,
+        })),
       });
     },
   );
@@ -163,7 +207,10 @@ export function registryAdminRoutes() {
       summary: "Get a user's quota",
       description: "The user's override (null where the platform default applies), the limits in effect and current usage. Admin only.",
       security: SECURITY.session,
-      responses: { ...jsonOk(userQuotaSchema), ...errors(401, 403, 404) },
+      responses: {
+        ...jsonOk(userQuotaSchema),
+        ...errors(401, 403, 404),
+      },
     }),
     validator("param", userParamSchema),
     async (c) => {
@@ -180,7 +227,10 @@ export function registryAdminRoutes() {
       summary: "Set a user's quota override",
       description: "Replaces the override. A null (or omitted) limit falls back to the platform default; all nulls clears the override. `max_asset_bytes` cannot exceed 524288000. Admin only.",
       security: SECURITY.session,
-      responses: { ...jsonOk(userQuotaSchema), ...errors(401, 403, 404, 422) },
+      responses: {
+        ...jsonOk(userQuotaSchema),
+        ...errors(401, 403, 404, 422),
+      },
     }),
     validator("param", userParamSchema),
     validator("json", overrideSchema),
@@ -214,12 +264,20 @@ export function registryAdminRoutes() {
       summary: "List any user's tokens",
       description: "Personal API tokens with their package grants, without secrets; `user_id` narrows the list to one user. Admin only.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.array(tokenSchema)), ...errors(401, 403, 422) },
+      responses: {
+        ...jsonOk(z.array(tokenSchema)),
+        ...errors(401, 403, 422),
+      },
     }),
-    validator("query", z.object({ user_id: z.string().min(1).optional() })),
+    validator("query", z.object({
+      user_id: z.string().min(1).optional(),
+    })),
     async (c) => {
       const tokens = await listTokens(c.get("db"), c.req.valid("query").user_id);
-      return c.json({ success: true, data: tokens.map(tokenView) });
+      return c.json({
+        success: true,
+        data: tokens.map(tokenView),
+      });
     },
   );
 
@@ -230,9 +288,16 @@ export function registryAdminRoutes() {
       summary: "Revoke any user's token",
       description: "Deletes the token and its grants. Admin only.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.object({ id: z.string() }), "Token revoked"), ...errors(401, 403, 404) },
+      responses: {
+        ...jsonOk(z.object({
+          id: z.string(),
+        }), "Token revoked"),
+        ...errors(401, 403, 404),
+      },
     }),
-    validator("param", z.object({ id: z.string() })),
+    validator("param", z.object({
+      id: z.string(),
+    })),
     async (c) => {
       const db = c.get("db");
       const { id } = c.req.valid("param");
@@ -247,7 +312,10 @@ export function registryAdminRoutes() {
         resourceName: revoked.name,
         detail: { owner_user_id: revoked.userId },
       });
-      return c.json({ success: true, data: { id } });
+      return c.json({
+        success: true,
+        data: { id },
+      });
     },
   );
 

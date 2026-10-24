@@ -111,7 +111,12 @@ async function executeTaskImpl(
     const durationMs = finishedAt.getTime() - new Date(startedAt).getTime();
 
     await db.update(cronJobLogs)
-      .set({ status: "success", result, finishedAt: finishedAt.toISOString(), durationMs })
+      .set({
+        status: "success",
+        result,
+        finishedAt: finishedAt.toISOString(),
+        durationMs,
+      })
       .where(eq(cronJobLogs.id, logId))
       .run();
 
@@ -121,10 +126,17 @@ async function executeTaskImpl(
   catch (err) {
     const finishedAt = new Date();
     const durationMs = finishedAt.getTime() - new Date(startedAt).getTime();
-    const errorMessage = err instanceof Error ? err.message : String(err);
+    const errorMessage = err instanceof Error
+      ? err.message
+      : String(err);
 
     await db.update(cronJobLogs)
-      .set({ status: "failed", error: errorMessage, finishedAt: finishedAt.toISOString(), durationMs })
+      .set({
+        status: "failed",
+        error: errorMessage,
+        finishedAt: finishedAt.toISOString(),
+        durationMs,
+      })
       .where(eq(cronJobLogs.id, logId))
       .run();
 

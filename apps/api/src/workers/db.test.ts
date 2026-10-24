@@ -27,8 +27,12 @@ function fakeDurableStorage(): DurableObjectStorage {
     let i = 0;
     return {
       toArray: () => rows,
-      raw: () => ({ toArray: () => arrays }),
-      next: () => (i < rows.length ? { value: rows[i++], done: false } : { value: undefined, done: true }),
+      raw: () => ({
+        toArray: () => arrays,
+      }),
+      next: () => (i < rows.length
+        ? { value: rows[i++], done: false }
+        : { value: undefined, done: true }),
     };
   }
 
@@ -107,7 +111,12 @@ describe("Durable Object database adapter — the code paths that broke", () => 
   test("an edit with a stale version returns the conflict instead of throwing", async () => {
     const db = await createWorkersDb(fakeDurableStorage());
     const creatorId = await seedUser(db);
-    const item = await createItem(db, { type: "issue", title: "t", status: "open", creatorId });
+    const item = await createItem(db, {
+      type: "issue",
+      title: "t",
+      status: "open",
+      creatorId,
+    });
 
     const first = await updateItem(db, item.id, { title: "v2", expectedVersion: item.version });
     expect(isVersionConflict(first)).toBe(false);
@@ -119,7 +128,12 @@ describe("Durable Object database adapter — the code paths that broke", () => 
   test("a soft delete completes", async () => {
     const db = await createWorkersDb(fakeDurableStorage());
     const creatorId = await seedUser(db);
-    const item = await createItem(db, { type: "issue", title: "t", status: "open", creatorId });
+    const item = await createItem(db, {
+      type: "issue",
+      title: "t",
+      status: "open",
+      creatorId,
+    });
 
     await softDeleteItem(db, item.id);
     // The live lookup no longer sees it; the row itself carries the stamp.

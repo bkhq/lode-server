@@ -11,9 +11,15 @@ export function useInvalidatePackages(): () => Promise<void> {
   const queryClient = useQueryClient();
   return useCallback(async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: registryKeys.packages() }),
-      queryClient.invalidateQueries({ queryKey: registryKeys.quota() }),
-      queryClient.invalidateQueries({ queryKey: registryKeys.adminPackages() }),
+      queryClient.invalidateQueries({
+        queryKey: registryKeys.packages(),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: registryKeys.quota(),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: registryKeys.adminPackages(),
+      }),
     ]);
   }, [queryClient]);
 }

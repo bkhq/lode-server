@@ -68,7 +68,9 @@ function CollapseToggle() {
   if (isMobile)
     return null;
 
-  const label = open ? t("nav.collapseSidebar") : t("nav.expandSidebar");
+  const label = open
+    ? t("nav.collapseSidebar")
+    : t("nav.expandSidebar");
 
   return (
     <Tooltip>
@@ -85,7 +87,9 @@ function CollapseToggle() {
           />
         )}
       >
-        {open ? <PanelLeftClose /> : <PanelLeftOpen />}
+        {open
+          ? <PanelLeftClose />
+          : <PanelLeftOpen />}
       </TooltipTrigger>
       <TooltipContent side={open ? "bottom" : "right"} align="center">
         {label}

@@ -8,7 +8,9 @@ import { APP_DISPLAY_NAME } from "@/shared/lib/branding";
  */
 export function useDocumentTitle() {
   const { t, i18n } = useTranslation();
-  const matches = useRouterState({ select: s => s.matches });
+  const matches = useRouterState({
+    select: s => s.matches,
+  });
 
   // Find the deepest route that has a titleKey
   let titleKey: string | undefined;
@@ -21,7 +23,9 @@ export function useDocumentTitle() {
   }
 
   // Set directly during render — no useEffect timing issues
-  document.title = titleKey ? `${t(titleKey)} - ${APP_DISPLAY_NAME}` : APP_DISPLAY_NAME;
+  document.title = titleKey
+    ? `${t(titleKey)} - ${APP_DISPLAY_NAME}`
+    : APP_DISPLAY_NAME;
 
   // Re-run on language change (the component re-renders via useTranslation)
   void i18n.language;

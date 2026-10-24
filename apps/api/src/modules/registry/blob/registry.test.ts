@@ -22,12 +22,18 @@ const fakeStore = {} as BlobStore;
 
 describe("blob store registry", () => {
   test("local: created lazily from REGISTRY_BLOB_LOCAL_ROOT, once", async () => {
-    const config = { REGISTRY_BLOB_DRIVER: "local", REGISTRY_BLOB_LOCAL_ROOT: join(root, "blobs") };
+    const config = {
+      REGISTRY_BLOB_DRIVER: "local",
+      REGISTRY_BLOB_LOCAL_ROOT: join(root, "blobs"),
+    };
     const store = getActiveBlobStore(config);
     expect(getActiveBlobStore(config)).toBe(store);
 
     const bytes = bytesOf(100);
-    await store.put("pkg/a", streamOf(bytes), { size: bytes.length, sha256: sha256Hex(bytes) });
+    await store.put("pkg/a", streamOf(bytes), {
+      size: bytes.length,
+      sha256: sha256Hex(bytes),
+    });
     expect(await readAll((await store.get("pkg/a"))!.body)).toEqual(bytes);
     expect(existsSync(join(root, "blobs"))).toBe(true);
   });

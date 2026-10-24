@@ -6,7 +6,13 @@ import { Hono } from "hono";
 import { buildOuterApp } from "./app";
 
 function config(basePath: string, homePage: "off" | "base" | "root"): Config {
-  return { NODE_ENV: "test", TRUST_PROXY: false, BASE_PATH: basePath, HOME_PAGE: homePage, APP_URL: "https://app.example.test" } as unknown as Config;
+  return {
+    NODE_ENV: "test",
+    TRUST_PROXY: false,
+    BASE_PATH: basePath,
+    HOME_PAGE: homePage,
+    APP_URL: "https://app.example.test",
+  } as unknown as Config;
 }
 
 // Stands in for the static handler so the test needs no built SPA: what

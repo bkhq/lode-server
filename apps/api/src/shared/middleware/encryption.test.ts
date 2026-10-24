@@ -17,7 +17,12 @@ function buildApp(encryption: EncryptionState) {
     if (err instanceof AppError) {
       return c.json(err.toJSON(), err.statusCode as 503);
     }
-    return c.json({ error: { code: "INTERNAL", message: String(err) } }, 500);
+    return c.json({
+      error: {
+        code: "INTERNAL",
+        message: String(err),
+      },
+    }, 500);
   });
   return app;
 }

@@ -327,7 +327,9 @@ function CronPage() {
               ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                      {loading ? t("common.loading", { ns: "common" }) : t("noJobs")}
+                      {loading
+                        ? t("common.loading", { ns: "common" })
+                        : t("noJobs")}
                     </TableCell>
                   </TableRow>
                 )

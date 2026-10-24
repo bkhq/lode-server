@@ -21,7 +21,9 @@ let staticRoot: string | null | undefined;
 
 function getStaticRoot(): string | null {
   if (staticRoot === undefined) {
-    staticRoot = getPlatform().capabilities.filesystem ? resolveStaticRoot() : null;
+    staticRoot = getPlatform().capabilities.filesystem
+      ? resolveStaticRoot()
+      : null;
   }
   return staticRoot;
 }
@@ -36,7 +38,9 @@ export function serveStaticAssets(basePath: string) {
     }
     const file = Bun.file(asset);
     const headers = new Headers();
-    headers.set("Cache-Control", direct && HASHED_ASSET_RE.test(path) ? IMMUTABLE_CACHE : REVALIDATE_CACHE);
+    headers.set("Cache-Control", direct && HASHED_ASSET_RE.test(path)
+      ? IMMUTABLE_CACHE
+      : REVALIDATE_CACHE);
     // Bun.file infers Content-Type from extension. Forward it so secureHeaders
     // (set on the outer app) and CSP enforcement see the right mime.
     if (file.type) {
@@ -82,7 +86,9 @@ function resolveStaticAsset(assetPath: string): string | null {
   const rel = relative(root, candidate);
   if (rel.startsWith("..") || isAbsolute(rel))
     return null;
-  return isFile(candidate) ? candidate : null;
+  return isFile(candidate)
+    ? candidate
+    : null;
 }
 
 function isFile(path: string): boolean {

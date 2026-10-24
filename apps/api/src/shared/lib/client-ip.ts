@@ -109,14 +109,20 @@ function parseProxyAllowList(raw: string | undefined): readonly ParsedCidr[] {
 
 function parseCidr(entry: string): ParsedCidr | undefined {
   const slash = entry.indexOf("/");
-  const ipStr = slash === -1 ? entry : entry.slice(0, slash);
-  const prefix = slash === -1 ? 32 : Number(entry.slice(slash + 1));
+  const ipStr = slash === -1
+    ? entry
+    : entry.slice(0, slash);
+  const prefix = slash === -1
+    ? 32
+    : Number(entry.slice(slash + 1));
   if (!Number.isFinite(prefix) || prefix < 0 || prefix > 32)
     return undefined;
   const ipBits = ipv4ToInt(ipStr);
   if (ipBits === undefined)
     return undefined;
-  const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
+  const mask = prefix === 0
+    ? 0
+    : (~0 << (32 - prefix)) >>> 0;
   return { ipBits: ipBits & mask, mask };
 }
 

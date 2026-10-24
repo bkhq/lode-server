@@ -28,7 +28,9 @@ export function mountDocs(api: Hono<AppEnv>, config: Config, extra: { raw?: Hono
   let handler: MiddlewareHandler | undefined;
 
   api.get("/openapi.json", async (c, next) => {
-    handler ??= specHandler(extra.raw === undefined ? api : combined(api, extra.raw), config, base);
+    handler ??= specHandler(extra.raw === undefined
+      ? api
+      : combined(api, extra.raw), config, base);
     const res = await handler(c, next);
     // The viewer fetches the spec from the user's browser, from its own
     // origin. The spec is public, and the read carries no credentials.
@@ -58,7 +60,9 @@ function specHandler(routes: Hono<AppEnv>, config: Config, base: string): Middle
         version: BUILD_INFO.version,
         description: "HTTP API generated from the in-process Hono route definitions.",
       },
-      servers: [{ url: base, description: "This deployment" }],
+      servers: [
+        { url: base, description: "This deployment" },
+      ],
       components: {
         securitySchemes: {
           sessionCookie: {

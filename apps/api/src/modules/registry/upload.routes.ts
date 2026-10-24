@@ -29,8 +29,12 @@ const startedUploadSchema = z.object({
   partCount: z.number(),
 });
 
-const uploadParamSchema = z.object({ uploadId: z.string() });
-const partParamSchema = uploadParamSchema.extend({ n: z.string().regex(/^[1-9]\d{0,4}$/, "The part number is a positive integer") });
+const uploadParamSchema = z.object({
+  uploadId: z.string(),
+});
+const partParamSchema = uploadParamSchema.extend({
+  n: z.string().regex(/^[1-9]\d{0,4}$/, "The part number is a positive integer"),
+});
 
 /**
  * The multipart upload routes, for assets above the single-request limit.
@@ -52,7 +56,10 @@ export function registryUploadRoutes() {
         "`size` is checked against the asset size limit (413) and the owner's storage quota (409), and is held against that quota until the upload is completed, aborted or expires. Starting an upload for an asset name that already has one in flight gives the earlier one up. An upload that is not completed in time is aborted by the server. Needs `write` access.",
       ].join("\n\n"),
       security: SECURITY.session,
-      responses: { ...jsonCreated(startedUploadSchema), ...errors(400, 401, 403, 404, 409, 413, 422) },
+      responses: {
+        ...jsonCreated(startedUploadSchema),
+        ...errors(400, 401, 403, 404, 409, 413, 422),
+      },
     }),
     // Access is settled before the parameters are looked at.
     async (c, next) => {
@@ -81,7 +88,10 @@ export function registryUploadRoutes() {
         key_id: upload.keyId,
         part_count: partCount,
       });
-      return c.json({ success: true, data: { uploadId: upload.id, partSize, partCount } }, 201);
+      return c.json({
+        success: true,
+        data: { uploadId: upload.id, partSize, partCount },
+      }, 201);
     },
   );
 
@@ -92,8 +102,21 @@ export function registryUploadRoutes() {
       summary: "Upload one part",
       description: "The raw request body becomes part `:n` (1 to `partCount`) of the upload; it is streamed into storage, never buffered. `Content-Length` is required (411 without) and must be exactly the size of that part: `partSize`, or the remainder for the last part (422 `INVALID_PART_SIZE`). Parts may be sent in any order and in parallel; sending a part number again replaces the earlier body. A body that does not arrive whole is refused with 422 `PART_REJECTED` and stores nothing. An upload past its expiry answers 409 `UPLOAD_EXPIRED` and is discarded. Needs `write` access to the upload's package; an upload the caller has no access to answers 404.",
       security: SECURITY.session,
-      requestBody: { required: true, content: { "application/octet-stream": { schema: { type: "string", format: "binary" } } } },
-      responses: { ...jsonOk(z.object({ part_number: z.number(), size: z.number() })), ...errors(401, 403, 404, 409, 411, 422) },
+      requestBody: {
+        required: true,
+        content: {
+          "application/octet-stream": {
+            schema: { type: "string", format: "binary" },
+          },
+        },
+      },
+      responses: {
+        ...jsonOk(z.object({
+          part_number: z.number(),
+          size: z.number(),
+        })),
+        ...errors(401, 403, 404, 409, 411, 422),
+      },
     }),
     async (c, next) => {
       await requireUploadAccess(c, "write");
@@ -109,11 +132,18 @@ export function registryUploadRoutes() {
         throw new AppError("Content-Length is required", 411, "LENGTH_REQUIRED");
       const size = Number(declared);
       const body = c.req.raw.body;
-      if (size === 0 || !body)
-        throw new ValidationError("Validation failed", { formErrors: ["A part must not be empty"], fieldErrors: {} });
+      if (size === 0 || !body) {
+        throw new ValidationError("Validation failed", {
+          formErrors: ["A part must not be empty"],
+          fieldErrors: {},
+        });
+      }
 
       await putUploadPart(c.get("db"), c.get("config"), access, n, size, body);
-      return c.json({ success: true, data: { part_number: n, size } });
+      return c.json({
+        success: true,
+        data: { part_number: n, size },
+      });
     },
   );
 
@@ -145,7 +175,10 @@ export function registryUploadRoutes() {
         replaced,
         multipart: true,
       });
-      return c.json({ success: true, data: assetView(asset) }, replaced ? 200 : 201);
+      return c.json({
+        success: true,
+        data: assetView(asset),
+      }, replaced ? 200 : 201);
     },
   );
 
@@ -156,7 +189,12 @@ export function registryUploadRoutes() {
       summary: "Abort a multipart upload",
       description: "Discards the upload and every part stored for it, and releases the storage it held against the quota. Needs `write` access to the upload's package.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.object({ id: z.string() })), ...errors(401, 403, 404, 409) },
+      responses: {
+        ...jsonOk(z.object({
+          id: z.string(),
+        })),
+        ...errors(401, 403, 404, 409),
+      },
     }),
     validator("param", uploadParamSchema),
     async (c) => {
@@ -166,7 +204,10 @@ export function registryUploadRoutes() {
         upload_id: access.upload.id,
         size: access.upload.size,
       });
-      return c.json({ success: true, data: { id: access.upload.id } });
+      return c.json({
+        success: true,
+        data: { id: access.upload.id },
+      });
     },
   );
 

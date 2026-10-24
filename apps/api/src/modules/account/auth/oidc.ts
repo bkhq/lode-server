@@ -60,7 +60,12 @@ function buildAs(oauthConfig: OAuthConfig, appConfig: Config): CachedAs {
   // Production is unaffected: NODE_ENV=production keeps `insecure` false
   // regardless of scheme mix, and a misconfigured prod that mixes http
   // and https endpoints still fails closed.
-  const anyHttp = [oauthConfig.tokenUrl, oauthConfig.authorizeUrl, oauthConfig.userinfoUrl, issuer]
+  const anyHttp = [
+    oauthConfig.tokenUrl,
+    oauthConfig.authorizeUrl,
+    oauthConfig.userinfoUrl,
+    issuer,
+  ]
     .some(u => u.startsWith("http://"));
   const insecure = anyHttp && appConfig.NODE_ENV !== "production";
 
@@ -69,7 +74,9 @@ function buildAs(oauthConfig: OAuthConfig, appConfig: Config): CachedAs {
     authorization_endpoint: oauthConfig.authorizeUrl,
     token_endpoint: oauthConfig.tokenUrl,
     userinfo_endpoint: oauthConfig.userinfoUrl,
-    ...(appConfig.OIDC_LOGOUT_URL ? { end_session_endpoint: appConfig.OIDC_LOGOUT_URL } : {}),
+    ...(appConfig.OIDC_LOGOUT_URL
+      ? { end_session_endpoint: appConfig.OIDC_LOGOUT_URL }
+      : {}),
   };
 
   const client: oauth.Client = {
@@ -80,7 +87,13 @@ function buildAs(oauthConfig: OAuthConfig, appConfig: Config): CachedAs {
     ? oauth.ClientSecretPost(oauthConfig.clientSecret)
     : oauth.None();
 
-  cached = { key, as, client, clientAuth, insecure };
+  cached = {
+    key,
+    as,
+    client,
+    clientAuth,
+    insecure,
+  };
   return cached;
 }
 
@@ -98,7 +111,9 @@ export function __resetOidcConfigForTests(): void {
  */
 function insecureOptions(appConfig: Config, oauthConfig: OAuthConfig): { [oauth.allowInsecureRequests]?: true } {
   const { insecure } = buildAs(oauthConfig, appConfig);
-  return insecure ? { [oauth.allowInsecureRequests]: true } : {};
+  return insecure
+    ? { [oauth.allowInsecureRequests]: true }
+    : {};
 }
 
 // ─── PKCE / state helpers (delegating to oauth4webapi) ───
@@ -179,7 +194,9 @@ export async function exchangeCodeForTokens(args: {
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,
     expires_in: tokens.expires_in,
-    id_token: typeof tokens.id_token === "string" ? tokens.id_token : undefined,
+    id_token: typeof tokens.id_token === "string"
+      ? tokens.id_token
+      : undefined,
   };
 }
 
@@ -231,7 +248,11 @@ export async function revokeToken(args: {
     try {
       const opts: oauth.RevocationRequestOptions = {
         ...insecureOptions(args.appConfig, args.oauth),
-        ...(args.hint ? { additionalParameters: new URLSearchParams({ token_type_hint: args.hint }) } : {}),
+        ...(args.hint
+          ? {
+              additionalParameters: new URLSearchParams({ token_type_hint: args.hint }),
+            }
+          : {}),
       };
       const response = await oauth.revocationRequest(as, client, clientAuth, args.token, opts);
       await oauth.processRevocationResponse(response);

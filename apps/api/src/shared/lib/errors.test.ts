@@ -18,9 +18,17 @@ describe("AppError", () => {
   });
 
   test("ValidationError.toJSON includes details", () => {
-    expect(new ValidationError("nope", { field: ["bad"] }).toJSON()).toEqual({
+    expect(new ValidationError("nope", {
+      field: ["bad"],
+    }).toJSON()).toEqual({
       success: false,
-      error: { code: "VALIDATION_ERROR", message: "nope", details: { field: ["bad"] } },
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "nope",
+        details: {
+          field: ["bad"],
+        },
+      },
     });
   });
 });
@@ -39,10 +47,14 @@ describe("specialized errors", () => {
   });
 
   test("ValidationError attaches details", () => {
-    const e = new ValidationError("invalid", { field: ["required"] });
+    const e = new ValidationError("invalid", {
+      field: ["required"],
+    });
     expect(e.statusCode).toBe(422);
     expect(e.code).toBe("VALIDATION_ERROR");
-    expect(e.details).toEqual({ field: ["required"] });
+    expect(e.details).toEqual({
+      field: ["required"],
+    });
   });
 
   test("UnauthorizedError default + custom message", () => {

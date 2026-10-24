@@ -17,7 +17,9 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 // Flags instead of environment variables: `--port <n>` and `--debug`.
 const portFlag = process.argv.indexOf("--port");
-const PORT = portFlag === -1 ? 8797 : Number(process.argv[portFlag + 1]);
+const PORT = portFlag === -1
+  ? 8797
+  : Number(process.argv[portFlag + 1]);
 const DEBUG = process.argv.includes("--debug");
 const BASE = `http://127.0.0.1:${PORT}`;
 const MIB = 1024 * 1024;
@@ -76,10 +78,18 @@ async function call(method: string, path: string, body?: Uint8Array | ReadableSt
   const res = await fetch(`${BASE}${path}`, { method, body, duplex: "half" } as unknown as RequestInit);
   const text = await res.text();
   try {
-    return { status: res.status, body: JSON.parse(text) as Reply["body"] };
+    return {
+      status: res.status,
+      body: JSON.parse(text) as Reply["body"],
+    };
   }
   catch {
-    return { status: res.status, body: { error: text.slice(0, 300) } };
+    return {
+      status: res.status,
+      body: {
+        error: text.slice(0, 300),
+      },
+    };
   }
 }
 
@@ -90,7 +100,11 @@ function procStat(pid: number): { comm: string; ppid: number; cpuTicks: number }
     const raw = readFileSync(`/proc/${pid}/stat`, "utf8");
     const comm = raw.slice(raw.indexOf("(") + 1, raw.lastIndexOf(")"));
     const rest = raw.slice(raw.lastIndexOf(")") + 2).split(" ");
-    return { comm, ppid: Number(rest[1]), cpuTicks: Number(rest[11]) + Number(rest[12]) };
+    return {
+      comm,
+      ppid: Number(rest[1]),
+      cpuTicks: Number(rest[11]) + Number(rest[12]),
+    };
   }
   catch {
     return undefined;
@@ -100,7 +114,10 @@ function procStat(pid: number): { comm: string; ppid: number; cpuTicks: number }
 /** Every workerd process descended from the `wrangler dev` process. */
 function workerdPids(root: number): number[] {
   const all = readdirSync("/proc").filter(name => /^\d+$/.test(name)).map(Number);
-  const stats = new Map(all.map(pid => [pid, procStat(pid)] as const));
+  const stats = new Map(all.map(pid => [
+    pid,
+    procStat(pid),
+  ] as const));
   const descends = (pid: number): boolean => {
     for (let p = stats.get(pid)?.ppid; p !== undefined && p > 1; p = stats.get(p)?.ppid) {
       if (p === root) {
@@ -144,7 +161,10 @@ async function measure<T>(step: () => Promise<T>): Promise<{ result: T; sample: 
     const result = await step();
     const wallMs = performance.now() - started;
     rssPeak = Math.max(rssPeak, rssMiB());
-    return { result, sample: { wallMs, cpuMs: cpuMs() - cpuBefore, rssGrowthMiB: rssPeak - rssBefore } };
+    return {
+      result,
+      sample: { wallMs, cpuMs: cpuMs() - cpuBefore, rssGrowthMiB: rssPeak - rssBefore },
+    };
   }
   finally {
     clearInterval(timer);
@@ -164,7 +184,11 @@ function table(headers: string[], rows: (string | number)[][]): void {
 
 const ms = (n: number): string => `${Math.round(n)} ms`;
 const mib = (n: number): string => `${Math.round(n)} MiB`;
-const outcome = (r: Reply): string => r.status === 200 ? "200 stored" : `${r.status} ${(r.body.error ?? "").replaceAll("\n", " ")}`;
+function outcome(r: Reply): string {
+  return r.status === 200
+    ? "200 stored"
+    : `${r.status} ${(r.body.error ?? "").replaceAll("\n", " ")}`;
+}
 
 /**
  * Runs `step` while repeatedly asking the Durable Object for a trivial
@@ -212,8 +236,15 @@ async function uploads(): Promise<void> {
   const rows: (string | number)[][] = [];
 
   const put = async (label: string, key: string, data: Uint8Array, opts: { digest?: string; stream?: boolean; mode?: string; size?: number }): Promise<Reply> => {
-    const query = new URLSearchParams({ key, sha256: opts.digest ?? sha256(data), mode: opts.mode ?? "plain", size: String(opts.size ?? data.length) });
-    const { result, sample } = await measure(() => call("PUT", `/put?${query}`, opts.stream ? chunked(data) : data));
+    const query = new URLSearchParams({
+      key,
+      sha256: opts.digest ?? sha256(data),
+      mode: opts.mode ?? "plain",
+      size: String(opts.size ?? data.length),
+    });
+    const { result, sample } = await measure(() => call("PUT", `/put?${query}`, opts.stream
+      ? chunked(data)
+      : data));
     const head = await call("GET", `/head?key=${key}`);
     rows.push([
       label,
@@ -221,7 +252,9 @@ async function uploads(): Promise<void> {
       result.body.seen?.contentLength ?? "absent",
       result.body.seen?.transferEncoding ?? "absent",
       outcome(result),
-      head.body.exists ? `yes (${head.body.size} bytes)` : "no",
+      head.body.exists
+        ? `yes (${head.body.size} bytes)`
+        : "no",
       ms(sample.wallMs),
       ms(sample.cpuMs),
       mib(sample.rssGrowthMiB),
@@ -245,7 +278,9 @@ async function uploads(): Promise<void> {
   expect(bad.status !== 200, "R2 accepted a wrong sha256");
 
   for (const size of [1, 50]) {
-    const data = size === 1 ? small : randomBytes(size * MIB);
+    const data = size === 1
+      ? small
+      : randomBytes(size * MIB);
     await put("plain, chunked", `q1/chunked-plain-${size}`, data, { stream: true });
     const fixed = await put("FixedLengthStream, chunked", `q1/chunked-fixed-${size}`, data, { stream: true, mode: "fixed" });
     expect(fixed.status === 200, `FixedLengthStream ${size} MiB upload returned ${fixed.status} ${fixed.body.error ?? ""}`);
@@ -255,14 +290,29 @@ async function uploads(): Promise<void> {
   await put("FixedLengthStream, chunked, declared size 1 byte long", "q1/fixed-long", small, { stream: true, mode: "fixed", size: small.length + 1 });
 
   table(
-    ["case", "body", "Content-Length seen in DO", "Transfer-Encoding seen in DO", "result", "object stored", "wall", "workerd CPU", "workerd RSS growth"],
+    [
+      "case",
+      "body",
+      "Content-Length seen in DO",
+      "Transfer-Encoding seen in DO",
+      "result",
+      "object stored",
+      "wall",
+      "workerd CPU",
+      "workerd RSS growth",
+    ],
     rows,
   );
 
   // A paced upload takes real time without being CPU-bound, so it shows
   // whether an in-flight streaming request holds the object.
   const paced = randomBytes(8 * MIB);
-  const query = new URLSearchParams({ key: "q1/paced", sha256: sha256(paced), mode: "fixed", size: String(paced.length) });
+  const query = new URLSearchParams({
+    key: "q1/paced",
+    sha256: sha256(paced),
+    mode: "fixed",
+    size: String(paced.length),
+  });
   const started = performance.now();
   const { result, worstPingMs } = await withPings(() => call("PUT", `/put?${query}`, chunked(paced, 50)));
   expect(result.status === 200, `paced upload returned ${result.status} ${result.body.error ?? ""}`);
@@ -287,14 +337,30 @@ async function largeDigest(): Promise<void> {
     const { result, sample } = await measure(() => call("PUT", `/mpu/part?key=${key}&uploadId=${uploadId}&part=${n}`, data));
     expect(result.status === 200, `part ${n} returned ${result.status} ${result.body.error ?? ""}`);
     parts.push(result.body.part);
-    partRows.push([n, mib(data.length / MIB), result.body.seen?.contentLength ?? "absent", outcome(result), ms(sample.wallMs), ms(sample.cpuMs), mib(sample.rssGrowthMiB)]);
+    partRows.push([
+      n,
+      mib(data.length / MIB),
+      result.body.seen?.contentLength ?? "absent",
+      outcome(result),
+      ms(sample.wallMs),
+      ms(sample.cpuMs),
+      mib(sample.rssGrowthMiB),
+    ]);
   }
   const expected = hasher.digest("hex");
   const completed = await call("POST", `/mpu/complete?key=${key}&uploadId=${uploadId}`, JSON.stringify(parts));
   expect(completed.status === 200 && completed.body.size === LARGE_SIZE, `complete returned ${completed.status} ${JSON.stringify(completed.body)}`);
 
   console.log("Multipart upload, 64 MiB parts, each part streamed Worker -> Durable Object -> `uploadPart`:\n");
-  table(["part", "size", "Content-Length seen in DO", "result", "wall", "workerd CPU", "workerd RSS growth"], partRows);
+  table([
+    "part",
+    "size",
+    "Content-Length seen in DO",
+    "result",
+    "wall",
+    "workerd CPU",
+    "workerd RSS growth",
+  ], partRows);
   console.log(`Completed object: ${completed.body.size} bytes; checksums R2 reports for it: ${JSON.stringify(completed.body.checksums)}\n`);
 
   const rows: (string | number)[][] = [];
@@ -302,7 +368,18 @@ async function largeDigest(): Promise<void> {
     const { result: { result, sample }, worstPingMs: worstPing } = await withPings(() => measure(() => call("GET", path)));
     expect(result.status === 200, `${label} returned ${result.status} ${result.body.error ?? ""}`);
     expect(result.body.sha256 === want, `${label} digest was ${result.body.sha256}, expected ${want}`);
-    rows.push([label, want === null ? "n/a" : result.body.sha256 === want ? "matches" : "MISMATCH", ms(sample.wallMs), ms(sample.cpuMs), mib(sample.rssGrowthMiB), ms(worstPing)]);
+    rows.push([
+      label,
+      want === null
+        ? "n/a"
+        : result.body.sha256 === want
+          ? "matches"
+          : "MISMATCH",
+      ms(sample.wallMs),
+      ms(sample.cpuMs),
+      mib(sample.rssGrowthMiB),
+      ms(worstPing),
+    ]);
   };
 
   const zeroDigest = sha256(new Uint8Array(LARGE_SIZE));
@@ -315,7 +392,14 @@ async function largeDigest(): Promise<void> {
   await run("Durable Object, 500 MiB of zeros -> DigestStream (no R2)", `/hash?size=${LARGE_SIZE}`, zeroDigest);
   await run("Durable Object, 500 MiB of zeros -> node:crypto createHash (no R2)", `/hash?size=${LARGE_SIZE}&impl=node`, zeroDigest);
 
-  table(["path", "digest", "wall", "workerd CPU", "workerd RSS growth", "worst concurrent ping"], rows);
+  table([
+    "path",
+    "digest",
+    "wall",
+    "workerd CPU",
+    "workerd RSS growth",
+    "worst concurrent ping",
+  ], rows);
   await call("DELETE", `/object?key=${key}`);
 }
 
@@ -340,7 +424,16 @@ async function waitForBoot(timeoutMs: number): Promise<void> {
 async function main(): Promise<void> {
   rmSync(`${HERE}.wrangler`, { recursive: true, force: true });
   const dev: Subprocess = Bun.spawn(
-    [`${API_DIR}node_modules/.bin/wrangler`, "dev", "--config", "wrangler.toml", "--port", String(PORT), "--ip", "127.0.0.1"],
+    [
+      `${API_DIR}node_modules/.bin/wrangler`,
+      "dev",
+      "--config",
+      "wrangler.toml",
+      "--port",
+      String(PORT),
+      "--ip",
+      "127.0.0.1",
+    ],
     {
       cwd: HERE,
       env: { ...process.env, CI: "1", WRANGLER_SEND_METRICS: "false" },
@@ -361,7 +454,9 @@ async function main(): Promise<void> {
     await dev.exited;
     rmSync(`${HERE}.wrangler`, { recursive: true, force: true });
   }
-  process.exit(failures === 0 ? 0 : 1);
+  process.exit(failures === 0
+    ? 0
+    : 1);
 }
 
 void main();

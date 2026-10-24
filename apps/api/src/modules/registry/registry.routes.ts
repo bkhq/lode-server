@@ -83,7 +83,10 @@ const updatePackageSchema = z.strictObject({
   require_signature: z.boolean().optional(),
 }).refine(body => Object.keys(body).length > 0, "Nothing to update");
 
-const packageParamSchema = z.object({ ns: z.string(), pkg: z.string() });
+const packageParamSchema = z.object({
+  ns: z.string(),
+  pkg: z.string(),
+});
 
 async function auditNamespaceAssigned(c: Context<AppEnv>, namespace: RegistryNamespace): Promise<void> {
   await audit(c.get("db"), c.get("logger"), {
@@ -132,13 +135,21 @@ export function registryRoutes() {
       summary: "Get my namespace",
       description: "The caller's namespace. It is assigned by the system on the first call (or with the first package) and never changes; `slug` is its id, the `:ns` segment of every package path. Session only.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.object({ namespace: namespaceSchema })), ...errors(401, 403) },
+      responses: {
+        ...jsonOk(z.object({ namespace: namespaceSchema })),
+        ...errors(401, 403),
+      },
     }),
     async (c) => {
       const { namespace, assigned } = await ensureNamespace(c.get("db"), c.get("user")!.id);
       if (assigned)
         await auditNamespaceAssigned(c, namespace);
-      return c.json({ success: true, data: { namespace: namespaceView(namespace) } });
+      return c.json({
+        success: true,
+        data: {
+          namespace: namespaceView(namespace),
+        },
+      });
     },
   );
 
@@ -151,18 +162,29 @@ export function registryRoutes() {
       summary: "List my packages",
       description: "The packages in the caller's namespace. With an API token: the packages the token has a grant on.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.array(packageSchema)), ...errors(401, 403) },
+      responses: {
+        ...jsonOk(z.array(packageSchema)),
+        ...errors(401, 403),
+      },
     }),
     async (c) => {
       const db = c.get("db");
       const token = await requestToken(c);
       if (token) {
         const granted = await listGrantedPackages(db, token);
-        return c.json({ success: true, data: granted.map(g => packageView(g.namespace, g.package)) });
+        return c.json({
+          success: true,
+          data: granted.map(g => packageView(g.namespace, g.package)),
+        });
       }
       const namespace = await getNamespaceForUser(db, c.get("user")!.id);
-      const packages = namespace ? await listPackagesInNamespace(db, namespace.id) : [];
-      return c.json({ success: true, data: packages.map(pkg => packageView(namespace!, pkg)) });
+      const packages = namespace
+        ? await listPackagesInNamespace(db, namespace.id)
+        : [];
+      return c.json({
+        success: true,
+        data: packages.map(pkg => packageView(namespace!, pkg)),
+      });
     },
   );
 
@@ -173,7 +195,10 @@ export function registryRoutes() {
       summary: "Create a package",
       description: "Creates a package in the caller's namespace, within their package quota; the namespace is assigned first when the caller has none. `slug` (lowercase letters, digits and `-`, not starting with `-`, unique within the namespace) is the permanent `:pkg` path segment; `name` is a free-text display name.",
       security: SECURITY.session,
-      responses: { ...jsonCreated(packageSchema), ...errors(401, 403, 409, 422) },
+      responses: {
+        ...jsonCreated(packageSchema),
+        ...errors(401, 403, 409, 422),
+      },
     }),
     validator("json", createPackageSchema),
     async (c) => {
@@ -195,7 +220,10 @@ export function registryRoutes() {
         resourceName: `${created.namespace.slug}/${created.package.slug}`,
         detail: { owner_user_id: created.namespace.ownerUserId, name: created.package.name, visibility: created.package.visibility },
       });
-      return c.json({ success: true, data: packageView(created.namespace, created.package) }, 201);
+      return c.json({
+        success: true,
+        data: packageView(created.namespace, created.package),
+      }, 201);
     },
   );
 
@@ -206,12 +234,18 @@ export function registryRoutes() {
       summary: "Get a package",
       description: "Package metadata. A public package is readable by every signed-in user; a private one the caller cannot read answers 404. A token needs a `read` grant on the package.",
       security: SECURITY.session,
-      responses: { ...jsonOk(packageSchema), ...errors(401, 403, 404) },
+      responses: {
+        ...jsonOk(packageSchema),
+        ...errors(401, 403, 404),
+      },
     }),
     validator("param", packageParamSchema),
     async (c) => {
       const { namespace, package: pkg } = await requirePackageAccess(c, "read");
-      return c.json({ success: true, data: packageView(namespace, pkg) });
+      return c.json({
+        success: true,
+        data: packageView(namespace, pkg),
+      });
     },
   );
 
@@ -222,7 +256,10 @@ export function registryRoutes() {
       summary: "Update a package",
       description: "Changes the display name, visibility, description or `require_signature`. The slug is permanent. For the owner, an administrator, or a token with an `admin` grant on the package.",
       security: SECURITY.session,
-      responses: { ...jsonOk(packageSchema), ...errors(401, 403, 404, 422) },
+      responses: {
+        ...jsonOk(packageSchema),
+        ...errors(401, 403, 404, 422),
+      },
     }),
     validator("param", packageParamSchema),
     validator("json", updatePackageSchema),
@@ -242,9 +279,16 @@ export function registryRoutes() {
         resourceType: "package",
         resourceId: pkg.id,
         resourceName: `${namespace.slug}/${pkg.slug}`,
-        detail: { owner_user_id: namespace.ownerUserId, changes: body, ...(tokenId !== null && { token_id: tokenId }) },
+        detail: {
+          owner_user_id: namespace.ownerUserId,
+          changes: body,
+          ...(tokenId !== null && { token_id: tokenId }),
+        },
       });
-      return c.json({ success: true, data: packageView(namespace, updated) });
+      return c.json({
+        success: true,
+        data: packageView(namespace, updated),
+      });
     },
   );
 
@@ -255,7 +299,12 @@ export function registryRoutes() {
       summary: "Delete a package",
       description: "Removes the package with its versions, assets, channels, uploads and token grants. For the owner or an administrator, with a session: never open to a token.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.object({ id: z.string() })), ...errors(401, 403, 404) },
+      responses: {
+        ...jsonOk(z.object({
+          id: z.string(),
+        })),
+        ...errors(401, 403, 404),
+      },
     }),
     validator("param", packageParamSchema),
     async (c) => {
@@ -270,7 +319,10 @@ export function registryRoutes() {
         resourceName: `${namespace.slug}/${pkg.slug}`,
         detail: { owner_user_id: namespace.ownerUserId },
       });
-      return c.json({ success: true, data: { id: pkg.id } });
+      return c.json({
+        success: true,
+        data: { id: pkg.id },
+      });
     },
   );
 
@@ -283,13 +335,19 @@ export function registryRoutes() {
       summary: "List a package's signing keys",
       description: "The public keys upload signatures of this package are checked against. Revoked keys are listed too, with `revoked_at` set. For anyone who can read the package: the keys are public, and an operator pins one in `trusted_keys`.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.array(keySchema)), ...errors(401, 403, 404) },
+      responses: {
+        ...jsonOk(z.array(keySchema)),
+        ...errors(401, 403, 404),
+      },
     }),
     validator("param", packageParamSchema),
     async (c) => {
       const { package: pkg } = await requirePackageAccess(c, "read");
       const keys = await listKeys(c.get("db"), pkg.id);
-      return c.json({ success: true, data: keys.map(keyView) });
+      return c.json({
+        success: true,
+        data: keys.map(keyView),
+      });
     },
   );
 
@@ -300,7 +358,10 @@ export function registryRoutes() {
       summary: "Register a signing key for a package",
       description: "Takes a raw 32-byte ed25519 public key as base64url or standard base64, optionally in lode's `[ed25519:][<key_id>:]<key>` forms; `key_id` is derived by the server. For the owner, an administrator, or a token with a write grant on the package, so a release pipeline can register its own key: 409 `KEY_EXISTS` then means it is already there. A revoked key cannot be registered again.",
       security: SECURITY.session,
-      responses: { ...jsonCreated(keySchema), ...errors(400, 401, 403, 404, 409, 422) },
+      responses: {
+        ...jsonCreated(keySchema),
+        ...errors(400, 401, 403, 404, 409, 422),
+      },
     }),
     validator("param", packageParamSchema),
     validator("json", registerKeySchema),
@@ -315,9 +376,17 @@ export function registryRoutes() {
         resourceType: "registry_key",
         resourceId: key.id,
         resourceName: key.keyId,
-        detail: { package: `${namespace.slug}/${pkg.slug}`, name: key.name, alg: key.alg, ...(tokenId !== null && { token_id: tokenId }) },
+        detail: {
+          package: `${namespace.slug}/${pkg.slug}`,
+          name: key.name,
+          alg: key.alg,
+          ...(tokenId !== null && { token_id: tokenId }),
+        },
       });
-      return c.json({ success: true, data: keyView(key) }, 201);
+      return c.json({
+        success: true,
+        data: keyView(key),
+      }, 201);
     },
   );
 
@@ -328,9 +397,14 @@ export function registryRoutes() {
       summary: "Revoke a package's signing key",
       description: "Sets `revoked_at`; the key stays listed and its id cannot be registered for this package again. For the owner or an administrator, with a session: never open to a token.",
       security: SECURITY.session,
-      responses: { ...jsonOk(keySchema), ...errors(401, 403, 404) },
+      responses: {
+        ...jsonOk(keySchema),
+        ...errors(401, 403, 404),
+      },
     }),
-    validator("param", packageParamSchema.extend({ id: z.string() })),
+    validator("param", packageParamSchema.extend({
+      id: z.string(),
+    })),
     async (c) => {
       const db = c.get("db");
       const { namespace, package: pkg } = await requirePackageAccess(c, "owner");
@@ -345,7 +419,10 @@ export function registryRoutes() {
           detail: { package: `${namespace.slug}/${pkg.slug}`, name: key.name },
         });
       }
-      return c.json({ success: true, data: keyView(key) });
+      return c.json({
+        success: true,
+        data: keyView(key),
+      });
     },
   );
 
@@ -358,7 +435,10 @@ export function registryRoutes() {
       summary: "Get my quota and usage",
       description: "The limits that apply to the caller and what they hold against them. Storage counts stored assets plus the declared sizes of uploads in flight. Session only.",
       security: SECURITY.session,
-      responses: { ...jsonOk(z.object({ limits: limitsSchema, usage: usageSchema })), ...errors(401, 403) },
+      responses: {
+        ...jsonOk(z.object({ limits: limitsSchema, usage: usageSchema })),
+        ...errors(401, 403),
+      },
     }),
     async (c) => {
       const db = c.get("db");

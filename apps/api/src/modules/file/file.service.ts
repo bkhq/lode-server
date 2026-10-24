@@ -85,7 +85,9 @@ export async function uploadAndReference(
   // count is whatever the consumer modelled as "attachments on this
   // owner" — which by convention is "references with this owner_type +
   // owner_id" so the same rule applies to every consumer.
-  const existing = await db.select({ value: count() })
+  const existing = await db.select({
+    value: count(),
+  })
     .from(fileReferences)
     .where(and(
       eq(fileReferences.ownerType, ownerType),
@@ -250,7 +252,9 @@ export async function releaseReference(
       .from(files)
       .where(eq(files.id, ref.fileId))
       .get();
-    return after && after.refCount === 0 ? { id: ref.fileId, ...after } : null;
+    return after && after.refCount === 0
+      ? { id: ref.fileId, ...after }
+      : null;
   });
 
   if (drainedFileId && config.FILE_GC_MODE === "sync") {
@@ -430,7 +434,10 @@ export async function buildDownloadResponse(
       inline: inlineSafe,
       contentType,
     });
-    return new Response(null, { status: 302, headers: { Location: url } });
+    return new Response(null, {
+      status: 302,
+      headers: { Location: url },
+    });
   }
 
   if (driver.name !== file.storageDriver) {

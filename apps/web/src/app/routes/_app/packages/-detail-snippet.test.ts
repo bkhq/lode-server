@@ -34,7 +34,9 @@ describe("revocationsUrl", () => {
 
 describe("buildSnippet", () => {
   it("is a complete file, with the real public key, for an asset signed with a known key", () => {
-    const snippet = buildSnippet(input({ asset: { name: "myapp-linux-x64.tar.gz", key_id: KEY.key_id } }));
+    const snippet = buildSnippet(input({
+      asset: { name: "myapp-linux-x64.tar.gz", key_id: KEY.key_id },
+    }));
 
     expect(snippet.signed).toBe(true);
     expect(snippet.keyKnown).toBe(true);
@@ -63,7 +65,9 @@ describe("buildSnippet", () => {
   });
 
   it("leaves a public key placeholder, and is not complete, for an asset signed with an unknown key", () => {
-    const snippet = buildSnippet(input({ asset: { name: "myapp.tar.gz", key_id: "fedcba9876543210" } }));
+    const snippet = buildSnippet(input({
+      asset: { name: "myapp.tar.gz", key_id: "fedcba9876543210" },
+    }));
 
     expect(snippet.signed).toBe(true);
     expect(snippet.keyKnown).toBe(false);
@@ -74,7 +78,9 @@ describe("buildSnippet", () => {
   });
 
   it("has no [trust] block for an unsigned asset", () => {
-    const snippet = buildSnippet(input({ asset: { name: "myapp.tar.gz", key_id: null } }));
+    const snippet = buildSnippet(input({
+      asset: { name: "myapp.tar.gz", key_id: null },
+    }));
 
     expect(snippet.signed).toBe(false);
     expect(snippet.keyKnown).toBe(false);
@@ -86,7 +92,10 @@ describe("buildSnippet", () => {
   });
 
   it("adds the [http] block for a private package only", () => {
-    const priv = buildSnippet(input({ visibility: "private", asset: { name: "myapp.tar.gz", key_id: KEY.key_id } }));
+    const priv = buildSnippet(input({
+      visibility: "private",
+      asset: { name: "myapp.tar.gz", key_id: KEY.key_id },
+    }));
     expect(priv.text).toContain([
       "[http]",
       "# Set LODE_REGISTRY_TOKEN on the host to a token with a read grant on this package.",
@@ -128,14 +137,21 @@ describe("buildSnippet", () => {
   });
 
   it("writes no [command] when the asset publishes its launch command", () => {
-    const published = buildSnippet(input({ asset: { name: "myapp.tar.gz", key_id: null, run: "./bin/myapp serve" } }));
+    const published = buildSnippet(input({
+      asset: { name: "myapp.tar.gz", key_id: null, run: "./bin/myapp serve" },
+    }));
     expect(published.text).not.toContain("[command]");
-    expect(buildSnippet(input({ asset: { name: "myapp.tar.gz", key_id: null, run: null } })).text).toContain("run = \"./myapp\"");
+    expect(buildSnippet(input({
+      asset: { name: "myapp.tar.gz", key_id: null, run: null },
+    })).text).toContain("run = \"./myapp\"");
   });
 
   it("trusts the delegation's root, not the sub-key, for an asset the sub-key signed", () => {
     const delegation = { key_id: "1111222233334444", root_key_id: KEY.key_id };
-    const snippet = buildSnippet(input({ asset: { name: "myapp.tar.gz", key_id: delegation.key_id }, delegation }));
+    const snippet = buildSnippet(input({
+      asset: { name: "myapp.tar.gz", key_id: delegation.key_id },
+      delegation,
+    }));
 
     expect(snippet.signed).toBe(true);
     expect(snippet.keyKnown).toBe(true);
@@ -151,7 +167,10 @@ describe("buildSnippet", () => {
   });
 
   it("subscribes to the revocation list when the package has one", () => {
-    const snippet = buildSnippet(input({ asset: { name: "myapp.tar.gz", key_id: KEY.key_id }, hasRevocations: true }));
+    const snippet = buildSnippet(input({
+      asset: { name: "myapp.tar.gz", key_id: KEY.key_id },
+      hasRevocations: true,
+    }));
     expect(snippet.text).toContain([
       "[trust]",
       "# Needs lode 0.1.0 or later.",
@@ -161,7 +180,10 @@ describe("buildSnippet", () => {
       "",
     ].join("\n"));
     // Nothing to check it with on an unsigned asset.
-    expect(buildSnippet(input({ asset: { name: "myapp.tar.gz", key_id: null }, hasRevocations: true })).text).not.toContain("revocation_url");
+    expect(buildSnippet(input({
+      asset: { name: "myapp.tar.gz", key_id: null },
+      hasRevocations: true,
+    })).text).not.toContain("revocation_url");
   });
 });
 

@@ -75,13 +75,23 @@ export class ResourceAccess<TAction extends string> {
     if (hooks?.bypass) {
       const bypassed = await hooks.bypass(ctx, action, objectId);
       if (bypassed) {
-        await hooks.onChecked?.(ctx, { action, objectId, allowed: true, bypassed: true });
+        await hooks.onChecked?.(ctx, {
+          action,
+          objectId,
+          allowed: true,
+          bypassed: true,
+        });
         return true;
       }
     }
 
     const allowed = await resolveAllowed(ctx, this.definition.namespace, objectId, this.definition.actions[action]);
-    await hooks?.onChecked?.(ctx, { action, objectId, allowed, bypassed: false });
+    await hooks?.onChecked?.(ctx, {
+      action,
+      objectId,
+      allowed,
+      bypassed: false,
+    });
     return allowed;
   }
 
@@ -287,5 +297,7 @@ export function defineResource<T extends string>(definition: ResourceDefinition<
 function defaultSubjectRelation(subject: Subject): string {
   if (subject.relation !== undefined)
     return subject.relation;
-  return subject.type === "group" ? "member" : DIRECT_SUBJECT;
+  return subject.type === "group"
+    ? "member"
+    : DIRECT_SUBJECT;
 }

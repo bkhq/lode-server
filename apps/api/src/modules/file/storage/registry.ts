@@ -27,7 +27,9 @@ export function __resetDriverRegistryForTests(): void {
 export function getDriver(name: string): FileStorageDriver {
   const d = drivers.get(name);
   if (!d) {
-    const known = [...drivers.keys()].sort().join(", ") || "(none registered)";
+    const known = [
+      ...drivers.keys(),
+    ].sort().join(", ") || "(none registered)";
     throw new Error(`Unknown file storage driver: '${name}'. Registered: ${known}.`);
   }
   return d;
@@ -54,5 +56,7 @@ export function getActiveDriver(): FileStorageDriver {
 
 /** Inspect the registered driver names — handy for diagnostic endpoints / tests. */
 export function listRegisteredDrivers(): readonly string[] {
-  return [...drivers.keys()].sort();
+  return [
+    ...drivers.keys(),
+  ].sort();
 }

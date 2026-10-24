@@ -27,7 +27,10 @@ afterEach(() => {
 
 async function answer(enc: EncryptionState, dek: string) {
   const { challengeId, ephemeralPublicKey } = enc.createChallenge();
-  return { challengeId, encryptedDek: bytesToHex(await eciesEncrypt(ephemeralPublicKey, hexToBytes(dek))) };
+  return {
+    challengeId,
+    encryptedDek: bytesToHex(await eciesEncrypt(ephemeralPublicKey, hexToBytes(dek))),
+  };
 }
 
 async function codeOf(p: Promise<void>): Promise<string | undefined> {

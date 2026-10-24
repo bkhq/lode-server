@@ -121,14 +121,22 @@ describe.skip("/api/cron — jobs CRUD (write paths)", () => {
 
     const bad = await admin.raw("/api/cron/jobs", {
       method: "POST",
-      body: { name: uniqueName("bad"), cron: "not-a-cron", action: "log-cleanup" },
+      body: {
+        name: uniqueName("bad"),
+        cron: "not-a-cron",
+        action: "log-cleanup",
+      },
     });
     expect(bad.status).toBe(400);
     expect(((await bad.json()) as ErrorResp).error.code).toBe("INVALID_CRON");
 
     const unk = await admin.raw("/api/cron/jobs", {
       method: "POST",
-      body: { name: uniqueName("unk"), cron: "@yearly", action: "totally-not-real" },
+      body: {
+        name: uniqueName("unk"),
+        cron: "@yearly",
+        action: "totally-not-real",
+      },
     });
     expect(unk.status).toBe(400);
     expect(((await unk.json()) as ErrorResp).error.code).toBe("INVALID_ACTION_CONFIG");
@@ -140,7 +148,11 @@ describe.skip("/api/cron — jobs CRUD (write paths)", () => {
     const user = await getClient("user@example.com", "admin");
     const res = await user.raw("/api/cron/jobs", {
       method: "POST",
-      body: { name: uniqueName("forbidden"), cron: "@yearly", action: "log-cleanup" },
+      body: {
+        name: uniqueName("forbidden"),
+        cron: "@yearly",
+        action: "log-cleanup",
+      },
     });
     expect(res.status).toBe(403);
   });

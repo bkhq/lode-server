@@ -18,7 +18,12 @@ afterEach(() => {
 
 describe("createLogger", () => {
   test("creates the log directory and file on first write", async () => {
-    const log = createLogger({ LOG_LEVEL: "info", LOG_FILE: logFile, LOG_TO_STDOUT: false, NODE_ENV: "test" });
+    const log = createLogger({
+      LOG_LEVEL: "info",
+      LOG_FILE: logFile,
+      LOG_TO_STDOUT: false,
+      NODE_ENV: "test",
+    });
     log.info("hello");
     await Bun.sleep(50);
     log.flush();
@@ -28,7 +33,12 @@ describe("createLogger", () => {
   });
 
   test("supports both string and object payloads", async () => {
-    const log = createLogger({ LOG_LEVEL: "info", LOG_FILE: logFile, LOG_TO_STDOUT: false, NODE_ENV: "test" });
+    const log = createLogger({
+      LOG_LEVEL: "info",
+      LOG_FILE: logFile,
+      LOG_TO_STDOUT: false,
+      NODE_ENV: "test",
+    });
     log.info("string-form");
     log.info({ user: "alice" }, "with-context");
     await Bun.sleep(50);
@@ -41,7 +51,12 @@ describe("createLogger", () => {
 
   test("falls back to info on an unknown LOG_LEVEL", async () => {
     // Should not throw; the pino instance and dev tee both default to info.
-    const log = createLogger({ LOG_LEVEL: "trace", LOG_FILE: logFile, LOG_TO_STDOUT: false, NODE_ENV: "test" });
+    const log = createLogger({
+      LOG_LEVEL: "trace",
+      LOG_FILE: logFile,
+      LOG_TO_STDOUT: false,
+      NODE_ENV: "test",
+    });
     log.info("fallback ok");
     await Bun.sleep(50);
     log.flush();
@@ -49,7 +64,12 @@ describe("createLogger", () => {
   });
 
   test("warn / error / fatal / debug all write to the file at their respective levels", async () => {
-    const log = createLogger({ LOG_LEVEL: "debug", LOG_FILE: logFile, LOG_TO_STDOUT: false, NODE_ENV: "test" });
+    const log = createLogger({
+      LOG_LEVEL: "debug",
+      LOG_FILE: logFile,
+      LOG_TO_STDOUT: false,
+      NODE_ENV: "test",
+    });
     log.debug("d");
     log.warn("w");
     log.error({ x: 1 }, "e");
@@ -64,8 +84,16 @@ describe("createLogger", () => {
   });
 
   test("redacts sensitive fields at the top level", async () => {
-    const log = createLogger({ LOG_LEVEL: "info", LOG_FILE: logFile, LOG_TO_STDOUT: false, NODE_ENV: "test" });
-    log.info({ user: { password: "secret" }, session: { token: "abc" } }, "redact-test");
+    const log = createLogger({
+      LOG_LEVEL: "info",
+      LOG_FILE: logFile,
+      LOG_TO_STDOUT: false,
+      NODE_ENV: "test",
+    });
+    log.info({
+      user: { password: "secret" },
+      session: { token: "abc" },
+    }, "redact-test");
     await Bun.sleep(50);
     log.flush();
     const content = readFileSync(logFile, "utf-8");
@@ -78,7 +106,12 @@ describe("createLogger", () => {
     // Earlier the redact paths were `*.password` / `*.token` etc. which only
     // matched one level below the root. A nested layout like the request
     // metadata bundle below would have leaked the cleartext credentials.
-    const log = createLogger({ LOG_LEVEL: "info", LOG_FILE: logFile, LOG_TO_STDOUT: false, NODE_ENV: "test" });
+    const log = createLogger({
+      LOG_LEVEL: "info",
+      LOG_FILE: logFile,
+      LOG_TO_STDOUT: false,
+      NODE_ENV: "test",
+    });
     log.info(
       {
         outer: {

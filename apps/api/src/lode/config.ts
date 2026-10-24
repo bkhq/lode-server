@@ -24,38 +24,52 @@ export interface LodeConfig {
 }
 
 function record(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
 }
 
 function str(value: unknown, max = 256): string | undefined {
   if (typeof value !== "string")
     return undefined;
   const trimmed = value.trim();
-  return trimmed && trimmed.length <= max ? trimmed : undefined;
+  return trimmed && trimmed.length <= max
+    ? trimmed
+    : undefined;
 }
 
 function num(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
 }
 
 function asset(value: unknown): string | undefined {
   const a = str(value);
-  return a && !a.includes("/") && !a.includes("\\") ? a : undefined;
+  return a && !a.includes("/") && !a.includes("\\")
+    ? a
+    : undefined;
 }
 
 function policy(value: unknown): LodeConfig["policy"] {
   const p = str(value);
-  return p === "off" || p === "check" || p === "auto" ? p : undefined;
+  return p === "off" || p === "check" || p === "auto"
+    ? p
+    : undefined;
 }
 
 function signature(value: unknown): LodeConfig["requireSignature"] {
   const s = str(value);
-  return s === "off" || s === "auto" || s === "enforce" ? s : undefined;
+  return s === "off" || s === "auto" || s === "enforce"
+    ? s
+    : undefined;
 }
 
 function githubSlug(value: unknown): string | undefined {
   const s = str(value);
-  return s && /^[\w.-]+\/[\w.-]+$/.test(s) ? s : undefined;
+  return s && /^[\w.-]+\/[\w.-]+$/.test(s)
+    ? s
+    : undefined;
 }
 
 // Show only the manifest host — the full URL may carry a path/token.

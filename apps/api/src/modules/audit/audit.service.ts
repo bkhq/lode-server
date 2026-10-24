@@ -47,7 +47,9 @@ export async function audit(db: AppDatabase, logger: Logger, params: AuditParams
       resourceType: params.resourceType,
       resourceId: params.resourceId,
       resourceName: params.resourceName,
-      detail: params.detail ? JSON.stringify(params.detail) : null,
+      detail: params.detail
+        ? JSON.stringify(params.detail)
+        : null,
       ip: params.ip,
       userAgent: params.userAgent,
       result: params.result,
@@ -104,9 +106,13 @@ export async function listAuditEvents(db: AppDatabase, params: ListAuditParams =
     conditions.push(lte(auditEvents.createdAt, to));
   }
 
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const where = conditions.length > 0
+    ? and(...conditions)
+    : undefined;
 
-  const totalRow = await db.select({ value: count() }).from(auditEvents).where(where).get();
+  const totalRow = await db.select({
+    value: count(),
+  }).from(auditEvents).where(where).get();
   const total = totalRow?.value ?? 0;
 
   const data = await db

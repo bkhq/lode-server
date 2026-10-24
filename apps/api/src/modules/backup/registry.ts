@@ -44,7 +44,9 @@ export function getDataModules(): Record<string, BackupContribution> {
 
 /** Sorted alphabetically so the `/api/backup/modules` payload is stable. */
 export function getModuleNames(): readonly string[] {
-  return [...contributions.keys()].sort();
+  return [
+    ...contributions.keys(),
+  ].sort();
 }
 
 /**
