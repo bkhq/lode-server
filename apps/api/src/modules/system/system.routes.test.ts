@@ -106,6 +106,7 @@ describe("guard layer", () => {
     ["POST", "/system/lode/update"],
     ["POST", "/system/lode/rollback"],
     ["POST", "/system/lode/hold"],
+    ["POST", "/system/lode/check"],
   ])("%s %s → 401 anonymous, 403 for a non-admin", async (method, path) => {
     const app = buildApp();
     expect((await app.request(path, { method })).status).toBe(401);
@@ -125,6 +126,15 @@ describe("guard layer", () => {
     const body = (await res.json()) as { data: { commit: string; version: string } };
     expect(typeof body.data.commit).toBe("string");
     expect(typeof body.data.version).toBe("string");
+  });
+
+  test("POST /system/lode/check is 409 when not under lode", async () => {
+    const admin = await sessionFor("admin");
+    const res = await buildApp().request("/system/lode/check", {
+      method: "POST",
+      headers: { Cookie: admin },
+    });
+    expect(res.status).toBe(409);
   });
 
   test("/metrics needs the metrics service token", async () => {

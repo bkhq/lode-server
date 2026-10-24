@@ -129,8 +129,22 @@ each upstream tag; your fork's `Unreleased` block sits at the top.
   cron gate exists because the scheduler holds its own per-job timers and a
   host that evicts the app when idle would drop jobs silently; such
   deployments drive jobs through `POST /api/cron/jobs/:id/trigger` instead.
+- The About tab's lode card names the supervising lode (version, commit and
+  the app-contract features it supports) and gains **Check for updates**,
+  backed by `POST /api/system/lode/check`: lode checks the update source now,
+  whatever `[update].policy` says, and the card polls until it answers, then
+  says whether a newer version is available. lode's check error is not passed
+  on. `/api/system/version` reports `lode.supervisor`, `canCheck` and
+  `checkPending`. A lode older than 0.3 does not report itself; the button is
+  hidden and the route answers 409 `LODE_CHECK_UNSUPPORTED`.
 
 ### Changed
+
+- The vendored lode SDK (`apps/api/src/lode/sdk.ts`) is v0.3.0 from
+  `bkhq/lode`, where lode now lives, and the image and CI signing step pull
+  `docker.io/bkhq/lode`. The SDK only adds to the state.json contract, so
+  existing readiness, prepare, restart, update, rollback and hold calls are
+  unchanged.
 
 - `/api/docs` no longer serves an API reference page. It redirects to an
   external viewer (`https://client.scalar.com/?url=`, set in `DOCS_VIEWER`)

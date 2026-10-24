@@ -1,8 +1,8 @@
 // Lode upgrade integration — the app's side of the lode supervisor contract,
-// built on the official single-file SDK (./sdk.ts, vendored from dotns/lode).
+// built on the official single-file SDK (./sdk.ts, vendored from bkhq/lode).
 //
 // The SDK owns the state.json protocol (atomic, flock-serialised RMW; readiness
-// and prepare handshake; restart/update/rollback/hold requests). This module is
+// and prepare handshake; restart/update/rollback/hold/check requests). This module is
 // the thin app glue: a read-only summary for /system/version, the operator
 // actions the admin UI calls, and the boot-time readiness/prepare wiring.
 
@@ -10,7 +10,7 @@ import type { LodeConfig } from "./config";
 import type { State } from "./sdk";
 import type { Logger } from "@/shared/lib/logger";
 import { readLodeConfig } from "./config";
-import { activeVersion, isSupervised, Lode, readiness } from "./sdk";
+import { activeVersion, isSupervised, Lode, lodeCommit, lodeFeatures, lodeVersion, readiness } from "./sdk";
 
 export type { LodeConfig, LodeConfigStatus } from "./config";
 
@@ -22,6 +22,14 @@ export interface LodeHistoryEntry {
   readonly result: "good" | "bad";
 }
 
+/** The lode binary supervising this app (lode >= 0.3 reports itself). */
+export interface LodeSupervisor {
+  readonly version: string;
+  readonly commit?: string;
+  /** App-contract features this lode supports (e.g. "check", "staged-cutover"). */
+  readonly features: readonly string[];
+}
+
 export interface LodeSummary {
   /** Running under the lode supervisor (LODE_DIR set). */
   readonly supervised: boolean;
@@ -29,6 +37,12 @@ export interface LodeSummary {
   readonly active: boolean;
   /** state.json was present and readable. */
   readonly stateAvailable: boolean;
+  /** The supervising lode, when it reports itself. */
+  readonly supervisor?: LodeSupervisor;
+  /** The supervisor can check the update source on demand. */
+  readonly canCheck: boolean;
+  /** An on-demand check was requested and lode has not answered it yet. */
+  readonly checkPending: boolean;
   readonly status?: string;
   readonly current?: string;
   readonly lastGood?: string;
@@ -53,11 +67,12 @@ export interface LodeSummary {
   readonly config: LodeConfig;
 }
 
-export type LodeActionStatus = "ok" | "not_active" | "no_target";
+export type LodeActionStatus = "ok" | "not_active" | "no_target" | "unsupported";
 
 export interface LodeActionResult {
   readonly status: LodeActionStatus;
   readonly restartNonce?: number;
+  readonly checkNonce?: number;
   readonly target?: string;
   readonly hold?: boolean;
 }
@@ -75,6 +90,24 @@ function clientOrNull(): Lode | null {
   catch {
     return null;
   }
+}
+
+// state.json's `lode` object is written once lode's loop starts; the LODE_*
+// env covers this launch before that. An older lode reports neither.
+function supervisorInfo(state: State | null): LodeSupervisor | undefined {
+  if (state?.lode)
+    return state.lode;
+  const version = lodeVersion();
+  if (!version)
+    return undefined;
+  const commit = lodeCommit();
+  return {
+    version,
+    ...(commit
+      ? { commit }
+      : {}),
+    features: lodeFeatures(),
+  };
 }
 
 // ─── Readiness / prepare (boot wiring in index.ts) ───
@@ -205,11 +238,19 @@ export function getLodeSummary(): LodeSummary {
   // Capture the env-derived helpers so they narrow under exactOptionalPropertyTypes.
   const launched = activeVersion();
   const readinessMode = readiness();
+  const supervisor = supervisorInfo(state);
 
   return {
     supervised,
     active: !!(supervised && lode?.instance),
     stateAvailable: state !== null,
+    ...(supervisor
+      ? { supervisor }
+      : {}),
+    canCheck: supervisor?.features.includes("check") ?? false,
+    // lode's check_error is deliberately not passed on: a check only reports
+    // whether a newer version is available.
+    checkPending: !!state && state.checkNonce > state.checkedNonce,
     ...(state?.status
       ? { status: state.status }
       : {}),
@@ -264,6 +305,20 @@ export function requestLodeRestart(): LodeActionResult {
   return {
     status: "ok",
     restartNonce: lode.reboot(),
+  };
+}
+
+/** Ask lode to check the update source now, whatever the update policy. */
+export function requestLodeCheck(): LodeActionResult {
+  const lode = clientOrNull();
+  if (!lode)
+    return { status: "not_active" };
+  // An older lode ignores check_nonce, so the check would never be answered.
+  if (!supervisorInfo(lode.read())?.features.includes("check"))
+    return { status: "unsupported" };
+  return {
+    status: "ok",
+    checkNonce: lode.requestCheck(),
   };
 }
 

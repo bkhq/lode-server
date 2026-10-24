@@ -45,7 +45,7 @@ The outer app serves:
 | Web | React, Vite, TanStack Router, TanStack Query |
 | Styling | Tailwind CSS |
 | Build | `scripts/package.ts` lode release asset (bundled `index.js` + SPA + migrations) |
-| Updates | [lode](https://github.com/dotns/lode) supervisor — download, verify, run, auto-update, rollback |
+| Updates | [lode](https://github.com/bkhq/lode) supervisor — download, verify, run, auto-update, rollback |
 | Authentication | External OAuth/OIDC provider with authorization code + PKCE |
 | Authorization | Local Zanzibar-style relation tuples |
 

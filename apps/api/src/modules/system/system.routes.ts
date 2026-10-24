@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import { BUILD_INFO } from "@/build-info";
-import { getLodeSummary, requestLodeRestart, requestLodeRollback, requestLodeUpdate, setLodeHold } from "@/lode";
+import { getLodeSummary, requestLodeCheck, requestLodeRestart, requestLodeRollback, requestLodeUpdate, setLodeHold } from "@/lode";
 import { audit } from "@/modules/audit/audit.service";
 import { getClientIp } from "@/shared/lib/client-ip";
 import { AppError } from "@/shared/lib/errors";
@@ -27,7 +27,7 @@ const lodeHoldSchema = z.object({
   hold: z.boolean(),
 });
 
-// All four lode operations are sensitive admin actions — record an audit event.
+// The lode operations are sensitive admin actions — record an audit event.
 async function auditLodeAction(c: Context<AppEnv>, action: string, detail: Record<string, unknown>): Promise<void> {
   const user = c.get("user")!;
   await audit(c.get("db"), c.get("logger"), {
@@ -180,6 +180,39 @@ export function systemRoutes() {
       return c.json({
         success: true,
         data: { status: "ok", restartNonce: result.restartNonce },
+      });
+    },
+  );
+
+  // Ask lode to check the update source now; the result lands in the summary
+  // (`available`) once `checkPending` clears.
+  router.post(
+    "/system/lode/check",
+    describeRoute({
+      tags: [TAGS.System],
+      summary: "Check for updates via lode",
+      description: "Bumps state.json `check_nonce` so lode checks the update source now, whatever the update policy. It only reports; apply with `/system/lode/update`. Admin only; 409 when not under lode or the supervisor predates on-demand checks.",
+      security: SECURITY.session,
+      responses: {
+        ...jsonOk(z.object({
+          status: z.literal("ok"),
+          checkNonce: z.number(),
+        }), "Check requested"),
+        ...errors(401, 403, 409),
+      },
+    }),
+    authRequired,
+    adminRequired,
+    async (c) => {
+      const result = requestLodeCheck();
+      if (result.status === "not_active")
+        lodeNotActive();
+      if (result.status === "unsupported")
+        throw new AppError("the lode supervisor does not support on-demand update checks", 409, "LODE_CHECK_UNSUPPORTED");
+      await auditLodeAction(c, "lode.check", { checkNonce: result.checkNonce });
+      return c.json({
+        success: true,
+        data: { status: "ok", checkNonce: result.checkNonce },
       });
     },
   );

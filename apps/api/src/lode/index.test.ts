@@ -7,6 +7,7 @@ import {
   captureLodeConfigBaseline,
   getLodeSummary,
   reportLodeServing,
+  requestLodeCheck,
   requestLodeRestart,
   requestLodeRollback,
   requestLodeUpdate,
@@ -18,6 +19,9 @@ const LODE_ENV = [
   "LODE_INSTANCE",
   "LODE_ACTIVE_VERSION",
   "LODE_READINESS",
+  "LODE_VERSION",
+  "LODE_COMMIT",
+  "LODE_FEATURES",
 ] as const;
 const saved: Record<string, string | undefined> = Object.fromEntries(LODE_ENV.map(k => [k, process.env[k]]));
 
@@ -47,6 +51,9 @@ beforeEach(() => {
     LODE_INSTANCE: "inst-1",
     LODE_ACTIVE_VERSION: undefined,
     LODE_READINESS: undefined,
+    LODE_VERSION: undefined,
+    LODE_COMMIT: undefined,
+    LODE_FEATURES: undefined,
   });
   captureLodeConfigBaseline(); // no state.json yet → baseline null
 });
@@ -108,6 +115,66 @@ describe("getLodeSummary", () => {
   });
 });
 
+describe("getLodeSummary supervisor", () => {
+  test("reads the supervising lode from state.json", () => {
+    writeState({
+      lode: {
+        version: "0.3.0",
+        commit: "0123456789ab",
+        features: ["target", "check"],
+      },
+    });
+    const s = getLodeSummary();
+    expect(s.supervisor).toEqual({
+      version: "0.3.0",
+      commit: "0123456789ab",
+      features: ["target", "check"],
+    });
+    expect(s.canCheck).toBe(true);
+  });
+
+  test("falls back to the LODE_* env before lode has written state.json", () => {
+    setEnv({ LODE_VERSION: "0.3.0", LODE_FEATURES: "target,restart" });
+    const s = getLodeSummary();
+    expect(s.supervisor).toEqual({
+      version: "0.3.0",
+      features: ["target", "restart"],
+    });
+    expect(s.canCheck).toBe(false);
+  });
+
+  test("omits the supervisor for an older lode that does not report itself", () => {
+    writeState({ current: "1.0.0" });
+    const s = getLodeSummary();
+    expect(s.supervisor).toBeUndefined();
+    expect(s.canCheck).toBe(false);
+  });
+
+  test("reports a pending check until lode answers the nonce, without its error", () => {
+    writeState({
+      lode: {
+        version: "0.3.0",
+        features: ["check"],
+      },
+      check_nonce: 2,
+      checked_nonce: 1,
+    });
+    expect(getLodeSummary().checkPending).toBe(true);
+    writeState({
+      lode: {
+        version: "0.3.0",
+        features: ["check"],
+      },
+      check_nonce: 2,
+      checked_nonce: 2,
+      check_error: "offline",
+    });
+    const s = getLodeSummary();
+    expect(s.checkPending).toBe(false);
+    expect(s).not.toHaveProperty("checkError");
+  });
+});
+
 describe("reportLodeServing", () => {
   test("writes the phase-0 serving token", async () => {
     writeState({ current: "1.0.0" });
@@ -162,11 +229,30 @@ describe("lode actions", () => {
     expect(rawState().hold).toBe(false);
   });
 
+  test("requestLodeCheck bumps check_nonce when lode supports it", () => {
+    writeState({
+      lode: {
+        version: "0.3.0",
+        features: ["check"],
+      },
+      check_nonce: 1,
+    });
+    expect(requestLodeCheck()).toEqual({ status: "ok", checkNonce: 2 });
+    expect(rawState().check_nonce).toBe(2);
+  });
+
+  test("requestLodeCheck is unsupported without the check feature", () => {
+    writeState({ current: "1.0.0" });
+    expect(requestLodeCheck()).toEqual({ status: "unsupported" });
+    expect(rawState().check_nonce).toBeUndefined();
+  });
+
   test("all actions no-op (not_active) when LODE_DIR is unset", () => {
     setEnv({ LODE_DIR: undefined });
     expect(requestLodeRestart().status).toBe("not_active");
     expect(requestLodeUpdate("latest").status).toBe("not_active");
     expect(requestLodeRollback().status).toBe("not_active");
     expect(setLodeHold(true).status).toBe("not_active");
+    expect(requestLodeCheck().status).toBe("not_active");
   });
 });

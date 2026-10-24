@@ -2,7 +2,7 @@
 # Sign the packaged lode asset with the key in LODE_SIGNING_KEY, producing
 # dist/<asset>.sig — the sidecar lode verifies against `trusted_keys`.
 #
-# lode-cli ships inside the dotns/lode image (the same one the Dockerfile
+# lode-cli ships inside the bkhq/lode image (the same one the Dockerfile
 # copies /usr/bin/lode from); pull it the same way rather than installing
 # a toolchain on the runner.
 #
@@ -13,7 +13,7 @@ set -euo pipefail
 : "${RELEASE_VERSION:?RELEASE_VERSION is required}"
 : "${LODE_SIGNING_KEY:?LODE_SIGNING_KEY is required}"
 
-LODE_IMAGE="${LODE_IMAGE:-docker.io/dotns/lode:latest}"
+LODE_IMAGE="${LODE_IMAGE:-docker.io/bkhq/lode:latest}"
 cid="$(docker create "$LODE_IMAGE")"
 trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
 docker cp "$cid:/usr/bin/lode" ./lode-cli

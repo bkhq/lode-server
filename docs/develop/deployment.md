@@ -2,7 +2,7 @@
 
 > Examples assume `BASE_PATH=/app`. The app is mounted at root (`/`) by default; set `BASE_PATH` to serve under a URL prefix (e.g. behind a reverse-proxy mount).
 
-The build target is a [lode](https://github.com/dotns/lode)-compatible release asset. lode is a supervisor that downloads, verifies, runs, auto-updates, and rolls back the asset; production pairs it with a reverse proxy and a persistent volume for the SQLite database and uploaded attachments.
+The build target is a [lode](https://github.com/bkhq/lode)-compatible release asset. lode is a supervisor that downloads, verifies, runs, auto-updates, and rolls back the asset; production pairs it with a reverse proxy and a persistent volume for the SQLite database and uploaded attachments.
 
 ## Build options
 
@@ -19,7 +19,7 @@ docker build -t myapp .
 
 The asset is a flat runtime directory: lode unpacks it, runs `bun index.js` from the version directory, and the app serves the SPA from `dist/` and runs Drizzle migrations from `drizzle/` on disk. `BUILD_COMMIT` / `BUILD_VERSION` / `BUILD_TIME` are injected at package time (from git + the release tag) so `app --version` and `/api/system/version` report the real values.
 
-The container image bakes only the lode binary on top of `oven/bun:1.4.2-debian` (override `BUN_IMAGE` / `LODE_IMAGE` build-args). The app itself is **not** in the image — lode fetches the release asset named by `deploy/lode.toml` (`[update].asset`) at runtime. See [Upgrade playbook](#upgrade-playbook) and the lode [integration guide](https://github.com/dotns/lode/blob/main/docs/integration.md).
+The container image bakes only the lode binary on top of `oven/bun:1.4.2-debian` (override `BUN_IMAGE` / `LODE_IMAGE` build-args). The app itself is **not** in the image — lode fetches the release asset named by `deploy/lode.toml` (`[update].asset`) at runtime. See [Upgrade playbook](#upgrade-playbook) and the lode [integration guide](https://github.com/bkhq/lode/blob/main/docs/integration.md).
 
 ## Required environment
 
@@ -316,7 +316,7 @@ The `/api/backup/export` admin endpoint produces a JSON dump of selected modules
 
 ## Upgrade playbook
 
-Updates are driven by [lode](https://github.com/dotns/lode). To publish one: bump the version, cut a GitHub Release with a `v*` tag, and the `release` workflow builds + uploads the lode asset (`<app>-linux-x64.tar.gz` + `manifest.json` + `checksums.txt`). Each deployed lode polls its source (`deploy/lode.toml` `[update]`) on `check_interval`, then — per `policy` (`off` / `check` / `auto`) — downloads, verifies the checksum (and signature when `[trust].require_signature` is set), runs the new version, waits out `health_grace`, and **auto-rolls-back** to the last good version if the new one exits early. `keep_versions` bounds the retained versions.
+Updates are driven by [lode](https://github.com/bkhq/lode). To publish one: bump the version, cut a GitHub Release with a `v*` tag, and the `release` workflow builds + uploads the lode asset (`<app>-linux-x64.tar.gz` + `manifest.json` + `checksums.txt`). Each deployed lode polls its source (`deploy/lode.toml` `[update]`) on `check_interval`, then — per `policy` (`off` / `check` / `auto`) — downloads, verifies the checksum (and signature when `[trust].require_signature` is set), runs the new version, waits out `health_grace`, and **auto-rolls-back** to the last good version if the new one exits early. `keep_versions` bounds the retained versions.
 
 **Sign your releases.** The checksum lives in the same release as the asset,
 so on its own it proves integrity, not origin — anyone who can publish a
