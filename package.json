@@ -16,7 +16,7 @@
   "catalog": {
     "@typescript/native": "npm:typescript@7.0.2",
     "typescript": "npm:@typescript/typescript6@6.0.2",
-    "vitest": "5.0.5"
+    "vitest": "5.1.0"
   },
   "scripts": {
     "dev": "bun run --filter '@app/*' dev",
@@ -52,7 +52,7 @@
     "eslint": "10.13.0",
     "eslint-plugin-react-hooks": "7.1.1",
     "eslint-plugin-react-refresh": "0.5.7",
-    "otpauth": "9.5.2",
+    "otpauth": "9.6.0",
     "typescript": "catalog:"
   },
   "overrides": {
