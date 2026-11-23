@@ -46,12 +46,12 @@
   "devDependencies": {
     "@antfu/eslint-config": "10.0.0",
     "@app/tsconfig": "workspace:*",
-    "@eslint-react/eslint-plugin": "5.28.8",
+    "@eslint-react/eslint-plugin": "5.30.5",
     "@nsio/nsl": "0.1.7",
     "consola": "3.4.2",
-    "eslint": "10.13.0",
+    "eslint": "10.15.0",
     "eslint-plugin-react-hooks": "7.1.1",
-    "eslint-plugin-react-refresh": "0.5.7",
+    "eslint-plugin-react-refresh": "0.5.8",
     "otpauth": "9.5.2",
     "typescript": "catalog:"
   },
